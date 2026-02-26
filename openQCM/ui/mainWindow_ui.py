@@ -549,11 +549,19 @@ class Ui_Main(object):
         # =====================================================================
         # LEFT SIDEBAR - Minimal Controls
         # =====================================================================
+        # Scroll area as outer container (goes into splitter)
+        self.leftSidebarScrollArea = QtWidgets.QScrollArea()
+        self.leftSidebarScrollArea.setMinimumWidth(180)
+        self.leftSidebarScrollArea.setMaximumWidth(280)
+        self.leftSidebarScrollArea.setWidgetResizable(True)
+        self.leftSidebarScrollArea.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff)
+        self.leftSidebarScrollArea.setFrameShape(QtWidgets.QFrame.NoFrame)
+
+        # Inner content widget
         self.leftSidebarWidget = QtWidgets.QWidget()
-        self.leftSidebarWidget.setMinimumWidth(180)
-        self.leftSidebarWidget.setMaximumWidth(280)
         self.leftSidebarLayout = QtWidgets.QVBoxLayout(self.leftSidebarWidget)
-        self.leftSidebarLayout.setContentsMargins(8, 8, 8, 8)
+        self.leftSidebarLayout.setContentsMargins(8, 8, 16, 8)
         self.leftSidebarLayout.setSpacing(12)
 
         # -----------------------------------------------------------------
@@ -620,7 +628,7 @@ class Ui_Main(object):
         # -----------------------------------------------------------------
         self.grpReadings = QtWidgets.QGroupBox("Current Readings")
         self.grpReadingsLayout = QtWidgets.QVBoxLayout(self.grpReadings)
-        self.grpReadingsLayout.setSpacing(4)
+        self.grpReadingsLayout.setSpacing(6)
         self.grpReadingsLayout.setContentsMargins(10, 18, 10, 10)
 
         self.l7 = self._create_data_row("Frequency", "---")
@@ -720,8 +728,9 @@ class Ui_Main(object):
         self.l3 = QtWidgets.QLabel()
         self.l3.hide()
 
-        # Add left sidebar to splitter
-        self.mainSplitter.addWidget(self.leftSidebarWidget)
+        # Add left sidebar to splitter (via scroll area)
+        self.leftSidebarScrollArea.setWidget(self.leftSidebarWidget)
+        self.mainSplitter.addWidget(self.leftSidebarScrollArea)
 
         # =====================================================================
         # CENTER - Plots and Tabs
@@ -1088,7 +1097,7 @@ class Ui_Main(object):
         """Create a label-value row widget."""
         widget = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(widget)
-        layout.setContentsMargins(0, 2, 0, 2)
+        layout.setContentsMargins(0, 4, 0, 4)
         layout.setSpacing(8)
 
         label = QtWidgets.QLabel(label_text)
@@ -1175,7 +1184,7 @@ class Ui_Main(object):
         """
         if checked:
             # Show left panel
-            self.leftSidebarWidget.show()
+            self.leftSidebarScrollArea.show()
             # Restore reasonable sizes
             total_width = self.mainSplitter.width()
             self.mainSplitter.setSizes([200, total_width - 200])
@@ -1450,6 +1459,7 @@ class Ui_Main(object):
             #dataValue {
                 color: #ffffff;
                 font-weight: bold;
+                font-size: 13px;
             }
 
             QCheckBox {
@@ -1470,6 +1480,11 @@ class Ui_Main(object):
 
             QLabel {
                 color: #e0e0e0;
+                background: transparent;
+            }
+
+            QScrollArea {
+                border: none;
                 background: transparent;
             }
 
@@ -1740,6 +1755,7 @@ class Ui_Main(object):
             #dataValue {
                 color: #000000;
                 font-weight: bold;
+                font-size: 13px;
             }
 
             QCheckBox {
@@ -1759,6 +1775,11 @@ class Ui_Main(object):
 
             QLabel {
                 color: #333333;
+                background: transparent;
+            }
+
+            QScrollArea {
+                border: none;
                 background: transparent;
             }
 
