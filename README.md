@@ -1,198 +1,202 @@
-# OPENQCM
+# openQCM Q-1
 
-## Name
-openQCM Q-1 GUI Software
+**Real-time GUI software for the openQCM Q-1 quartz crystal microbalance**
 
-## Programming language
-Python
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Python 3.6+](https://img.shields.io/badge/Python-3.6%2B-blue.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
-## Version
-3.0
-
-## Date
-February 2026
-
-## Author
-openQCM Team
-
-## Supporting and powering the openQCM project
-Novaetech S.r.l
-
-## Description
-An open-source Python application, to display, process and store data in real-time from the openQCM Q-1 Device.
-The main functionality of the software is the real-time monitoring of frequency and dissipation variations
-of a quartz crystal microbalance through the analysis of the resonance curve.
-The application uses the multiprocessing package (https://docs.python.org/3/library/multiprocessing.html).
-- includes internal and external packages
+An open-source Python application to display, process, and store data in real-time from the [openQCM Q-1](https://openqcm.com/) device. The software monitors resonance frequency and dissipation variations of a quartz crystal microbalance through real-time analysis of the resonance curve.
 
 ---
 
-## History Changes
+## Features
 
-### Version 2.1.1 (Alpha) - Development Notes
+### Real-Time Data Acquisition
+- Serial port connection to the openQCM Q-1 device with automatic port detection
+- Multiprocessing architecture for non-blocking acquisition and UI rendering
+- Support for **5 MHz** and **10 MHz** quartz crystal sensors
+- Configurable sampling with multiple overtones (Fundamental, 3rd, 5th, 7th)
 
-#### Major Developments
+### Dual Operating Modes
+- **Measurement Mode** — Continuous frequency sweep acquisition with real-time resonance frequency and dissipation tracking
+- **Peak Detection Mode** — Automatic identification of resonance peaks across the full frequency spectrum
 
-**1. Unified Single Window Interface**
-- Consolidated the original three-window architecture into a single, unified main window
-- Previous: Separate windows for Controls, Plots, and Info
-- Current: Single `MainWindow` with integrated layout
-  - Left sidebar: Device controls and configuration
-  - Center: Real-time plots (Amplitude/Phase, Frequency/Dissipation, Temperature)
-  - Right sidebar: Live data values and software information
+### Real-Time Plotting
+- **Amplitude / Phase** sweep (dual Y-axis)
+- **Resonance Frequency / Dissipation** time series (dual Y-axis)
+- **Temperature** monitoring
+- Interactive zoom, pan, auto-scale, and measurement cursors
 
-**2. Dark/Light Theme System**
-- Complete theme switching capability implemented via View menu
-- **Dark Theme** (default): Dark background (#2b2b2b) optimized for lab environments
-- **Light Theme**: White background (#ffffff) for bright conditions
-- Automatic updates for:
-  - Qt widget stylesheets
-  - PyQtGraph plot backgrounds
-  - Axis colors and labels
-  - Legend backgrounds with transparency
-  - Curve colors (darker variants for light theme visibility)
+### Data Analysis Tools
+- **Raw Data View** — Live visualization of the current frequency sweep with:
+  - SG-filtered data points (scatter)
+  - Spline interpolation fit (smooth curve)
+  - Peak maximum marker
+  - -3 dB bandwidth region highlighting (dissipation measurement)
+  - Real-time Q-factor and dissipation readout
+- **Log Data View** — Load and visualize previously recorded CSV data files
+- **Measurement Cursors** — Dual draggable cursors with delta readout for frequency and dissipation
 
-**3. CPU Optimization with setData()**
-- Significant performance improvement in real-time plot updates
-- Previous: `clear()` + `plot()` pattern on each timer tick (200ms)
-- Current: Persistent `PlotCurveItem` objects reused with `setData()`
-- Benefits:
-  - Eliminates continuous memory allocation/deallocation
-  - Reduces CPU overhead during real-time monitoring
-  - Smoother plot updates
+### Auto-Tracking
+Automatically recalculates the sweep frequency window when the resonance frequency drifts beyond a configurable threshold, ensuring the peak remains centered in the measurement range.
 
-#### Minor Developments
+### Data Logging
+- Automatic CSV export with millisecond-precision timestamps
+- Columns: Date, Time, Relative Time, Temperature, Resonance Frequency, Dissipation
+- Timestamped filenames for organized data management
 
-**UI/UX Improvements**
-- Simplified ComboBox styling: Clean, minimal dropdown menus without visual artifacts
-- Dynamic width adjustment: ComboBoxes adapt to content
-- Transparent backgrounds: Removed black fill under Mode/Port/Frequency labels
-- Standardized axis fonts: Uniform gray (#a0a0a0) for all axis labels
-- Plot grid: Added subtle grid (alpha=0.3) to all plots for better readability
-- Legends: Added legends to distinguish curves in all plots
+### User Interface
+- Unified single-window layout with left sidebar (controls), center (plots), and right sidebar (readings)
+- **Dark / Light theme** switching optimized for lab environments
+- Integrated **System Log** tab with timestamped console messages
+- Reference tracking for baseline comparison
 
-**Theme-Specific Curve Colors**
+---
 
-Light theme uses darker, more visible colors:
+## Installation
 
-| Curve | Dark Theme | Light Theme |
-|-------|------------|-------------|
-| Frequency | Original | #0066cc (Dark Blue) |
-| Dissipation | Original | #cc6600 (Dark Orange) |
-| Frequency (ref) | Original | #009933 (Dark Green) |
-| Dissipation (ref) | Original | #990066 (Dark Magenta) |
-| Temperature | Original | #cc3300 (Dark Red-Orange) |
+### Requirements
 
-**Data Display**
-- Data values in indicators remain black in light theme for optimal readability
-- Status indicators maintain visibility across both themes
+- Python 3.6 or later
+- openQCM Q-1 device connected via USB
 
-#### Technical Notes
+### Install Dependencies
 
-**Timer Configuration**
-- Plot update interval: 200ms (5 Hz refresh rate)
-- Configured in `_configure_timers()` method
-
-**Persistent Curve Objects**
-
-Initialized in `_configure_plot()`:
-```python
-self._curve_amplitude    # Amplitude curve (plt0)
-self._curve_phase        # Phase curve (plt1)
-self._curve_frequency    # Resonance frequency curve (plt2)
-self._curve_dissipation  # Dissipation curve (plt3)
-self._curve_temperature  # Temperature curve (plt4)
+```bash
+pip install -r requirements.txt
 ```
 
-**Theme Switching**
+Or install individually:
 
-Accessible via: View > Theme > Dark Theme / Light Theme
+```bash
+pip install PyQt5 pyserial pyqtgraph numpy scipy
+```
+
+### Linux — Serial Port Permissions
+
+On Linux, grant access to the serial port:
+
+```bash
+sudo usermod -a -G dialout $USER
+sudo usermod -a -G uucp $USER
+```
+
+Log out and log back in for changes to take effect.
 
 ---
-
-### Version 2.1
-- optimized the performance of the calibration operation mode, by displaying the acquired signal in blocks
-- optimized interaction with the real-time data graph, by refreshing the timer update at 200ms
-- fixed some analyzed bug when the application runs Mac and Linux
-- optimized warning in case of error/fault in calibration operation mode
-
----
-
-## Intended Audience
-Science/Research/Engineering
-
-## Software Development
-User Interfaces
-
-## Requirements
-Requirements:
-- Python 3.7 (verified compatibility with Python 3.6) (https://www.python.org/).
-- Anaconda3-5.3.0
-     External Packages:
-     - PyQt5 (https://pypi.org/project/PyQt5/).
-     - PySerial 3.4 (https://pypi.org/project/pyserial/).
-     - PyQtGraph 0.10.0 (http://www.pyqtgraph.org/).
-     - progressbar 2.5 (https://pypi.org/project/progressbar/).
-
-
-## Other used internal packages:
-- multiprocessing, numpy, scipy, setuptools, io, platform, sys, enum, argparse, cvs, time, datetime, logging, etc.
-
-## Installation instructions/guide:
-Download openQCM QQ-1 Python application version 2.0 here: https://openqcm.com/shared/q-1/openQCM_Q-1_py_v2.0.zip
-Using Anaconda3
-Windows, macOS
-  1.  Download and install Anaconda3 for Python 3.7 version Anaconda3-5.3.0  https://www.anaconda.com/download/
-  2.  During Anaconda3 installation select the check mark shown in the figure below:
-
-  3.  Open Anaconda3 prompt (Windows) or terminal (macOS) and type (install/upgrade Python packages) :
-        conda install pyqtgraph pyserial
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade h5py
-        pip install progressbar
-
-Linux
-  1.  Type the command below by replacing username with that of your pc change permission of
-                Anaconda3
-        sudo chown -R username:username /home/username/anaconda3
-  2.  Open Anaconda3 terminal  and type (install/upgrade Python packages) :
-        conda install pyqtgraph pyserial
-        pip install --upgrade pip --user
-        pip install progressbar --user
-  3.  Set permission on serial port
-        sudo usermod -a -G uucp username
-        sudo usermod -a -G dialout username
-  4.  Logout and Login
-
 
 ## Usage
-Start the application from Anaconda3 prompt
-1.  Launch Anaconda3 prompt
-2.  Browse to the openQCM Q-1 Python software main directory
-    ...\openQCM_Q-1_py_v2.0\OPENQCM\
-3.  Start the application main GUI by typing the command
-pyhton – m openQCM
 
-Start the application double-click app.py file
-You can make executable and launch app.py Python file
-1.    Browse to the openQCM Q-1 Python software main directory
-      ...\openQCM_Q-1_py_v2.0\OPENQCM\
-2.    Right click on app.py file -> open with -> choose another app in this PC
-3.    Browse to Anaconda3 directory on your PC
-      C:\Users\[your_user_name]\Anaconda3
-4.    Select python.exe executable file
-5.    Double-click on app.py file in the OPENQCM Python software main directory (see folders and program files below)
+### Run the Application
 
-## Links
-- [website] https://openqcm.com/
-- [github]  https://github.com/openQCM
+```bash
+cd openQCM_Q-1
+python run.py
+```
 
-## Contact
-- [mail] info@openqcm.com
+Or as a Python module:
 
-## License and Citations
-The project is distributed under GNU GPLv3 (General Public License).
+```bash
+cd openQCM_Q-1
+python -m openQCM
+```
+
+### Quick Start
+
+1. Connect the openQCM Q-1 device via USB
+2. Launch the application
+3. Select the serial port from the dropdown and click **Connect**
+4. Choose the quartz crystal frequency (5 MHz or 10 MHz) and overtone
+5. Click **START** to begin acquisition
+
+### Build Standalone Executable
+
+```bash
+pip install pyinstaller
+cd openQCM_Q-1
+pyinstaller openQCM_Q-1.spec
+```
+
+The executable will be generated in `dist/openQCM_Q-1/`.
 
 ---
 
-*Version 2.1.1 development assisted by Claude Code*
+## Project Structure
+
+```
+openQCM_Q-1/
+├── run.py                  # Application entry point
+├── requirements.txt        # Python dependencies
+├── openQCM_Q-1.spec        # PyInstaller build configuration
+├── openQCM/                # Main Python package
+│   ├── app.py              # Application bootstrap
+│   ├── core/
+│   │   ├── constants.py    # Configuration parameters
+│   │   ├── worker.py       # Multiprocessing management
+│   │   └── ringBuffer.py   # Circular buffer for time series
+│   ├── processors/
+│   │   ├── Serial.py       # Device communication and signal processing
+│   │   ├── Parser.py       # Data queue distribution
+│   │   └── Calibration.py  # Peak detection routines
+│   ├── ui/
+│   │   ├── mainWindow.py   # Main window controller
+│   │   ├── mainWindow_ui.py# UI layout, stylesheets, and dialogs
+│   │   └── popUp.py        # Notification dialogs
+│   ├── common/             # Utilities (logging, file I/O, OS detection)
+│   ├── Calibration_5MHz.txt
+│   └── Calibration_10MHz.txt
+├── icons/                  # Application icons
+├── logged_data/            # CSV data output directory
+└── docs/                   # License files
+```
+
+---
+
+## Architecture
+
+The application uses a **multiprocessing pipeline** to separate data acquisition from the UI:
+
+```
+┌──────────────┐    Queue 1-6    ┌────────────┐    Buffers    ┌──────────────┐
+│ SerialProcess │ ─────────────> │   Worker    │ ──────────> │  MainWindow  │
+│ (child proc.) │                │ (consumer)  │              │ (Qt UI loop) │
+└──────────────┘                └────────────┘              └──────────────┘
+      │                                                            │
+   Serial Port                                              PyQtGraph Plots
+   (openQCM Q-1)                                            CSV Export
+```
+
+- **SerialProcess** — Runs in a separate OS process; reads raw ADC data, applies baseline correction, Savitzky-Golay filtering, spline interpolation, and peak/bandwidth computation
+- **Worker** — Consumes multiprocessing queues and stores data in ring buffers
+- **MainWindow** — Qt timer (50 ms) reads buffers and updates plots using efficient `setData()` calls
+
+---
+
+## Version History
+
+| Version | Date | Highlights |
+|---------|------|------------|
+| **3.0** | February 2026 | Unified single-window UI, dark/light themes, auto-tracking, Raw Data View, measurement cursors, CSV timestamp precision fix, Peak Detection restart fix, performance optimizations |
+| 2.1 | 2024 | Calibration optimization, 200 ms plot refresh, macOS/Linux fixes |
+| 2.0 | 2020 | Initial Python implementation |
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed development notes.
+
+---
+
+## License
+
+This project is distributed under the [GNU General Public License v3.0](LICENSE).
+
+---
+
+## Links
+
+- **Website**: [openqcm.com](https://openqcm.com/)
+- **GitHub**: [github.com/openQCM](https://github.com/openQCM)
+- **Contact**: info@openqcm.com
+
+**Developed by** [openQCM Team](https://openqcm.com/) / [Novaetech S.r.l](https://openqcm.com/)
+
+*Version 3.0 development assisted by [Claude Code](https://claude.ai/)*
