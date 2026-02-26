@@ -210,11 +210,11 @@ class DataViewerDialog(QtWidgets.QDialog):
             self._info_label.setText("{} data points | Duration: {:.1f} min ({:.0f} s)".format(
                 len(t), duration_min, duration_s))
 
-            # Plot Frequency
-            self._plt_freq.plot(t, freq, pen=pg.mkPen('#ff0000', width=1), name='Resonance Frequency')
+            # Plot Frequency (blue)
+            self._plt_freq.plot(t, freq, pen=pg.mkPen('#008EC0', width=1), name='Resonance Frequency')
 
-            # Plot Dissipation
-            self._plt_diss.plot(t, diss, pen=pg.mkPen('#0072bd', width=1), name='Dissipation')
+            # Plot Dissipation (brown)
+            self._plt_diss.plot(t, diss, pen=pg.mkPen('#DD8E6B', width=1), name='Dissipation')
 
         except Exception as e:
             self._info_label.setText("Error loading file: {}".format(str(e)))

@@ -45,7 +45,7 @@ class Constants:
     # PLOT parameters #
     ###################
     plot_update_ms = 50  # Timer polling interval in ms (was 200ms)
-    plot_colors = ['#ff0000', '#0072bd', '#00ffff', '#edb120', '#7e2f8e', '#77ac30', '#4dbeee', '#a2142f'] 
+    plot_colors = ['#ff0000', '#0072bd', '#008EC0', '#DD8E6B', '#7e2f8e', '#77ac30', '#4dbeee', '#a2142f']
     plot_max_lines = len(plot_colors)
     
     

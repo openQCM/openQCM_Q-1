@@ -117,11 +117,7 @@ class MainWindow(QtGui.QMainWindow):
         self._curve_dissipation = None    # Dissipation curve (plt3)
         self._curve_temperature = None    # Temperature curve (plt4)
 
-        # Theme-specific curve colors (initialized to dark theme defaults)
-        self._theme_freq_color = None
-        self._theme_diss_color = None
-        self._theme_freq_ref_color = None
-        self._theme_diss_ref_color = None
+        # Theme-specific curve color (only temperature changes with theme)
         self._theme_temp_color = None
 
         # =============================================================================
@@ -1098,14 +1094,8 @@ class MainWindow(QtGui.QMainWindow):
                 if np.any(valid_mask):
                     first_valid = t1_buffer[valid_mask][0]
                     self._xaxis.set_start_time(first_valid)
-            # Use theme-specific color if set, otherwise use default
-            freq_ref_color = self._theme_freq_ref_color if self._theme_freq_ref_color else Constants.plot_colors[6]
-            self._curve_frequency.setPen(freq_ref_color)
             self._vector_2 = np.array(self.worker.get_d2_buffer())-self._reference_value_dissipation
             self._curve_dissipation.setData(x=self.worker.get_t2_buffer(), y=self._vector_2)
-            # Use theme-specific color if set, otherwise use default
-            diss_ref_color = self._theme_diss_ref_color if self._theme_diss_ref_color else Constants.plot_colors[7]
-            self._curve_dissipation.setPen(diss_ref_color)
 
             ###################################################################
             # Temperature plot - using setData() for efficiency
@@ -1158,13 +1148,7 @@ class MainWindow(QtGui.QMainWindow):
                 if np.any(valid_mask):
                     first_valid = t1_buffer[valid_mask][0]
                     self._xaxis.set_start_time(first_valid)
-            # Use theme-specific color if set, otherwise use default
-            freq_color = self._theme_freq_color if self._theme_freq_color else Constants.plot_colors[2]
-            self._curve_frequency.setPen(freq_color)
             self._curve_dissipation.setData(x=self.worker.get_t2_buffer(), y=self.worker.get_d2_buffer())
-            # Use theme-specific color if set, otherwise use default
-            diss_color = self._theme_diss_color if self._theme_diss_color else Constants.plot_colors[3]
-            self._curve_dissipation.setPen(diss_color)
 
             ##############################
             # Add  lines with labels
@@ -1567,30 +1551,13 @@ class MainWindow(QtGui.QMainWindow):
         self._legend4.setBrush(pg.mkBrush(legend_bg))
         self._legend4.setPen(pg.mkPen(legend_border))
 
-        # Update curve colors for better visibility based on theme
-        # Store theme-specific colors for use in _update_plot
+        # Update temperature curve color based on theme
+        # Frequency and Dissipation colors remain constant across themes
         if theme == 'light':
-            # Light theme: use darker, more visible colors
-            self._theme_freq_color = '#0066cc'      # Dark blue for frequency
-            self._theme_diss_color = '#cc6600'      # Dark orange for dissipation
-            self._theme_freq_ref_color = '#009933'  # Dark green for ref frequency
-            self._theme_diss_ref_color = '#990066'  # Dark magenta for ref dissipation
             self._theme_temp_color = '#000000'      # Black for temperature in light mode
         else:
-            # Dark theme: use bright colors for visibility
-            self._theme_freq_color = Constants.plot_colors[2]
-            self._theme_diss_color = Constants.plot_colors[3]
-            self._theme_freq_ref_color = Constants.plot_colors[6]
-            self._theme_diss_ref_color = Constants.plot_colors[7]
             self._theme_temp_color = '#ffffff'      # White for temperature in dark mode
 
-        # Apply new colors to existing curves
-        if not self._reference_flag:
-            self._curve_frequency.setPen(self._theme_freq_color)
-            self._curve_dissipation.setPen(self._theme_diss_color)
-        else:
-            self._curve_frequency.setPen(self._theme_freq_ref_color)
-            self._curve_dissipation.setPen(self._theme_diss_ref_color)
         self._curve_temperature.setPen(self._theme_temp_color)
 
         print(TAG, f"Theme switched to: {theme}", end='\r')
