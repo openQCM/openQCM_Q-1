@@ -1293,20 +1293,21 @@ class MainWindow(QtGui.QMainWindow):
         """
         Try to acquire an exclusive lock on the serial port using a lock file.
         Returns True if lock acquired, False if port is already locked.
-        Cross-platform: uses fcntl on Unix, msvcrt on Windows.
+        On Windows: skipped (COM ports are natively exclusive).
+        On Unix: uses fcntl.flock() for file-based locking.
         """
+        # Windows COM ports are natively exclusive — no file lock needed
+        if sys.platform == 'win32':
+            return True
+
+        import fcntl
         lock_path = self._get_lock_file_path(port)
 
         try:
             # Open (or create) the lock file
             self._lock_file = open(lock_path, 'w')
             # Try to acquire exclusive lock (non-blocking)
-            if sys.platform == 'win32':
-                import msvcrt
-                msvcrt.locking(self._lock_file.fileno(), msvcrt.LK_NBLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             # Write PID to lock file for debugging
             self._lock_file.write(str(os.getpid()))
             self._lock_file.flush()
@@ -1321,19 +1322,17 @@ class MainWindow(QtGui.QMainWindow):
     def _release_port_lock(self):
         """
         Release the exclusive lock on the serial port.
-        Cross-platform: uses fcntl on Unix, msvcrt on Windows.
+        On Windows: no-op (no file lock was acquired).
+        On Unix: releases fcntl.flock().
         """
+        # Windows: nothing to release
+        if sys.platform == 'win32':
+            return
+
         if hasattr(self, '_lock_file') and self._lock_file:
             try:
-                if sys.platform == 'win32':
-                    import msvcrt
-                    try:
-                        msvcrt.locking(self._lock_file.fileno(), msvcrt.LK_UNLCK, 1)
-                    except OSError:
-                        pass
-                else:
-                    import fcntl
-                    fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_UN)
+                import fcntl
+                fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_UN)
                 self._lock_file.close()
             except Exception as e:
                 print(TAG, "Warning: Error releasing lock file: {}".format(str(e)))
