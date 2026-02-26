@@ -202,12 +202,12 @@ class MainWindow(QtGui.QMainWindow):
         # Use the connected port
         port = self._connected_port
 
-        # For Peak Detection: release serial lock so CalibrationProcess can access the port.
+        # Release serial lock so the child process can access the port.
+        # On Windows, COM ports are truly exclusive — only one handle can open them.
         # The lock will be reacquired in stop() after the process terminates.
-        if self._get_source() == SourceType.calibration:
-            if self._serial_lock is not None and self._serial_lock.isOpen():
-                self._serial_lock.close()
-                print(TAG, "Serial lock released for Peak Detection")
+        if self._serial_lock is not None and self._serial_lock.isOpen():
+            self._serial_lock.close()
+            print(TAG, "Serial lock released for acquisition")
 
         # Instantiates process
         self.worker = Worker(QCS_on = self._QCS_installed,
@@ -348,9 +348,8 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.pButton_Autoscale.setEnabled(False)
         self._enable_ui(True)
         self.worker.stop()
-        # For Peak Detection: wait for process to terminate and reacquire serial lock
-        if self._get_source() == SourceType.calibration:
-            self._finalize_calibration_stop()
+        # Wait for process to terminate and reacquire serial lock
+        self._finalize_acquisition_stop()
 
     ###########################################################################
     # Overrides the QTCloseEvent,is connected to the close button of the window
@@ -408,12 +407,12 @@ class MainWindow(QtGui.QMainWindow):
 
 
     ###########################################################################
-    # Waits for CalibrationProcess to terminate and reacquires serial lock.
-    # Called after stop() when source is Peak Detection (calibration).
+    # Waits for acquisition process to terminate and reacquires serial lock.
+    # Called after stop() for both Measurement and Peak Detection modes.
     ###########################################################################
-    def _finalize_calibration_stop(self):
+    def _finalize_acquisition_stop(self):
         """
-        After signaling the CalibrationProcess to stop, this method:
+        After signaling the acquisition process to stop, this method:
         1. Waits for the process to actually terminate (max 5s, then force-kill)
         2. Reacquires _serial_lock so the port is protected for the next start
         """
@@ -429,8 +428,8 @@ class MainWindow(QtGui.QMainWindow):
                         self._serial_lock = serial.Serial(self._connected_port, timeout=1, exclusive=True)
                     except TypeError:
                         self._serial_lock = serial.Serial(self._connected_port, timeout=1)
-                    print(TAG, "Serial lock reacquired after Peak Detection")
-                    Log.i(TAG, "Serial lock reacquired after Peak Detection")
+                    print(TAG, "Serial lock reacquired after acquisition")
+                    Log.i(TAG, "Serial lock reacquired after acquisition")
                 except serial.SerialException as e:
                     print(TAG, "WARNING: Failed to reacquire serial lock: {}".format(str(e)))
                     Log.w(TAG, "Failed to reacquire serial lock: {}".format(str(e)))
