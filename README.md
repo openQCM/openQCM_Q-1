@@ -58,10 +58,48 @@ Automatically recalculates the sweep frequency window when the resonance frequen
 
 ### Requirements
 
-- Python 3.6 or later
+- Python 3.9
+- Anaconda or Miniconda
 - openQCM Q-1 device connected via USB
 
-### Install Dependencies
+### Recommended: Automated Environment Setup
+
+The project includes an automated setup script that creates a conda environment with the exact tested dependency versions. This is the recommended method as it ensures full compatibility across platforms.
+
+```bash
+cd openQCM_Q-1
+chmod +x setup_env.sh
+./setup_env.sh
+```
+
+The script automatically:
+- Detects your platform (macOS, Linux, Windows) and CPU architecture
+- Handles Apple Silicon Macs via Rosetta 2 (x86_64 packages)
+- Creates a `openqcm` conda environment with pinned dependency versions
+- Verifies the installation
+
+After setup, run the application with:
+
+```bash
+/path/to/anaconda3/envs/openqcm/bin/python run.py
+```
+
+Or activate the environment first:
+
+```bash
+conda activate openqcm
+python run.py
+```
+
+You can also create the environment directly from the `environment.yml` file:
+
+```bash
+conda env create -f environment.yml
+```
+
+> **Note for Apple Silicon (M1/M2/M3) users**: the environment uses x86_64 packages via Rosetta 2 for compatibility with PyQt 5.9. Rosetta 2 must be installed on your system.
+
+### Alternative: pip install
 
 ```bash
 pip install -r requirements.txt
@@ -72,6 +110,8 @@ Or install individually:
 ```bash
 pip install PyQt5 pyserial pyqtgraph numpy scipy
 ```
+
+> **Note**: pip install uses the latest available versions, which may cause compatibility issues. The conda environment method above is recommended.
 
 ### Linux — Serial Port Permissions
 
@@ -127,7 +167,9 @@ The executable will be generated in `dist/openQCM_Q-1/`.
 ```
 openQCM_Q-1/
 ├── run.py                  # Application entry point
-├── requirements.txt        # Python dependencies
+├── setup_env.sh            # Automated conda environment setup
+├── environment.yml         # Conda environment specification
+├── requirements.txt        # Python dependencies (pip)
 ├── openQCM_Q-1.spec        # PyInstaller build configuration
 ├── openQCM/                # Main Python package
 │   ├── app.py              # Application bootstrap

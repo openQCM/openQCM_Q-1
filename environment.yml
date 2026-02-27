@@ -1,0 +1,17 @@
+name: openqcm
+channels:
+  - defaults
+
+dependencies:
+  - python=3.9.12
+  - pyqt=5.9.2
+  - qt=5.9.7
+  - sip=4.19.13
+  - pyqtgraph=0.11.0
+  - numpy=1.21.5
+  - scipy=1.7.3
+  - pyserial=3.5
+  - pandas=1.4.2
+  - lxml
+  - pip:
+    - progressbar==2.5
