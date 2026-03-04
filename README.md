@@ -15,12 +15,12 @@ An open-source Python application to display, process, and store data in real-ti
 ### Real-Time Data Acquisition
 - Serial port connection to the openQCM Q-1 device with automatic port detection
 - Multiprocessing architecture for non-blocking acquisition and UI rendering
-- Support for **5 MHz** and **10 MHz** quartz crystal sensors
-- Configurable sampling with multiple overtones (Fundamental, 3rd, 5th, 7th)
+- Support for **3 MHz**, **5 MHz**, and **10 MHz** quartz crystal sensors
+- Configurable sampling with multiple overtones (Fundamental, 3rd, 5th, 7th, 9th)
 
 ### Dual Operating Modes
 - **Measurement Mode** — Continuous frequency sweep acquisition with real-time resonance frequency and dissipation tracking
-- **Peak Detection Mode** — Automatic identification of resonance peaks across the full frequency spectrum
+- **Peak Detection Mode** — Automatic identification of resonance peaks across the full frequency spectrum with QCM type auto-detection and phase cross-validation (v0.1.6 algorithm)
 
 ### Real-Time Plotting
 - **Amplitude / Phase** sweep (dual Y-axis)
@@ -36,7 +36,15 @@ An open-source Python application to display, process, and store data in real-ti
   - -3 dB bandwidth region highlighting (dissipation measurement)
   - Real-time Q-factor and dissipation readout
 - **Log Data View** — Load and visualize previously recorded CSV data files
+- **Peak Data View** — Post-calibration diagnostic plots showing amplitude and phase with baseline correction and detected peak markers
 - **Measurement Cursors** — Dual draggable cursors with delta readout for frequency and dissipation
+
+### Peak Detection Algorithm (v0.1.6)
+The peak detection operates in two phases:
+1. **Fundamental detection** — Scans the full 1–12 MHz range to locate the fundamental resonance peak using `scipy.signal.argrelextrema`, then auto-detects the QCM type (3, 5, or 10 MHz)
+2. **Overtone detection** — Searches for odd harmonics (3rd, 5th, 7th, 9th) in ±400 kHz windows around expected positions, with **phase cross-validation**: overtones are discarded if the magnitude/phase peak frequency difference exceeds a threshold or the phase amplitude is below 10°
+
+A legacy fallback (`FindPeak`) activates automatically if the new algorithm fails.
 
 ### Auto-Tracking
 Automatically recalculates the sweep frequency window when the resonance frequency drifts beyond a configurable threshold, ensuring the peak remains centered in the measurement range.
@@ -147,8 +155,8 @@ python -m openQCM
 1. Connect the openQCM Q-1 device via USB
 2. Launch the application
 3. Select the serial port from the dropdown and click **Connect**
-4. Choose the quartz crystal frequency (5 MHz or 10 MHz) and overtone
-5. Click **START** to begin acquisition
+4. Run **Peak Detection** — the QCM type (3/5/10 MHz) is auto-detected
+5. Select the desired overtone and click **START** to begin acquisition
 
 ### Build Standalone Executable
 
@@ -182,10 +190,12 @@ openQCM_Q-1/
 │   │   ├── Parser.py       # Data queue distribution
 │   │   └── Calibration.py  # Peak detection routines
 │   ├── ui/
-│   │   ├── mainWindow.py   # Main window controller
-│   │   ├── mainWindow_ui.py# UI layout, stylesheets, and dialogs
-│   │   └── popUp.py        # Notification dialogs
+│   │   ├── mainWindow.py      # Main window controller
+│   │   ├── mainWindow_ui.py   # UI layout, stylesheets, and dialogs
+│   │   ├── calibrationPlot.py # Peak Detection diagnostic plots
+│   │   └── popUp.py           # Notification dialogs
 │   ├── common/             # Utilities (logging, file I/O, OS detection)
+│   ├── Calibration_3MHz.txt
 │   ├── Calibration_5MHz.txt
 │   └── Calibration_10MHz.txt
 ├── icons/                  # Application icons
@@ -219,7 +229,7 @@ The application uses a **multiprocessing pipeline** to separate data acquisition
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| **3.0** | February 2026 | Unified single-window UI, dark/light themes, auto-tracking, Raw Data View, measurement cursors, CSV timestamp precision fix, Peak Detection restart fix, performance optimizations |
+| **3.0** | March 2026 | Unified single-window UI, dark/light themes, auto-tracking, Raw Data View, Peak Data View, measurement cursors, v0.1.6 peak detection with auto-detect and phase cross-validation, 3 MHz QCM support, performance optimizations |
 | 2.1 | 2024 | Calibration optimization, 200 ms plot refresh, macOS/Linux fixes |
 | 2.0 | 2020 | Initial Python implementation |
 
