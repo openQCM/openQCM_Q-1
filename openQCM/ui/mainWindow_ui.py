@@ -1032,6 +1032,10 @@ class Ui_Main(object):
         self.actionRawDataView.setText("Raw Data View")
         self.menuData.addAction(self.actionRawDataView)
 
+        self.actionPeakDataView = QtWidgets.QAction(MainWindow)
+        self.actionPeakDataView.setText("Peak Data View")
+        self.menuData.addAction(self.actionPeakDataView)
+
         # -----------------------------------------------------------------
         # Help Menu
         # -----------------------------------------------------------------

@@ -7,6 +7,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from openQCM.core.worker import Worker
 from openQCM.core.constants import Constants, SourceType, DateAxis, NonScientificAxis, OneDecimalAxis, ElapsedTimeAxis
 from openQCM.ui.popUp import PopUp
+from openQCM.ui.calibrationPlot import CalibrationPlotWindow
 from openQCM.common.logger import Logger as Log
 import numpy as np
 import sys
@@ -210,9 +211,15 @@ class MainWindow(QtGui.QMainWindow):
             print(TAG, "Serial lock released for acquisition")
 
         # Instantiates process
+        # In calibration mode, use "Auto" for auto-detection of QCM type
+        if self._get_source() == SourceType.calibration:
+            speed_value = "Auto"
+        else:
+            speed_value = self.ui.cBox_Speed.currentText()
+
         self.worker = Worker(QCS_on = self._QCS_installed,
                              port = port,
-                             speed = self.ui.cBox_Speed.currentText(),
+                             speed = speed_value,
                              samples = self.ui.sBox_Samples.value(),
                              source = self._get_source(),
                              export_enabled = self.ui.chBox_export.isChecked())
@@ -273,7 +280,7 @@ class MainWindow(QtGui.QMainWindow):
                 _set_data_value(self.ui.info7, label7)
                                      
             elif self._get_source() == SourceType.calibration:
-                label_quartz = self.ui.cBox_Speed.currentText()
+                label_quartz = "QCM Auto-detect"
                 _set_data_value(self.ui.info1a, label_quartz)
                 label11= "Peak Detection openQCM Q-1"
                 _set_data_value(self.ui.info11, label11)
@@ -719,6 +726,7 @@ class MainWindow(QtGui.QMainWindow):
         # Data menu actions
         self.ui.actionDataView.triggered.connect(self._open_data_viewer)
         self.ui.actionRawDataView.triggered.connect(self._open_raw_data_viewer)
+        self.ui.actionPeakDataView.triggered.connect(self._open_peak_data_viewer)
 
     ###########################################################################
     # Toggle START / STOP
@@ -1039,8 +1047,14 @@ class MainWindow(QtGui.QMainWindow):
                    try:
                        peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
                        peaks = peak_data[:, 0]
-                       freq_list = "\n".join(["{:.0f} Hz".format(f) for f in peaks])
-                       msg = "{} peak frequencies found:\n\n{}".format(len(peaks), freq_list)
+                       lines = []
+                       for j, f in enumerate(peaks):
+                           if j == 0:
+                               lines.append("Fundamental: {:.0f} Hz".format(f))
+                           else:
+                               lines.append("Overtone {}: {:.0f} Hz".format(j, f))
+                       freq_list = "\n".join(lines)
+                       msg = "{} peaks detected (phase-validated):\n\n{}".format(len(peaks), freq_list)
                        PopUp.info_nonblocking(self, "Peak Detection Success", msg)
                    except Exception:
                        PopUp.info_nonblocking(self, "Peak Detection Success", "Peak Detection completed successfully!")
@@ -1226,16 +1240,24 @@ class MainWindow(QtGui.QMainWindow):
             print(TAG, "Mode: {}".format(Constants.app_sources[1]))
             Log.i(TAG, "Mode: {}".format(Constants.app_sources[1]))
 
+        # In calibration mode, hide the dropdown (QCM type is auto-detected)
+        # In measurement mode, show it (user selects overtone frequency)
+        if self._get_source() == SourceType.calibration:
+            self.ui.cBox_Speed.hide()
+        else:
+            self.ui.cBox_Speed.show()
+
         # If serial is connected, don't change port selection
         if self._serial_connected:
             # Only update speed options, keep port unchanged
-            self.ui.cBox_Speed.clear()
-            source = self._get_source()
-            speeds = self.worker.get_source_speeds(source)
-            if speeds is not None:
-                self.ui.cBox_Speed.addItems(speeds)
-            if self._get_source() == SourceType.serial:
-                self.ui.cBox_Speed.setCurrentIndex(len(speeds) - 1)
+            if self._get_source() != SourceType.calibration:
+                self.ui.cBox_Speed.clear()
+                source = self._get_source()
+                speeds = self.worker.get_source_speeds(source)
+                if speeds is not None:
+                    self.ui.cBox_Speed.addItems(speeds)
+                if self._get_source() == SourceType.serial:
+                    self.ui.cBox_Speed.setCurrentIndex(len(speeds) - 1)
             return
 
         # Not connected - populate both port and speed
@@ -1244,14 +1266,17 @@ class MainWindow(QtGui.QMainWindow):
 
         source = self._get_source()
         ports = self.worker.get_source_ports(source)
-        speeds = self.worker.get_source_speeds(source)
 
         if ports is not None:
             self.ui.cBox_Port.addItems(ports)
-        if speeds is not None:
-            self.ui.cBox_Speed.addItems(speeds)
-        if self._get_source() == SourceType.serial:
-            self.ui.cBox_Speed.setCurrentIndex(len(speeds) - 1)
+
+        # Only populate speed dropdown in measurement mode
+        if self._get_source() != SourceType.calibration:
+            speeds = self.worker.get_source_speeds(source)
+            if speeds is not None:
+                self.ui.cBox_Speed.addItems(speeds)
+            if self._get_source() == SourceType.serial:
+                self.ui.cBox_Speed.setCurrentIndex(len(speeds) - 1)
 
     ###########################################################################
     # Refresh available serial ports
@@ -1820,6 +1845,33 @@ class MainWindow(QtGui.QMainWindow):
         theme = 'dark' if self.ui.actionDarkTheme.isChecked() else 'light'
         viewer = RawDataViewDialog(self, main_window=self, theme=theme)
         viewer.show()
+
+    ###########################################################################
+    # Opens Peak Data View showing calibration amplitude/phase with peaks
+    ###########################################################################
+    def _open_peak_data_viewer(self):
+        # Find the most recently modified calibration file
+        calib_path = None
+        latest_mtime = 0
+        for candidate in [Constants.csv_calibration_path,
+                          Constants.csv_calibration_path10,
+                          Constants.csv_calibration_path3]:
+            if os.path.exists(candidate):
+                mtime = os.path.getmtime(candidate)
+                if mtime > latest_mtime:
+                    latest_mtime = mtime
+                    calib_path = candidate
+
+        peaks_path = Constants.cvs_peakfrequencies_path
+
+        if calib_path is None or not os.path.exists(peaks_path):
+            PopUp.warning(self, "Peak Data View",
+                          "No calibration data found.\nRun Peak Detection first.")
+            return
+
+        self._calib_plot_window = CalibrationPlotWindow(self)
+        self._calib_plot_window.show_results(calib_path, peaks_path)
+        self._calib_plot_window.show()
 
     ###########################################################################
     # Checking internet connection

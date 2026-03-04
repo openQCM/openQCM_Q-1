@@ -183,13 +183,15 @@ class Constants:
     csv_sweeps_export_path = os.path.join(csv_export_path, csv_filename)
     csv_sweeps_filename = "sweep"
 
-    # Calibration: scan (WRITE for @5MHz and @10MHz QCS) path: 'openQCM\'
+    # Calibration: scan (WRITE for @3MHz, @5MHz and @10MHz QCS) path: 'openQCM\'
+    csv_calibration_filename3   = "Calibration_3MHz"
     csv_calibration_filename    = "Calibration_5MHz"
     csv_calibration_filename10  = "Calibration_10MHz"
     csv_calibration_export_path = get_data_path("openQCM")
 
     ##################
-    # Calibration: baseline correction (READ for @5MHz and @10MHz QCS) path: 'openQCM\'
+    # Calibration: baseline correction (READ for @3MHz, @5MHz and @10MHz QCS) path: 'openQCM\'
+    csv_calibration_path3  = os.path.join(csv_calibration_export_path, "{}.{}".format(csv_calibration_filename3, txt_extension))
     csv_calibration_path   = os.path.join(csv_calibration_export_path, "{}.{}".format(csv_calibration_filename, txt_extension))
     csv_calibration_path10 = os.path.join(csv_calibration_export_path, "{}.{}".format(csv_calibration_filename10, txt_extension))
 
@@ -230,7 +232,31 @@ class Constants:
     calib_fRange = 5000000 #
     calib_samples = 5001
     calib_sections = 10
-    
+
+    ###########################################
+    # NEW PEAK DETECTION ALGORITHM (v0.1.6)  #
+    ###########################################
+    # Fundamental frequency detection range
+    peak_freq_sweep_min = 1000000      # 1 MHz - lower bound for fundamental search
+    peak_freq_sweep_max = 12000000     # 12 MHz - upper bound for fundamental search
+    # Scipy argrelextrema order for fundamental detection
+    # 6000 points x 1000 Hz/point = 6 MHz minimum distance between peaks
+    peak_points_fundamental = 6000
+    # Half-interval around expected overtone frequency for overtone search
+    peak_freq_range_half = 400000      # +/-400 kHz window around each overtone
+    # Scipy argrelextrema order for overtone detection
+    # 100 points x 1000 Hz/point = 100 kHz minimum distance between peaks
+    peak_points_overtone = 100
+    # Odd overtone multipliers
+    peak_overtone_multipliers = [3, 5, 7, 9]
+    # Maximum frequency limit for overtone detection
+    peak_max_frequency_limit = 51000000  # 51 MHz
+    # Phase-magnitude cross-validation thresholds (v0.1.6)
+    # Phase threshold: minimum phase peak value (degrees) to accept an overtone
+    peak_phase_threshold = 10  # degrees
+    # Frequency difference divisor: diff_threshold = (calib_fStep * points_overtone) / peak_freq_diff_divisor
+    peak_freq_diff_divisor = 4
+
     ###########################
     # Ring Buffers Parameters #
     ###########################

@@ -74,6 +74,169 @@ class CalibrationProcess(multiprocessing.Process):
 
 
     ###########################################################################
+    # NEW PEAK DETECTION v0.1.5a - FUNDAMENTAL
+    # Detects the fundamental resonance frequency in the 1-12 MHz range
+    # using baseline-corrected magnitude data
+    ###########################################################################
+    def peak_detection_fundamental(self, freq, mag, phase):
+
+        freq_arr = np.array(freq)
+        mag_arr = np.array(mag)
+
+        # get min/max frequency indices for fundamental search range
+        idx_min = np.abs(freq_arr - Constants.peak_freq_sweep_min).argmin()
+        idx_max = np.abs(freq_arr - Constants.peak_freq_sweep_max).argmin()
+
+        # array subset for detecting QCM fundamental
+        freq_arr_sub = freq_arr[idx_min : idx_max]
+        mag_arr_sub = mag_arr[idx_min : idx_max]
+
+        # find indices of local maximum points
+        idx_mag_max_arr = scipy.signal.argrelextrema(
+            data=mag_arr_sub, comparator=np.greater,
+            order=Constants.peak_points_fundamental)
+
+        if len(idx_mag_max_arr[0]) == 0:
+            print(TAG, "WARNING: no peaks found in fundamental range 1-12 MHz")
+            return 0
+
+        # get the index of maximum amplitude among the peaks found
+        idx_mag_max = np.argmax(mag_arr_sub[idx_mag_max_arr])
+
+        # frequency of maximum amplitude
+        f_mag_max = freq_arr_sub[idx_mag_max_arr][idx_mag_max]
+
+        print(TAG, "Fundamental frequency detected: {:.0f} Hz".format(f_mag_max))
+        return f_mag_max
+
+
+    ###########################################################################
+    # AUTO-DETECT QCM TYPE from fundamental frequency
+    # Returns (qcm_label, path_peaks, path_calib, filename_calib, distance)
+    ###########################################################################
+    def auto_detect_qcm_type(self, freq_fundamental):
+        if 2e6 < freq_fundamental < 4e6:
+            return ("3 MHz QCM", Constants.cvs_peakfrequencies_path,
+                    Constants.csv_calibration_path3, Constants.csv_calibration_filename3, Constants.dist5)
+        elif 4e6 < freq_fundamental < 6e6:
+            return ("5 MHz QCM", Constants.cvs_peakfrequencies_path,
+                    Constants.csv_calibration_path, Constants.csv_calibration_filename, Constants.dist5)
+        elif 9e6 < freq_fundamental < 11e6:
+            return ("10 MHz QCM", Constants.cvs_peakfrequencies_path,
+                    Constants.csv_calibration_path10, Constants.csv_calibration_filename10, Constants.dist10)
+        else:
+            print(TAG, "WARNING: unrecognized fundamental frequency {:.0f} Hz, using default paths".format(freq_fundamental))
+            return ("Unknown ({:.0f} Hz)".format(freq_fundamental), Constants.cvs_peakfrequencies_path,
+                    Constants.csv_calibration_path, Constants.csv_calibration_filename, Constants.dist5)
+
+
+    ###########################################################################
+    # NEW PEAK DETECTION v0.1.6 - OVERTONES
+    # Detects overtone frequencies in narrow windows around expected positions
+    # (odd multiples of the fundamental frequency)
+    # Cross-validates magnitude and phase peaks, filters spurious overtones
+    ###########################################################################
+    def peak_detection_overtones(self, freq, mag, phase, freq_fundamental):
+
+        freq_arr = np.array(freq)
+        mag_arr = np.array(mag)
+        phase_arr = np.array(phase)
+
+        # calculate expected overtone frequencies
+        overtones_n = np.array(Constants.peak_overtone_multipliers)
+        overtones_f = overtones_n * freq_fundamental
+
+        # remove overtones exceeding the maximum frequency limit
+        overtones_f = overtones_f[overtones_f <= Constants.peak_max_frequency_limit]
+
+        # init arrays for magnitude frequencies, phase frequencies, and phase max values
+        frequency_overtones = np.zeros(len(overtones_f))
+        freq_diff_arr = np.zeros(len(overtones_f))
+        phase_max_arr = np.zeros(len(overtones_f))
+
+        # calculate frequency step from data
+        calib_fStep = freq_arr[1] - freq_arr[0]
+        # frequency difference threshold for mag/phase cross-validation
+        diff_threshold = (calib_fStep * Constants.peak_points_overtone) / Constants.peak_freq_diff_divisor
+
+        for i in range(len(overtones_f)):
+            n = Constants.peak_overtone_multipliers[i] if i < len(Constants.peak_overtone_multipliers) else '?'
+
+            # get min/max frequency indices for this overtone window
+            idx_min = np.abs(freq_arr - (overtones_f[i] - Constants.peak_freq_range_half)).argmin()
+            idx_max = np.abs(freq_arr - (overtones_f[i] + Constants.peak_freq_range_half)).argmin()
+
+            # array subsets around expected overtone position
+            freq_arr_sub = freq_arr[idx_min : idx_max]
+            mag_arr_sub = mag_arr[idx_min : idx_max]
+            phase_arr_sub = phase_arr[idx_min : idx_max]
+
+            # find local maximum points for magnitude
+            idx_mag_max_arr = scipy.signal.argrelextrema(
+                data=mag_arr_sub, comparator=np.greater,
+                order=Constants.peak_points_overtone)
+
+            # find local maximum points for phase
+            idx_phase_max_arr = scipy.signal.argrelextrema(
+                data=phase_arr_sub, comparator=np.greater,
+                order=Constants.peak_points_overtone)[0]
+
+            # magnitude peak
+            f_mag_max = None
+            if len(idx_mag_max_arr[0]) > 0:
+                idx_mag_max = np.argmax(mag_arr_sub[idx_mag_max_arr])
+                f_mag_max = freq_arr_sub[idx_mag_max_arr][idx_mag_max]
+                frequency_overtones[i] = f_mag_max
+            else:
+                print(TAG, "WARNING: overtone {}x magnitude peak not found (expected ~{:.0f} Hz)".format(
+                    n, overtones_f[i]))
+                frequency_overtones[i] = 0
+
+            # phase peak
+            f_phase_max = None
+            if len(idx_phase_max_arr) > 0:
+                idx_phase_max = np.argmax(phase_arr_sub[idx_phase_max_arr])
+                f_phase_max = freq_arr_sub[idx_phase_max_arr][idx_phase_max]
+                # store phase maximum value
+                idx_phase_max_global = idx_phase_max_arr[idx_phase_max]
+                phase_max_arr[i] = phase_arr_sub[idx_phase_max_global]
+
+            # frequency difference between mag and phase peaks
+            if f_mag_max is not None and f_phase_max is not None:
+                freq_diff_arr[i] = np.abs(f_mag_max - f_phase_max)
+
+            if f_mag_max is not None:
+                print(TAG, "Overtone {}x detected: {:.0f} Hz (phase max: {:.1f} deg, freq diff: {:.0f} Hz)".format(
+                    n, f_mag_max, phase_max_arr[i], freq_diff_arr[i]))
+
+        # Cross-validation filtering: discard overtones that fail checks
+        indices_to_discard = []
+
+        for i in range(len(overtones_f)):
+            n = Constants.peak_overtone_multipliers[i] if i < len(Constants.peak_overtone_multipliers) else '?'
+            # Check 1: frequency difference between mag and phase exceeds threshold
+            if freq_diff_arr[i] > diff_threshold:
+                print(TAG, "DISCARD overtone {}x: freq difference {:.0f} Hz exceeds threshold {:.0f} Hz".format(
+                    n, freq_diff_arr[i], diff_threshold))
+                indices_to_discard.append(i)
+            # Check 2: phase maximum below threshold
+            if phase_max_arr[i] <= Constants.peak_phase_threshold:
+                print(TAG, "DISCARD overtone {}x: phase max {:.1f} deg below threshold {} deg".format(
+                    n, phase_max_arr[i], Constants.peak_phase_threshold))
+                if i not in indices_to_discard:
+                    indices_to_discard.append(i)
+
+        # filter out discarded overtones
+        frequency_overtones_filtered = np.delete(frequency_overtones, indices_to_discard)
+
+        if len(indices_to_discard) > 0:
+            print(TAG, "Overtones after filtering: {} of {} retained".format(
+                len(frequency_overtones_filtered), len(overtones_f)))
+
+        return frequency_overtones_filtered
+
+
+    ###########################################################################
     # Initializing values for process
     ###########################################################################
     def __init__(self, parser_process):
@@ -114,20 +277,21 @@ class CalibrationProcess(multiprocessing.Process):
         self._serial.timeout = timeout
         self._serial.writetimeout = writeTimeout
         self._QCStype = speed
-        
-        # Variable to process the exception
-        #wrong = False
-        # Checks QCStype to calibrate
-        if self._QCStype == '5 MHz QCM':
-           self._QCStype_int = 0
-        elif self._QCStype =='10 MHz QCM':
-           self._QCStype_int = 1
-        #else: 
-        #   wrong = True
-        #   print(TAG, "Warning: wrong QCM Sensor selected, set default to @5MHz") 
-        #   self._QCStype_int = 0
-        #if not wrong:
-        print(TAG, "Selected Quartz Crystal Sensor:",self._QCStype)
+
+        # QCM type: auto-detect mode or legacy manual selection
+        if self._QCStype == 'Auto':
+            # Auto-detect mode: type will be determined after peak detection
+            self._QCStype_int = -1
+            print(TAG, "QCM Sensor type: Auto-detect (will be determined during peak detection)")
+        elif self._QCStype == '5 MHz QCM':
+            self._QCStype_int = 0
+            print(TAG, "Selected Quartz Crystal Sensor:", self._QCStype)
+        elif self._QCStype == '10 MHz QCM':
+            self._QCStype_int = 1
+            print(TAG, "Selected Quartz Crystal Sensor:", self._QCStype)
+        else:
+            self._QCStype_int = -1
+            print(TAG, "QCM Sensor type: Auto-detect (will be determined during peak detection)")
         return self._is_port_available(self._serial.port)
     
     ###########################################################################
@@ -325,19 +489,6 @@ class CalibrationProcess(multiprocessing.Process):
                 self._parser1.add1(data_mag_baseline)
                 self._parser2.add2(data_ph_baseline)
                 '''
-                #### STORING DATA TO FILE ###
-                # CHECKS QCM Sensor type for saving calibration
-                if self._QCStype_int == 0:
-                    distance = Constants.dist5
-                    path = Constants.cvs_peakfrequencies_path
-                    path_calib = Constants.csv_calibration_path
-                    filename_calib = Constants.csv_calibration_filename  #
-                elif self._QCStype_int == 1:
-                    distance = Constants.dist10
-                    path = Constants.cvs_peakfrequencies_path
-                    path_calib = Constants.csv_calibration_path10
-                    filename_calib = Constants.csv_calibration_filename10  #
-                
                 # CHECKS the exceptions
                 if self._flag == 0:
                    # CALLS baseline_correction method
@@ -349,44 +500,92 @@ class CalibrationProcess(multiprocessing.Process):
                    print(TAG,"Baseline Correction Process Completed")
                    print(TAG,"Peak Detection Process Started")
                    print(TAG, "Finding peaks in acquired signals...")
-                   
+
                    try:
-                       # CALLS FindPeak method
-                       #(max_freq_mag, max_value_mag, max_freq_phase, max_value_phase)= self.FindPeak(readFREQ, data_mag_baseline, data_ph_baseline, dist=distance)
-                       (max_freq_mag, max_value_mag, max_freq_phase, max_value_phase)= self.FindPeak(readFREQ, temp1, temp2, dist=distance)
-                       print(TAG, "{} peaks were found at frequencies: {} Hz\n".format(len(max_freq_mag),max_freq_mag))
-                       
-                       print (max_freq_mag)
-                       print (max_freq_phase)
-                       
-                       #####################
-                       # TODO PEAK DETECTION 
-                       #####################
-                     
-                       # if (len(max_freq_mag)==5 and (max_freq_mag[0]>4e+06 and max_freq_mag[0]<6e+06)) or (len(max_freq_mag)==3 and (max_freq_mag[0]>9e+06 and max_freq_mag[0]<11e+06)):
-                       if (self._QCStype_int == 0 and (max_freq_mag[0]>4e+06 and max_freq_mag[0]<6e+06)) or (self._QCStype_int == 1 and (max_freq_mag[0]>9e+06 and max_freq_mag[0]<11e+06)):
+                       #############################################################
+                       # NEW PEAK DETECTION ALGORITHM (v0.1.6)
+                       # Two-phase approach: fundamental + targeted overtone search
+                       # with phase cross-validation filtering
+                       # Operates on baseline-corrected data
+                       #############################################################
+
+                       # Phase 1: Detect fundamental frequency
+                       freq_fundamental = self.peak_detection_fundamental(
+                           readFREQ, data_mag_baseline, data_ph_baseline)
+
+                       if freq_fundamental == 0:
+                           raise ValueError("Fundamental frequency not found in 1-12 MHz range")
+
+                       # Auto-detect QCM type and file paths from fundamental
+                       (qcm_label, path, path_calib, filename_calib, distance) = self.auto_detect_qcm_type(freq_fundamental)
+                       print(TAG, "Auto-detected QCM type: {}".format(qcm_label))
+
+                       # Phase 2: Detect overtones based on fundamental
+                       freq_overtones = self.peak_detection_overtones(
+                           readFREQ, data_mag_baseline, data_ph_baseline, freq_fundamental)
+
+                       # Assemble peak array [fundamental, overtone3, overtone5, ...]
+                       max_freq_mag = np.zeros(len(freq_overtones) + 1)
+                       max_freq_mag[0] = freq_fundamental
+                       max_freq_mag[1:] = freq_overtones
+
+                       print(TAG, "Peak detection results: {} Hz".format(max_freq_mag))
+
+                       # Check for missing overtones (value == 0)
+                       missing = np.where(max_freq_mag == 0)[0]
+                       if len(missing) > 0:
+                           print(TAG, "WARNING: {} overtone(s) not found at positions: {}".format(
+                               len(missing), missing))
+
+                       if freq_fundamental > 0:
                           # SAVES independently of the state of the export box
-                          print(TAG,"Saving data in file...")
-                          
-                          # TODO CHECK MAG vs PHASE PEAKS
-                          # this is just a dummy fix  
-                          # np.savetxt(path, np.column_stack([max_freq_mag,max_freq_phase]))
-                          np.savetxt(path, np.column_stack([max_freq_mag,max_freq_mag]))
-                          print(TAG, "Peak frequencies for {} saved in: {}".format(self._QCStype,path))
-                          
+                          print(TAG, "Saving data in file...")
+                          np.savetxt(path, np.column_stack([max_freq_mag, max_freq_mag]))
+                          print(TAG, "Peak frequencies for {} saved in: {}".format(qcm_label, path))
+
                           FileStorage.TXT_sweeps_save(filename_calib, Constants.csv_calibration_export_path, readFREQ, temp1, temp2)
-                          print(TAG, "Peak Detection for {} saved in: {}".format(self._QCStype,path_calib))
+                          print(TAG, "Peak Detection for {} saved in: {}".format(qcm_label, path_calib))
                        else:
-                          #print('a',max_freq_mag, max_freq_phase)
                           print(TAG, "WARNING: unable to identify fundamental peak")
                           print(TAG, "Please, repeat Peak Detection!")
                           self._flag2 = 1
-            
-                   except:
-                     #print('b',max_freq_mag, max_freq_phase)
-                     print(TAG, "WARNING: unable to apply peak detection algorithm")
-                     print(TAG, "Please, repeat Peak Detection!") 
-                     self._flag2 = 1
+
+                   except Exception as e:
+                     #############################################################
+                     # FALLBACK to legacy FindPeak algorithm
+                     # Uses _QCStype_int if available, otherwise defaults to 5 MHz
+                     #############################################################
+                     print(TAG, "New algorithm failed ({}), falling back to legacy FindPeak".format(e))
+                     try:
+                         # Legacy path selection
+                         if hasattr(self, '_QCStype_int') and self._QCStype_int == 1:
+                             distance = Constants.dist10
+                             path = Constants.cvs_peakfrequencies_path
+                             path_calib = Constants.csv_calibration_path10
+                             filename_calib = Constants.csv_calibration_filename10
+                         else:
+                             distance = Constants.dist5
+                             path = Constants.cvs_peakfrequencies_path
+                             path_calib = Constants.csv_calibration_path
+                             filename_calib = Constants.csv_calibration_filename
+
+                         (max_freq_mag, max_value_mag, max_freq_phase, max_value_phase) = self.FindPeak(readFREQ, temp1, temp2, dist=distance)
+                         print(TAG, "Legacy FindPeak: {} peaks at frequencies: {} Hz".format(len(max_freq_mag), max_freq_mag))
+
+                         if len(max_freq_mag) > 0 and ((max_freq_mag[0]>4e+06 and max_freq_mag[0]<6e+06) or (max_freq_mag[0]>9e+06 and max_freq_mag[0]<11e+06)):
+                             print(TAG, "Saving data in file...")
+                             np.savetxt(path, np.column_stack([max_freq_mag, max_freq_mag]))
+                             print(TAG, "Peak frequencies saved in: {}".format(path))
+                             FileStorage.TXT_sweeps_save(filename_calib, Constants.csv_calibration_export_path, readFREQ, temp1, temp2)
+                             print(TAG, "Peak Detection saved in: {}".format(path_calib))
+                         else:
+                             print(TAG, "WARNING: unable to identify fundamental peak (legacy)")
+                             print(TAG, "Please, repeat Peak Detection!")
+                             self._flag2 = 1
+                     except:
+                         print(TAG, "WARNING: unable to apply peak detection algorithm")
+                         print(TAG, "Please, repeat Peak Detection!")
+                         self._flag2 = 1
                      
                 if self._flag == 0 and self._flag2 == 0:
                      print(TAG, 'Peak Detection success for baseline correction!')
