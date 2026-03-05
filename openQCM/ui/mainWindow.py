@@ -1047,12 +1047,18 @@ class MainWindow(QtGui.QMainWindow):
                    try:
                        peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
                        peaks = peak_data[:, 0]
+                       # QCM overtone multipliers: 1 (fundamental), 3, 5, 7, 9
+                       overtone_labels = [1, 3, 5, 7, 9]
                        lines = []
                        for j, f in enumerate(peaks):
-                           if j == 0:
-                               lines.append("Fundamental: {:.0f} Hz".format(f))
+                           if j < len(overtone_labels):
+                               n = overtone_labels[j]
+                               if n == 1:
+                                   lines.append("Fundamental: {:.0f} Hz".format(f))
+                               else:
+                                   lines.append("Overtone {}: {:.0f} Hz".format(n, f))
                            else:
-                               lines.append("Overtone {}: {:.0f} Hz".format(j, f))
+                               lines.append("Overtone: {:.0f} Hz".format(f))
                        freq_list = "\n".join(lines)
                        msg = "{} peaks detected (phase-validated):\n\n{}".format(len(peaks), freq_list)
                        PopUp.info_nonblocking(self, "Peak Detection Success", msg)
@@ -1854,8 +1860,7 @@ class MainWindow(QtGui.QMainWindow):
         calib_path = None
         latest_mtime = 0
         for candidate in [Constants.csv_calibration_path,
-                          Constants.csv_calibration_path10,
-                          Constants.csv_calibration_path3]:
+                          Constants.csv_calibration_path10]:
             if os.path.exists(candidate):
                 mtime = os.path.getmtime(candidate)
                 if mtime > latest_mtime:
@@ -1869,7 +1874,8 @@ class MainWindow(QtGui.QMainWindow):
                           "No calibration data found.\nRun Peak Detection first.")
             return
 
-        self._calib_plot_window = CalibrationPlotWindow(self)
+        theme = 'dark' if self.ui.actionDarkTheme.isChecked() else 'light'
+        self._calib_plot_window = CalibrationPlotWindow(self, theme=theme)
         self._calib_plot_window.show_results(calib_path, peaks_path)
         self._calib_plot_window.show()
 
