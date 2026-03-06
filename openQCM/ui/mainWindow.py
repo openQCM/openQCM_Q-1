@@ -404,6 +404,12 @@ class MainWindow(QtGui.QMainWindow):
             self.ui.cBox_Port.setEnabled(enabled)
             self.ui.pButton_Refresh.setEnabled(enabled)
         self.ui.cBox_Speed.setEnabled(enabled)
+        # Overtone buttons: enable/disable only those that were calibrated
+        for label, btn in self.ui.overtone_buttons.items():
+            if enabled:
+                btn.setEnabled(btn.property('calibrated') == True)
+            else:
+                btn.setEnabled(False)
         self.ui.pButton_StartStop.setEnabled(self._serial_connected)
         self.ui.chBox_export.setEnabled(enabled)
         self.ui.cBox_Source.setEnabled(enabled)
@@ -727,6 +733,11 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.actionDataView.triggered.connect(self._open_data_viewer)
         self.ui.actionRawDataView.triggered.connect(self._open_raw_data_viewer)
         self.ui.actionPeakDataView.triggered.connect(self._open_peak_data_viewer)
+        #--------
+        # Overtone quick-select buttons
+        for label, btn in self.ui.overtone_buttons.items():
+            btn.clicked.connect(lambda checked, l=label: self._on_overtone_button_clicked(l))
+        self.ui.cBox_Speed.currentIndexChanged.connect(self._sync_overtone_buttons)
 
     ###########################################################################
     # Toggle START / STOP
@@ -1246,12 +1257,16 @@ class MainWindow(QtGui.QMainWindow):
             print(TAG, "Mode: {}".format(Constants.app_sources[1]))
             Log.i(TAG, "Mode: {}".format(Constants.app_sources[1]))
 
-        # In calibration mode, hide the dropdown (QCM type is auto-detected)
-        # In measurement mode, show it (user selects overtone frequency)
+        # In calibration mode, hide the dropdown and overtone buttons
+        # In measurement mode, show them (user selects overtone frequency)
         if self._get_source() == SourceType.calibration:
             self.ui.cBox_Speed.hide()
+            for btn in self.ui.overtone_buttons.values():
+                btn.hide()
         else:
             self.ui.cBox_Speed.show()
+            for btn in self.ui.overtone_buttons.values():
+                btn.show()
 
         # If serial is connected, don't change port selection
         if self._serial_connected:
@@ -1264,6 +1279,7 @@ class MainWindow(QtGui.QMainWindow):
                     self.ui.cBox_Speed.addItems(speeds)
                 if self._get_source() == SourceType.serial:
                     self.ui.cBox_Speed.setCurrentIndex(len(speeds) - 1)
+                self._update_overtone_buttons()
             return
 
         # Not connected - populate both port and speed
@@ -1283,6 +1299,83 @@ class MainWindow(QtGui.QMainWindow):
                 self.ui.cBox_Speed.addItems(speeds)
             if self._get_source() == SourceType.serial:
                 self.ui.cBox_Speed.setCurrentIndex(len(speeds) - 1)
+            self._update_overtone_buttons()
+
+    ###########################################################################
+    # Overtone quick-select buttons
+    ###########################################################################
+
+    # Mapping: button label → index in PeakFrequencies.txt (file order)
+    OVERTONE_MAP = {'F0': 0, 'F3': 1, 'F5': 2, 'F7': 3, 'F9': 4}
+    INDEX_TO_LABEL = {0: 'F0', 1: 'F3', 2: 'F5', 3: 'F7', 4: 'F9'}
+
+    def _update_overtone_buttons(self):
+        """Enable overtone buttons based on calibration results (PeakFrequencies.txt)."""
+        try:
+            peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
+            peak_freqs = peak_data[:, 0]
+        except Exception:
+            # No calibration data — disable all buttons
+            for btn in self.ui.overtone_buttons.values():
+                btn.setEnabled(False)
+                btn.setChecked(False)
+                btn.setProperty('calibrated', False)
+            return
+
+        # Enable buttons for detected peaks (frequency > 0)
+        for label, btn in self.ui.overtone_buttons.items():
+            idx = self.OVERTONE_MAP[label]
+            if idx < len(peak_freqs) and peak_freqs[idx] > 0:
+                btn.setEnabled(True)
+                btn.setProperty('calibrated', True)
+            else:
+                btn.setEnabled(False)
+                btn.setChecked(False)
+                btn.setProperty('calibrated', False)
+
+        # Sync with current dropdown selection
+        self._sync_overtone_buttons()
+
+    def _on_overtone_button_clicked(self, label):
+        """Handle click on an overtone button — update dropdown to match."""
+        idx = self.OVERTONE_MAP[label]
+        try:
+            peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
+            peak_freqs = peak_data[:, 0]
+            if idx < len(peak_freqs):
+                target_freq = str(peak_freqs[idx])
+                # Find this frequency in the dropdown (which is in reverse order)
+                for i in range(self.ui.cBox_Speed.count()):
+                    if self.ui.cBox_Speed.itemText(i) == target_freq:
+                        self.ui.cBox_Speed.setCurrentIndex(i)
+                        break
+        except Exception:
+            pass
+        # Update checked state
+        for l, btn in self.ui.overtone_buttons.items():
+            btn.setChecked(l == label)
+
+    def _sync_overtone_buttons(self):
+        """Sync overtone buttons with current dropdown selection."""
+        current_text = self.ui.cBox_Speed.currentText()
+        if not current_text:
+            return
+        try:
+            current_freq = float(current_text)
+            peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
+            peak_freqs = peak_data[:, 0]
+            # Find which index matches the selected frequency
+            for i, pf in enumerate(peak_freqs):
+                if abs(pf - current_freq) < 1.0:  # float comparison tolerance
+                    label = self.INDEX_TO_LABEL.get(i)
+                    for l, btn in self.ui.overtone_buttons.items():
+                        btn.setChecked(l == label)
+                    return
+        except Exception:
+            pass
+        # No match — uncheck all
+        for btn in self.ui.overtone_buttons.values():
+            btn.setChecked(False)
 
     ###########################################################################
     # Refresh available serial ports

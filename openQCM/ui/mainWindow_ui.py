@@ -621,6 +621,20 @@ class Ui_Main(object):
         self.cBox_Speed = QtWidgets.QComboBox()
         self.grpMeasurementLayout.addWidget(self.cBox_Speed)
 
+        # Overtone quick-select buttons
+        self.overtone_buttons_layout = QtWidgets.QHBoxLayout()
+        self.overtone_buttons_layout.setSpacing(2)
+        self.overtone_buttons_layout.setContentsMargins(0, 2, 0, 0)
+        self.overtone_buttons = {}
+        for label in ['F0', 'F3', 'F5', 'F7', 'F9']:
+            btn = QtWidgets.QPushButton(label)
+            btn.setCheckable(True)
+            btn.setEnabled(False)
+            btn.setFixedHeight(26)
+            self.overtone_buttons[label] = btn
+            self.overtone_buttons_layout.addWidget(btn)
+        self.grpMeasurementLayout.addLayout(self.overtone_buttons_layout)
+
         self.leftSidebarLayout.addWidget(self.grpMeasurement)
 
         # -----------------------------------------------------------------
@@ -1397,6 +1411,31 @@ class Ui_Main(object):
                 color: #666666;
             }
 
+            /* Overtone quick-select buttons */
+            QPushButton[checkable="true"] {
+                background-color: #3c3c3c;
+                color: #cccccc;
+                border: 1px solid #555555;
+                border-radius: 3px;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 2px;
+            }
+            QPushButton[checkable="true"]:hover {
+                background-color: #4a4a4a;
+                border-color: #008EC0;
+            }
+            QPushButton[checkable="true"]:checked {
+                background-color: #008EC0;
+                color: #ffffff;
+                border: 1px solid #007AA8;
+            }
+            QPushButton[checkable="true"]:disabled {
+                background-color: #2a2a2a;
+                color: #444444;
+                border-color: #333333;
+            }
+
             QProgressBar {
                 background-color: #3c3c3c;
                 border: 1px solid #555555;
@@ -1694,6 +1733,31 @@ class Ui_Main(object):
                 background-color: #f0f0f0;
                 color: #aaaaaa;
                 border-color: #dddddd;
+            }
+
+            /* Overtone quick-select buttons */
+            QPushButton[checkable="true"] {
+                background-color: #e8e8e8;
+                color: #333333;
+                border: 1px solid #cccccc;
+                border-radius: 3px;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 2px;
+            }
+            QPushButton[checkable="true"]:hover {
+                background-color: #d8d8d8;
+                border-color: #008EC0;
+            }
+            QPushButton[checkable="true"]:checked {
+                background-color: #008EC0;
+                color: #ffffff;
+                border: 1px solid #007AA8;
+            }
+            QPushButton[checkable="true"]:disabled {
+                background-color: #f5f5f5;
+                color: #bbbbbb;
+                border-color: #e0e0e0;
             }
 
             QProgressBar {
