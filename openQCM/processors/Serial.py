@@ -4,7 +4,7 @@ from openQCM.core.constants import Constants
 from openQCM.common.fileStorage import FileStorage
 from openQCM.common.logger import Logger as Log
 from openQCM.common.switcher import Overtone_Switcher_5MHz, Overtone_Switcher_10MHz
-from time import time
+from time import time, sleep
 import serial
 from serial.tools import list_ports
 import numpy as np
@@ -599,6 +599,7 @@ class SerialProcess(multiprocessing.Process):
                          #if '\n' in buffer:
                          if 's' in buffer:
                               break
+                         sleep(0.001)
                         data_raw = buffer.split('\n')
                         length = len(data_raw)
                         
