@@ -274,7 +274,7 @@ class Constants:
     ##############################
     # Parameters for the average #
     ##############################  
-    environment = 10 # TESTING ONLY! Restore to 50 for production release
+    environment = 50
     SG_order_environment = 1
     SG_window_environment = 3
     
