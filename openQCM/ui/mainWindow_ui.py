@@ -1435,6 +1435,11 @@ class Ui_Main(object):
                 color: #444444;
                 border-color: #333333;
             }
+            QPushButton[checkable="true"]:checked:disabled {
+                background-color: #006080;
+                color: #88ccdd;
+                border-color: #005570;
+            }
 
             QProgressBar {
                 background-color: #3c3c3c;
@@ -1758,6 +1763,11 @@ class Ui_Main(object):
                 background-color: #f5f5f5;
                 color: #bbbbbb;
                 border-color: #e0e0e0;
+            }
+            QPushButton[checkable="true"]:checked:disabled {
+                background-color: #66b8d6;
+                color: #ffffff;
+                border-color: #5aa8c6;
             }
 
             QProgressBar {
