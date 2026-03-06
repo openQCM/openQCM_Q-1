@@ -46,13 +46,20 @@ The peak detection operates in two phases:
 
 A legacy fallback (`FindPeak`) activates automatically if the new algorithm fails.
 
+### Overtone Quick-Select
+Dedicated buttons (F0, F3, F5, F7, F9) for fast overtone switching with visual feedback — the selected overtone stays highlighted even when buttons are disabled during acquisition.
+
 ### Auto-Tracking
 Automatically recalculates the sweep frequency window when the resonance frequency drifts beyond a configurable threshold, ensuring the peak remains centered in the measurement range.
+
+### Firmware Version Check
+Automatic firmware verification on device connection and manual check via **Help → Check Firmware Version**. Compares the device firmware version (queried via serial command `F`) against the expected version. If a mismatch is detected, guides the user through a firmware update workflow with integrated launcher for platform-specific updater tools (Teensy.app on macOS, TyUploader.exe on Windows).
 
 ### Data Logging
 - Automatic CSV export with millisecond-precision timestamps
 - Columns: Date, Time, Relative Time, Temperature, Resonance Frequency, Dissipation
 - Timestamped filenames for organized data management
+- **Live filename indicator** in the sidebar and window title bar during acquisition
 
 ### User Interface
 - Unified single-window layout with left sidebar (controls), center (plots), and right sidebar (readings)
@@ -179,6 +186,8 @@ openQCM_Q-1/
 ├── environment.yml         # Conda environment specification
 ├── requirements.txt        # Python dependencies (pip)
 ├── openQCM_Q-1.spec        # PyInstaller build configuration
+├── firmware/               # Teensy firmware source (Arduino .ino)
+├── firmware_update/        # Platform-specific firmware update tools
 ├── openQCM/                # Main Python package
 │   ├── app.py              # Application bootstrap
 │   ├── core/
@@ -228,7 +237,7 @@ The application uses a **multiprocessing pipeline** to separate data acquisition
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| **3.0** | March 2026 | Unified single-window UI, dark/light themes, auto-tracking, Raw Data View, Peak Data View, measurement cursors, peak detection with auto-detect and phase cross-validation, performance optimizations |
+| **3.0** | March 2026 | Unified single-window UI, dark/light themes, auto-tracking, Raw Data View, Peak Data View, measurement cursors, peak detection with auto-detect and phase cross-validation, overtone quick-select buttons, firmware version check and updater integration, live log filename indicator, performance optimizations |
 | 2.1 | 2024 | Calibration optimization, 200 ms plot refresh, macOS/Linux fixes |
 | 2.0 | 2020 | Initial Python implementation |
 
