@@ -9,6 +9,7 @@ from openQCM.core.constants import Constants, SourceType, DateAxis, NonScientifi
 from openQCM.ui.popUp import PopUp
 from openQCM.ui.calibrationPlot import CalibrationPlotWindow
 from openQCM.common.logger import Logger as Log
+from openQCM.common.architecture import Architecture, OSType
 import numpy as np
 import sys
 import os
@@ -317,6 +318,17 @@ class MainWindow(QtGui.QMainWindow):
             self._enable_ui(False)
             self.ui.sBox_Samples.setEnabled(False) #insert
 
+            # Show current log filename (elided in sidebar, full in title bar + tooltip)
+            if self._get_source() == SourceType.serial:
+                csv_name = "{}_{}.csv".format(self.worker._csv_filename, self.worker._overtone_name)
+                lbl = self.ui.lblLogFile
+                metrics = lbl.fontMetrics()
+                avail = lbl.width() if lbl.width() > 20 else 120
+                elided = metrics.elidedText(csv_name, QtCore.Qt.ElideMiddle, avail)
+                lbl.setText(elided)
+                lbl.setToolTip(csv_name)
+                self.setWindowTitle("openQCM Q-1 \u2014 {}".format(csv_name))
+
             if self._get_source() == SourceType.calibration:
                self.ui.pButton_Clear.setEnabled(False) #insert
                self.ui.pButton_Reference.setEnabled(False) #insert
@@ -343,6 +355,10 @@ class MainWindow(QtGui.QMainWindow):
         # Reset status bar readings
         _set_data_value(self.ui.l6b, "---")
         self.ui.update_status_bar_readings(frequency="---", dissipation="---", temperature="---", sampling_time="---")
+        # Clear log filename
+        self.ui.lblLogFile.setText("")
+        self.ui.lblLogFile.setToolTip("")
+        self.setWindowTitle("openQCM Q-1 - Real-Time Monitor")
         # Reset reference button label
         self.ui.pButton_Reference.setText("Set Reference")
         print("")
@@ -722,7 +738,8 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.actionDarkTheme.triggered.connect(lambda: self._switch_theme('dark'))
         self.ui.actionLightTheme.triggered.connect(lambda: self._switch_theme('light'))
         #--------
-        # Help menu actions (Check for Updates, Download Update)
+        # Help menu actions (Firmware Check, Check for Updates, Download Update)
+        self.ui.actionFirmwareCheck.triggered.connect(lambda: self._check_firmware_version(auto_mode=False))
         self.ui.actionCheckUpdates.triggered.connect(self._check_for_updates)
         self.ui.actionDownloadUpdate.triggered.connect(self.start_download)
         #--------
@@ -1514,6 +1531,9 @@ class MainWindow(QtGui.QMainWindow):
                 print(TAG, "Connected to port: {} (exclusive lock)".format(port))
                 Log.i(TAG, "Connected to port: {} (exclusive lock)".format(port))
 
+                # Auto-check firmware version after connection
+                self._check_firmware_version(auto_mode=True)
+
             except serial.SerialException as e:
                 # Connection failed - release the lock file
                 self._release_port_lock()
@@ -2034,6 +2054,143 @@ class MainWindow(QtGui.QMainWindow):
             if hasattr(self.ui.lweb2, 'valueLabel'):
                 self.ui.lweb2.valueLabel.setStyleSheet('color: #c62828; font-weight: bold;')
         _set_data_value(self.ui.lweb3, labelweb3)  
+
+    ###########################################################################
+    # Firmware version check
+    ###########################################################################
+    def _check_firmware_version(self, auto_mode=False):
+        """
+        Query the device firmware version via serial command 'F'.
+        :param auto_mode: If True, runs silently (no popup on success).
+        """
+        import time
+
+        # Block if acquisition is running
+        if self._is_running:
+            PopUp.warning(self, Constants.app_title,
+                "Cannot check firmware version during an active measurement.\n"
+                "Please stop the acquisition first.")
+            return
+
+        # Block if serial not connected
+        if not self._serial_connected or self._serial_lock is None:
+            if not auto_mode:
+                PopUp.warning(self, Constants.app_title,
+                    "Serial port not connected.\n"
+                    "Please connect to the device first.")
+            return
+
+        # Send firmware version request
+        try:
+            # Flush any residual data in the serial buffer
+            self._serial_lock.reset_input_buffer()
+            self._serial_lock.write(b'F\n')
+            time.sleep(0.4)
+            bytes_waiting = self._serial_lock.inWaiting()
+            response = ""
+            if bytes_waiting > 0:
+                response = self._serial_lock.read(bytes_waiting).decode(Constants.app_encoding).strip()
+            print(TAG, "Firmware version response: '{}'".format(response))
+            Log.i(TAG, "Firmware version response: '{}'".format(response))
+        except Exception as e:
+            print(TAG, "Firmware version check failed: {}".format(e))
+            Log.e(TAG, "Firmware version check failed: {}".format(e))
+            if not auto_mode:
+                PopUp.warning(self, Constants.app_title,
+                    "Failed to communicate with device.\n\nError: {}".format(e))
+            return
+
+        expected = Constants.fw_version
+
+        if response == "":
+            # No response from firmware
+            msg = ("The device firmware did not respond to the version request.\n"
+                   "Expected firmware version: {}\n\n"
+                   "Would you like to update the firmware?".format(expected))
+            if PopUp.question(self, Constants.app_title, msg):
+                self._run_firmware_updater()
+            else:
+                # Escalation: critical warning
+                msg2 = ("WARNING: Running the software without the correct firmware "
+                        "may cause malfunctions or incorrect measurements.\n\n"
+                        "Would you like to proceed with the firmware update?")
+                if PopUp.question(self, Constants.app_title, msg2):
+                    self._run_firmware_updater()
+
+        elif response != expected:
+            # Wrong version
+            msg = ("Firmware version {} detected.\n"
+                   "Expected version: {}\n\n"
+                   "Would you like to update the firmware?".format(response, expected))
+            if PopUp.question(self, Constants.app_title, msg):
+                self._run_firmware_updater()
+            else:
+                msg2 = ("WARNING: Running with an outdated firmware "
+                        "may cause malfunctions or incorrect measurements.\n\n"
+                        "Would you like to proceed with the firmware update?")
+                if PopUp.question(self, Constants.app_title, msg2):
+                    self._run_firmware_updater()
+
+        else:
+            # Version matches
+            print(TAG, "Firmware version OK: {}".format(response))
+            Log.i(TAG, "Firmware version OK: {}".format(response))
+            if not auto_mode:
+                PopUp.info(self, Constants.app_title,
+                    "Firmware is up to date.\n\nInstalled version: {}".format(response))
+
+    def _run_firmware_updater(self):
+        """Launch the platform-specific firmware updater tool.
+        Releases the serial port first so the updater can access the device."""
+        import subprocess
+
+        # Release serial port so the updater can access the device
+        if self._serial_lock is not None:
+            try:
+                self._serial_lock.close()
+                print(TAG, "Serial port released for firmware update")
+                Log.i(TAG, "Serial port released for firmware update")
+            except Exception as e:
+                print(TAG, "Warning: Error closing serial port: {}".format(e))
+            self._serial_lock = None
+        self._release_port_lock()
+
+        # Update UI to disconnected state
+        self._serial_connected = False
+        self._connected_port = None
+        self.ui.pButton_Connect.setText("Connect")
+        self._set_button_role(self.ui.pButton_Connect, "btnConnect")
+        self.ui.cBox_Port.setEnabled(True)
+        self.ui.pButton_Refresh.setEnabled(True)
+        self.ui.pButton_StartStop.setEnabled(False)
+        self.ui.set_connection_state(False)
+        self.ui.infostatus.setText("Disconnected")
+        self.ui.infobar.setText("Disconnected for firmware update")
+
+        # firmware_update/ is at OPENQCM/firmware_update/ (sibling of openQCM/ package)
+        updater_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "firmware_update")
+        os_type = Architecture.get_os()
+        try:
+            if os_type == OSType.windows:
+                updater_path = os.path.join(updater_dir, "TyUploader.exe")
+                subprocess.Popen([updater_path])
+            elif os_type == OSType.macosx:
+                updater_path = os.path.join(updater_dir, "Teensy.app")
+                subprocess.Popen(["open", updater_path])
+            elif os_type == OSType.linux:
+                updater_path = os.path.join(updater_dir, "Teensy")
+                subprocess.Popen(["xdg-open", updater_path])
+            else:
+                PopUp.warning(self, Constants.app_title,
+                    "Firmware updater not available for this platform.")
+                return
+            print(TAG, "Firmware updater launched: {}".format(updater_path))
+            Log.i(TAG, "Firmware updater launched: {}".format(updater_path))
+        except Exception as e:
+            print(TAG, "Failed to launch firmware updater: {}".format(e))
+            Log.e(TAG, "Failed to launch firmware updater: {}".format(e))
+            PopUp.warning(self, Constants.app_title,
+                "Could not launch firmware updater.\n\nError: {}".format(e))
 
     ###########################################################################
     # Check for updates (triggered from Help menu)

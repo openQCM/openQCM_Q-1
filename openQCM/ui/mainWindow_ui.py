@@ -697,6 +697,13 @@ class Ui_Main(object):
         self.l6b = self._create_data_row("Sampling", "---")
         self.grpAcquisition2Layout.addWidget(self.l6b)
 
+        # Current log filename indicator (truncated with ellipsis, full name in tooltip)
+        self.lblLogFile = QtWidgets.QLabel("")
+        self.lblLogFile.setObjectName("lblLogFile")
+        self.lblLogFile.setStyleSheet("color: #008EC0;")
+        self.lblLogFile.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        self.grpAcquisition2Layout.addWidget(self.lblLogFile)
+
         # Unified START / STOP toggle button
         self.pButton_StartStop = QtWidgets.QPushButton("START")
         self.pButton_StartStop.setObjectName("btnStart")
@@ -1080,6 +1087,11 @@ class Ui_Main(object):
             lambda: webbrowser.open("mailto:info@openqcm.com")
         )
         self.menuHelp.addAction(self.actionEmailSupport)
+
+        # Firmware Version Check
+        self.actionFirmwareCheck = QtWidgets.QAction(MainWindow)
+        self.actionFirmwareCheck.setText("Check Firmware Version")
+        self.menuHelp.addAction(self.actionFirmwareCheck)
 
         self.menuHelp.addSeparator()
 

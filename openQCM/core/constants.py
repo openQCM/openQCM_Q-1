@@ -37,6 +37,7 @@ class Constants:
     ##########################
     app_title = "Real-Time openQCM GUI"
     app_version = '2.1'
+    fw_version = "2.2"  # Expected firmware version (must match firmware #define FW_VERSION)
     app_sources = ["Measurement", "Peak Detection"]#, "Socket Client"]
     app_encoding = "utf-8"
     

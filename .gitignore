@@ -31,5 +31,5 @@ env/
 # Claude Code
 .claude/
 
-# Firmware (tracked separately)
-firmware/
+# Firmware build artifacts
+firmware/**/build/
