@@ -562,7 +562,7 @@ class Ui_Main(object):
         self.leftSidebarWidget = QtWidgets.QWidget()
         self.leftSidebarLayout = QtWidgets.QVBoxLayout(self.leftSidebarWidget)
         self.leftSidebarLayout.setContentsMargins(8, 8, 16, 8)
-        self.leftSidebarLayout.setSpacing(12)
+        self.leftSidebarLayout.setSpacing(6)
 
         # -----------------------------------------------------------------
         # Serial Connection Group
@@ -570,7 +570,7 @@ class Ui_Main(object):
         self.grpConnection = QtWidgets.QGroupBox("Serial Connection")
         self.grpConnectionLayout = QtWidgets.QVBoxLayout(self.grpConnection)
         self.grpConnectionLayout.setSpacing(6)
-        self.grpConnectionLayout.setContentsMargins(10, 18, 10, 10)
+        self.grpConnectionLayout.setContentsMargins(8, 12, 8, 6)
 
         # Port label and combo
         self.portLabel = QtWidgets.QLabel("Port")
@@ -600,7 +600,7 @@ class Ui_Main(object):
         self.grpMeasurement = QtWidgets.QGroupBox("Measurement Setup")
         self.grpMeasurementLayout = QtWidgets.QVBoxLayout(self.grpMeasurement)
         self.grpMeasurementLayout.setSpacing(6)
-        self.grpMeasurementLayout.setContentsMargins(10, 18, 10, 10)
+        self.grpMeasurementLayout.setContentsMargins(8, 12, 8, 6)
 
         # Mode label and combo
         self.modeLabel = QtWidgets.QLabel("Mode")
@@ -643,7 +643,7 @@ class Ui_Main(object):
         self.grpReadings = QtWidgets.QGroupBox("Current Readings")
         self.grpReadingsLayout = QtWidgets.QVBoxLayout(self.grpReadings)
         self.grpReadingsLayout.setSpacing(6)
-        self.grpReadingsLayout.setContentsMargins(10, 18, 10, 10)
+        self.grpReadingsLayout.setContentsMargins(8, 12, 8, 6)
 
         self.l7 = self._create_data_row("Frequency", "---")
         self.grpReadingsLayout.addWidget(self.l7)
@@ -665,7 +665,7 @@ class Ui_Main(object):
         self.grpPlotControls = QtWidgets.QGroupBox("Plot Controls")
         self.grpPlotControlsLayout = QtWidgets.QVBoxLayout(self.grpPlotControls)
         self.grpPlotControlsLayout.setSpacing(6)
-        self.grpPlotControlsLayout.setContentsMargins(10, 18, 10, 10)
+        self.grpPlotControlsLayout.setContentsMargins(8, 12, 8, 6)
 
         self.pButton_Clear = QtWidgets.QPushButton("Clear")
         self.pButton_Clear.setFixedHeight(28)
@@ -691,7 +691,7 @@ class Ui_Main(object):
         self.grpAcquisition2 = QtWidgets.QGroupBox("Acquisition")
         self.grpAcquisition2Layout = QtWidgets.QVBoxLayout(self.grpAcquisition2)
         self.grpAcquisition2Layout.setSpacing(8)
-        self.grpAcquisition2Layout.setContentsMargins(10, 18, 10, 10)
+        self.grpAcquisition2Layout.setContentsMargins(8, 12, 8, 6)
 
         # Sampling time indicator
         self.l6b = self._create_data_row("Sampling", "---")
@@ -761,11 +761,40 @@ class Ui_Main(object):
         self.centerLayout.setContentsMargins(8, 8, 8, 8)
         self.centerLayout.setSpacing(8)
 
-        # Title
-        self.label = QtWidgets.QLabel("openQCM Q-1 Real-Time Monitor")
-        self.label.setObjectName("titleLabel")
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.centerLayout.addWidget(self.label)
+        # Title header with logo
+        self.headerWidget = QtWidgets.QWidget()
+        headerLayout = QtWidgets.QHBoxLayout(self.headerWidget)
+        headerLayout.setContentsMargins(0, 0, 0, 0)
+        headerLayout.setSpacing(10)
+        headerLayout.addStretch()  # Push logo+text to the right
+
+        # Logo icon
+        self.lblLogo = QtWidgets.QLabel()
+        self.lblLogo.setFixedSize(40, 40)
+        logo_pixmap = QtGui.QPixmap(get_resource_path('icons/favicon.png'))
+        if not logo_pixmap.isNull():
+            self.lblLogo.setPixmap(logo_pixmap.scaled(
+                40, 40, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+        headerLayout.addWidget(self.lblLogo)
+
+        # Title + subtitle
+        titleTextLayout = QtWidgets.QVBoxLayout()
+        titleTextLayout.setContentsMargins(0, 0, 0, 0)
+        titleTextLayout.setSpacing(0)
+
+        self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
+        self.lblBrandTitle.setObjectName("titleLabel")
+        self.lblBrandTitle.setStyleSheet("font-size: 16pt; font-weight: bold; color: #008EC0;")
+
+        self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
+        self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
+        self.lblBrandSubtitle.setStyleSheet("font-size: 9pt; color: #888888;")
+
+        titleTextLayout.addWidget(self.lblBrandTitle)
+        titleTextLayout.addWidget(self.lblBrandSubtitle)
+        headerLayout.addLayout(titleTextLayout)
+
+        self.centerLayout.addWidget(self.headerWidget)
 
         # Tab Widget
         self.tabWidget = QtWidgets.QTabWidget()
@@ -1318,8 +1347,8 @@ class Ui_Main(object):
                 background-color: #3c3c3c;
                 border: 1px solid #555555;
                 border-radius: 4px;
-                margin-top: 12px;
-                padding-top: 10px;
+                margin-top: 8px;
+                padding-top: 6px;
                 font-weight: bold;
                 color: #e0e0e0;
             }
@@ -1656,8 +1685,8 @@ class Ui_Main(object):
                 background-color: #ffffff;
                 border: 1px solid #cccccc;
                 border-radius: 4px;
-                margin-top: 12px;
-                padding-top: 10px;
+                margin-top: 8px;
+                padding-top: 6px;
                 font-weight: bold;
                 color: #333333;
             }
@@ -1941,5 +1970,5 @@ class Ui_Main(object):
         return self._current_theme
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle("openQCM Q-1 - Real-Time Monitor")
+        MainWindow.setWindowTitle("openQCM Q-1 - version 3.0 (dev)")
         MainWindow.setWindowIcon(QtGui.QIcon(get_resource_path('icons/favicon.ico')))
