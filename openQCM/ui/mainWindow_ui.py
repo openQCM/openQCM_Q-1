@@ -565,6 +565,40 @@ class Ui_Main(object):
         self.leftSidebarLayout.setSpacing(6)
 
         # -----------------------------------------------------------------
+        # Brand Header (logo + title)
+        # -----------------------------------------------------------------
+        self.grpBrand = QtWidgets.QFrame()
+        self.grpBrand.setObjectName("grpBrand")
+        brandLayout = QtWidgets.QHBoxLayout(self.grpBrand)
+        brandLayout.setContentsMargins(6, 4, 6, 4)
+        brandLayout.setSpacing(8)
+
+        self.lblLogo = QtWidgets.QLabel()
+        self.lblLogo.setFixedSize(32, 32)
+        logo_pixmap = QtGui.QPixmap(get_resource_path('icons/favicon.png'))
+        if not logo_pixmap.isNull():
+            self.lblLogo.setPixmap(logo_pixmap.scaled(
+                32, 32, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+        brandLayout.addWidget(self.lblLogo)
+
+        titleTextLayout = QtWidgets.QVBoxLayout()
+        titleTextLayout.setContentsMargins(0, 0, 0, 0)
+        titleTextLayout.setSpacing(0)
+
+        self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
+        self.lblBrandTitle.setStyleSheet("font-size: 12pt; font-weight: bold; color: #008EC0;")
+
+        self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
+        self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
+        self.lblBrandSubtitle.setStyleSheet("font-size: 7pt; color: #888888;")
+
+        titleTextLayout.addWidget(self.lblBrandTitle)
+        titleTextLayout.addWidget(self.lblBrandSubtitle)
+        brandLayout.addLayout(titleTextLayout)
+
+        self.leftSidebarLayout.addWidget(self.grpBrand)
+
+        # -----------------------------------------------------------------
         # Serial Connection Group
         # -----------------------------------------------------------------
         self.grpConnection = QtWidgets.QGroupBox("Serial Connection")
@@ -761,45 +795,7 @@ class Ui_Main(object):
         self.centerLayout.setContentsMargins(8, 8, 8, 8)
         self.centerLayout.setSpacing(8)
 
-        # Title header with logo (right-aligned box)
-        self.grpBrand = QtWidgets.QFrame()
-        self.grpBrand.setObjectName("grpBrand")
-        brandOuterLayout = QtWidgets.QHBoxLayout(self.grpBrand)
-        brandOuterLayout.setContentsMargins(8, 6, 12, 6)
-        brandOuterLayout.setSpacing(0)
-        brandOuterLayout.addStretch()  # Push content to the right
-
-        # Logo icon
-        self.lblLogo = QtWidgets.QLabel()
-        self.lblLogo.setFixedSize(40, 40)
-        logo_pixmap = QtGui.QPixmap(get_resource_path('icons/favicon.png'))
-        if not logo_pixmap.isNull():
-            self.lblLogo.setPixmap(logo_pixmap.scaled(
-                40, 40, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-        brandOuterLayout.addWidget(self.lblLogo)
-
-        brandOuterLayout.addSpacing(10)
-
-        # Title + subtitle
-        titleTextLayout = QtWidgets.QVBoxLayout()
-        titleTextLayout.setContentsMargins(0, 0, 0, 0)
-        titleTextLayout.setSpacing(2)
-
-        self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
-        self.lblBrandTitle.setObjectName("titleLabel")
-        self.lblBrandTitle.setStyleSheet("font-size: 16pt; font-weight: bold; color: #008EC0;")
-        self.lblBrandTitle.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-
-        self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
-        self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
-        self.lblBrandSubtitle.setStyleSheet("font-size: 9pt; color: #888888;")
-        self.lblBrandSubtitle.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-
-        titleTextLayout.addWidget(self.lblBrandTitle)
-        titleTextLayout.addWidget(self.lblBrandSubtitle)
-        brandOuterLayout.addLayout(titleTextLayout)
-
-        self.centerLayout.addWidget(self.grpBrand)
+        # (brand header is in the left sidebar, before Serial Connection)
 
         # Tab Widget
         self.tabWidget = QtWidgets.QTabWidget()
