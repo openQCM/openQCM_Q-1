@@ -761,12 +761,13 @@ class Ui_Main(object):
         self.centerLayout.setContentsMargins(8, 8, 8, 8)
         self.centerLayout.setSpacing(8)
 
-        # Title header with logo
-        self.headerWidget = QtWidgets.QWidget()
-        headerLayout = QtWidgets.QHBoxLayout(self.headerWidget)
-        headerLayout.setContentsMargins(0, 0, 0, 0)
-        headerLayout.setSpacing(10)
-        headerLayout.addStretch()  # Push logo+text to the right
+        # Title header with logo (right-aligned box)
+        self.grpBrand = QtWidgets.QFrame()
+        self.grpBrand.setObjectName("grpBrand")
+        brandOuterLayout = QtWidgets.QHBoxLayout(self.grpBrand)
+        brandOuterLayout.setContentsMargins(8, 6, 12, 6)
+        brandOuterLayout.setSpacing(0)
+        brandOuterLayout.addStretch()  # Push content to the right
 
         # Logo icon
         self.lblLogo = QtWidgets.QLabel()
@@ -775,26 +776,30 @@ class Ui_Main(object):
         if not logo_pixmap.isNull():
             self.lblLogo.setPixmap(logo_pixmap.scaled(
                 40, 40, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-        headerLayout.addWidget(self.lblLogo)
+        brandOuterLayout.addWidget(self.lblLogo)
+
+        brandOuterLayout.addSpacing(10)
 
         # Title + subtitle
         titleTextLayout = QtWidgets.QVBoxLayout()
         titleTextLayout.setContentsMargins(0, 0, 0, 0)
-        titleTextLayout.setSpacing(0)
+        titleTextLayout.setSpacing(2)
 
         self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
         self.lblBrandTitle.setObjectName("titleLabel")
         self.lblBrandTitle.setStyleSheet("font-size: 16pt; font-weight: bold; color: #008EC0;")
+        self.lblBrandTitle.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
         self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
         self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
         self.lblBrandSubtitle.setStyleSheet("font-size: 9pt; color: #888888;")
+        self.lblBrandSubtitle.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
         titleTextLayout.addWidget(self.lblBrandTitle)
         titleTextLayout.addWidget(self.lblBrandSubtitle)
-        headerLayout.addLayout(titleTextLayout)
+        brandOuterLayout.addLayout(titleTextLayout)
 
-        self.centerLayout.addWidget(self.headerWidget)
+        self.centerLayout.addWidget(self.grpBrand)
 
         # Tab Widget
         self.tabWidget = QtWidgets.QTabWidget()
@@ -1520,11 +1525,10 @@ class Ui_Main(object):
                 color: #555555;
             }
 
-            #titleLabel {
-                color: #e0e0e0;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 8px;
+            #grpBrand {
+                background-color: #3c3c3c;
+                border: 1px solid #555555;
+                border-radius: 4px;
             }
 
             #plotsGroup {
@@ -1849,11 +1853,10 @@ class Ui_Main(object):
                 color: #cccccc;
             }
 
-            #titleLabel {
-                color: #333333;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 8px;
+            #grpBrand {
+                background-color: #ffffff;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
             }
 
             #plotsGroup {
