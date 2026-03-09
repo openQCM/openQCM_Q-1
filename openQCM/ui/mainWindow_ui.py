@@ -561,8 +561,8 @@ class Ui_Main(object):
         # Inner content widget
         self.leftSidebarWidget = QtWidgets.QWidget()
         self.leftSidebarLayout = QtWidgets.QVBoxLayout(self.leftSidebarWidget)
-        self.leftSidebarLayout.setContentsMargins(8, 8, 16, 8)
-        self.leftSidebarLayout.setSpacing(6)
+        self.leftSidebarLayout.setContentsMargins(10, 8, 10, 8)
+        self.leftSidebarLayout.setSpacing(10)
 
         # -----------------------------------------------------------------
         # Brand Header (logo + title)
@@ -597,7 +597,7 @@ class Ui_Main(object):
         brandLayout.addLayout(titleTextLayout)
 
         self.leftSidebarLayout.addWidget(self.grpBrand)
-        self.leftSidebarLayout.addSpacing(4)
+        self.leftSidebarLayout.addSpacing(2)
 
         # -----------------------------------------------------------------
         # Serial Connection Group
