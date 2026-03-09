@@ -597,6 +597,7 @@ class Ui_Main(object):
         brandLayout.addLayout(titleTextLayout)
 
         self.leftSidebarLayout.addWidget(self.grpBrand)
+        self.leftSidebarLayout.addSpacing(4)
 
         # -----------------------------------------------------------------
         # Serial Connection Group
