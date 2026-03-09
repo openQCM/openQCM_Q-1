@@ -1,19 +1,19 @@
 # openQCM Q-1 — TODO
 
-Checklist di sviluppo. Ogni item può diventare una GitHub Issue.
+Development checklist. Each item can become a GitHub Issue.
 
 ## Bug & Fix
-- [ ] Auto-stop calibrazione (`Calibration.py:605`) — il toggle START/STOP non si disattiva automaticamente alla fine del processo di Peak Detection
-- [ ] Parametri 9th overtone da validare (`constants.py:106`) — valori L/R frequency e SG window placeholder
+- [ ] Auto-stop after calibration (`Calibration.py:605`) — START/STOP toggle does not deactivate automatically when Peak Detection completes
+- [ ] Validate 9th overtone parameters (`constants.py:106`) — L/R frequency and SG window values are placeholders
 
-## Ottimizzazione
-- [ ] Windows: oscillazioni sampling time — busy-wait loop in `Serial.py` + timer resolution 15.6 ms. Testare su Windows nativo (non VM)
-- [ ] Sostituire polling `inWaiting()` con `read()` timeout-based (pyserial best practice)
+## Optimization
+- [ ] Windows: sampling time oscillations — busy-wait loop in `Serial.py` + 15.6 ms timer resolution. Test on native Windows (not VM)
+- [ ] Replace `inWaiting()` polling with timeout-based `read()` (pyserial best practice)
 
-## Feature
-- [ ] Rilevamento esplicito tipo QCM 5/10 MHz (`Serial.py:744,801`) — attualmente inferito da frequenza picco
-- [ ] Label sensore quarzo nella GUI (`mainWindow.py:251`) — mostrare "5 MHz QCM" o "10 MHz QCM"
-- [ ] Socket Client come sorgente dati (`constants.py:41`) — attualmente disabilitato
+## Features
+- [ ] Explicit QCM 5/10 MHz type detection (`Serial.py:744,801`) — currently inferred from peak frequency
+- [ ] Quartz sensor label in GUI (`mainWindow.py:251`) — display "5 MHz QCM" or "10 MHz QCM"
+- [ ] Socket Client as data source (`constants.py:41`) — currently disabled
 
-## Documentazione
-- [ ] Documentare protocollo seriale firmware (comandi, formato dati sweep, comando `F`)
+## Documentation
+- [ ] Document firmware serial protocol (commands, sweep data format, `F` command)
