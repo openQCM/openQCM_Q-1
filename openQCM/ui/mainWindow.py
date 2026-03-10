@@ -403,6 +403,13 @@ class MainWindow(QtGui.QMainWindow):
                 self._serial_lock = None
             # Release the lock file
             self._release_port_lock()
+            # Close child dialogs
+            for dlg in [getattr(self, '_data_viewer', None),
+                        getattr(self, '_raw_data_viewer', None),
+                        getattr(self, '_calib_plot_window', None),
+                        getattr(self.ui, 'deviceInfoDialog', None)]:
+                if dlg is not None:
+                    dlg.close()
             evnt.accept()
         else:
             evnt.ignore()
