@@ -1953,8 +1953,8 @@ class MainWindow(QtGui.QMainWindow):
             "CSV Files (*.csv);;All Files (*)")
         if csv_path:
             theme = 'dark' if self.ui.actionDarkTheme.isChecked() else 'light'
-            viewer = DataViewerDialog(None, csv_path=csv_path, theme=theme)
-            viewer.show()
+            self._data_viewer = DataViewerDialog(None, csv_path=csv_path, theme=theme)
+            self._data_viewer.show()
 
     ###########################################################################
     # Opens Raw Data View dialog showing live amplitude/phase sweep curves
@@ -1962,8 +1962,8 @@ class MainWindow(QtGui.QMainWindow):
     def _open_raw_data_viewer(self):
         from openQCM.ui.mainWindow_ui import RawDataViewDialog
         theme = 'dark' if self.ui.actionDarkTheme.isChecked() else 'light'
-        viewer = RawDataViewDialog(None, main_window=self, theme=theme)
-        viewer.show()
+        self._raw_data_viewer = RawDataViewDialog(None, main_window=self, theme=theme)
+        self._raw_data_viewer.show()
 
     ###########################################################################
     # Opens Peak Data View showing calibration amplitude/phase with peaks
