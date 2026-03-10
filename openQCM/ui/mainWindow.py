@@ -1953,7 +1953,7 @@ class MainWindow(QtGui.QMainWindow):
             "CSV Files (*.csv);;All Files (*)")
         if csv_path:
             theme = 'dark' if self.ui.actionDarkTheme.isChecked() else 'light'
-            viewer = DataViewerDialog(self, csv_path=csv_path, theme=theme)
+            viewer = DataViewerDialog(None, csv_path=csv_path, theme=theme)
             viewer.show()
 
     ###########################################################################
@@ -1962,7 +1962,7 @@ class MainWindow(QtGui.QMainWindow):
     def _open_raw_data_viewer(self):
         from openQCM.ui.mainWindow_ui import RawDataViewDialog
         theme = 'dark' if self.ui.actionDarkTheme.isChecked() else 'light'
-        viewer = RawDataViewDialog(self, main_window=self, theme=theme)
+        viewer = RawDataViewDialog(None, main_window=self, theme=theme)
         viewer.show()
 
     ###########################################################################
@@ -1988,7 +1988,7 @@ class MainWindow(QtGui.QMainWindow):
             return
 
         theme = 'dark' if self.ui.actionDarkTheme.isChecked() else 'light'
-        self._calib_plot_window = CalibrationPlotWindow(self, theme=theme)
+        self._calib_plot_window = CalibrationPlotWindow(None, theme=theme)
         self._calib_plot_window.show_results(calib_path, peaks_path)
         self._calib_plot_window.show()
 

@@ -41,7 +41,7 @@ class DeviceInfoDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Device Information")
         self.setMinimumSize(280, 320)
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.Tool)  # Tool window style
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.Window)  # Independent window
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setSpacing(8)
@@ -980,7 +980,7 @@ class Ui_Main(object):
         # =====================================================================
         # Device Info Dialog (created but not shown)
         # =====================================================================
-        self.deviceInfoDialog = DeviceInfoDialog(MainWindow)
+        self.deviceInfoDialog = DeviceInfoDialog()
 
         # Copy references for compatibility
         self.info1a = self.deviceInfoDialog.info1a
