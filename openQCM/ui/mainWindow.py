@@ -169,7 +169,7 @@ class MainWindow(QtGui.QMainWindow):
 
         # Populates combo box for serial ports
         self._source_changed()
-        self.ui.cBox_Source.setCurrentIndex(SourceType.serial.value)
+        self.ui.cBox_Source.setCurrentIndex(SourceType.calibration.value)
         self.ui.sBox_Samples.setValue(samples)  #samples
 
         # enable ui

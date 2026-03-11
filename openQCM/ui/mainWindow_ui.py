@@ -523,7 +523,7 @@ class Ui_Main(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setMinimumSize(QtCore.QSize(1000, 600))
-        MainWindow.resize(1200, 750)
+        MainWindow.resize(1200, 850)
 
         # Store MainWindow reference for dialogs
         self._mainWindow = MainWindow
