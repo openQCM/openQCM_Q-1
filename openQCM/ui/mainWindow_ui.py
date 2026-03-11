@@ -523,7 +523,7 @@ class Ui_Main(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setMinimumSize(QtCore.QSize(1000, 600))
-        MainWindow.resize(1200, 900)
+        MainWindow.resize(1200, 850)
 
         # Store MainWindow reference for dialogs
         self._mainWindow = MainWindow
@@ -565,20 +565,20 @@ class Ui_Main(object):
         self.leftSidebarLayout.setSpacing(10)
 
         # -----------------------------------------------------------------
-        # Brand Header (logo + title)
+        # Brand Header (logo + title) — added to tab bar later via setCornerWidget
         # -----------------------------------------------------------------
-        self.grpBrand = QtWidgets.QFrame()
+        self.grpBrand = QtWidgets.QWidget()
         self.grpBrand.setObjectName("grpBrand")
         brandLayout = QtWidgets.QHBoxLayout(self.grpBrand)
-        brandLayout.setContentsMargins(6, 4, 6, 4)
-        brandLayout.setSpacing(8)
+        brandLayout.setContentsMargins(6, 2, 8, 2)
+        brandLayout.setSpacing(6)
 
         self.lblLogo = QtWidgets.QLabel()
-        self.lblLogo.setFixedSize(32, 32)
+        self.lblLogo.setFixedSize(24, 24)
         logo_pixmap = QtGui.QPixmap(get_resource_path('icons/favicon.png'))
         if not logo_pixmap.isNull():
             self.lblLogo.setPixmap(logo_pixmap.scaled(
-                32, 32, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                24, 24, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         brandLayout.addWidget(self.lblLogo)
 
         titleTextLayout = QtWidgets.QVBoxLayout()
@@ -586,18 +586,17 @@ class Ui_Main(object):
         titleTextLayout.setSpacing(0)
 
         self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
-        self.lblBrandTitle.setStyleSheet("font-size: 12pt; font-weight: bold; color: #008EC0;")
+        self.lblBrandTitle.setStyleSheet("font-size: 10pt; font-weight: bold; color: #008EC0;")
 
         self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
         self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
-        self.lblBrandSubtitle.setStyleSheet("font-size: 7pt; color: #888888;")
+        self.lblBrandSubtitle.setStyleSheet("font-size: 6pt; color: #888888;")
 
         titleTextLayout.addWidget(self.lblBrandTitle)
         titleTextLayout.addWidget(self.lblBrandSubtitle)
         brandLayout.addLayout(titleTextLayout)
 
-        self.leftSidebarLayout.addWidget(self.grpBrand)
-        self.leftSidebarLayout.addSpacing(2)
+        # grpBrand will be placed in the tab bar via setCornerWidget (see below)
 
         # -----------------------------------------------------------------
         # Serial Connection Group
@@ -875,6 +874,9 @@ class Ui_Main(object):
         self.tabLogLayout.addWidget(self.systemLog)
 
         self.tabWidget.addTab(self.tabLog, "System Log")
+
+        # Place brand header in the left corner of the tab bar
+        self.tabWidget.setCornerWidget(self.grpBrand, QtCore.Qt.TopLeftCorner)
 
         self.centerLayout.addWidget(self.tabWidget, stretch=1)
 
@@ -1538,9 +1540,7 @@ class Ui_Main(object):
             }
 
             #grpBrand {
-                background-color: #3c3c3c;
-                border: 1px solid #555555;
-                border-radius: 4px;
+                background-color: transparent;
             }
 
             #plotsGroup {
@@ -1866,9 +1866,7 @@ class Ui_Main(object):
             }
 
             #grpBrand {
-                background-color: #ffffff;
-                border: 1px solid #cccccc;
-                border-radius: 4px;
+                background-color: transparent;
             }
 
             #plotsGroup {
