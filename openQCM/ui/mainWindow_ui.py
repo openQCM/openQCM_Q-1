@@ -574,11 +574,11 @@ class Ui_Main(object):
         brandLayout.setSpacing(6)
 
         self.lblLogo = QtWidgets.QLabel()
-        self.lblLogo.setFixedSize(24, 24)
+        self.lblLogo.setFixedSize(30, 30)
         logo_pixmap = QtGui.QPixmap(get_resource_path('icons/favicon.png'))
         if not logo_pixmap.isNull():
             self.lblLogo.setPixmap(logo_pixmap.scaled(
-                24, 24, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                30, 30, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         brandLayout.addWidget(self.lblLogo)
 
         titleTextLayout = QtWidgets.QVBoxLayout()
@@ -586,11 +586,11 @@ class Ui_Main(object):
         titleTextLayout.setSpacing(0)
 
         self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
-        self.lblBrandTitle.setStyleSheet("font-size: 10pt; font-weight: bold; color: #008EC0;")
+        self.lblBrandTitle.setStyleSheet("font-size: 11pt; font-weight: bold; color: #008EC0;")
 
         self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
         self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
-        self.lblBrandSubtitle.setStyleSheet("font-size: 6pt; color: #888888;")
+        self.lblBrandSubtitle.setStyleSheet("font-size: 7pt; color: #888888;")
 
         titleTextLayout.addWidget(self.lblBrandTitle)
         titleTextLayout.addWidget(self.lblBrandSubtitle)
@@ -876,7 +876,7 @@ class Ui_Main(object):
         self.tabWidget.addTab(self.tabLog, "System Log")
 
         # Place brand header in the left corner of the tab bar
-        self.tabWidget.setCornerWidget(self.grpBrand, QtCore.Qt.TopLeftCorner)
+        self.tabWidget.setCornerWidget(self.grpBrand, QtCore.Qt.TopRightCorner)
 
         self.centerLayout.addWidget(self.tabWidget, stretch=1)
 
