@@ -32,6 +32,32 @@ ACCENT_RED = "#f44336"
 
 
 ###############################################################################################################
+# Custom axis: format seconds as hh:mm:ss (used by DataViewerDialog)
+###############################################################################################################
+from pyqtgraph import AxisItem as _AxisItem
+
+class _SecondsTimeAxis(_AxisItem):
+    """Format seconds as hh:mm:ss, matching the main GUI time axis style."""
+    def tickStrings(self, values, scale, spacing):
+        result = []
+        for t in values:
+            if t < 0:
+                t = 0
+            if t >= 3600:
+                h = int(t // 3600)
+                m = int((t % 3600) // 60)
+                s = int(t % 60)
+                result.append(f"{h}:{m:02d}:{s:02d}")
+            elif t >= 60:
+                m = int(t // 60)
+                s = int(t % 60)
+                result.append(f"{m}:{s:02d}")
+            else:
+                result.append(f"{int(t)}")
+        return result
+
+
+###############################################################################################################
 # Device Information Dialog - Non-modal popup window
 ###############################################################################################################
 class DeviceInfoDialog(QtWidgets.QDialog):
@@ -141,34 +167,50 @@ class DataViewerDialog(QtWidgets.QDialog):
         self._plot_widget.setBackground(bg_color)
         layout.addWidget(self._plot_widget, stretch=1)
 
-        # Plot 1: Resonance Frequency
-        self._plt_freq = self._plot_widget.addPlot(row=0, col=0)
+        # Plot 1: Resonance Frequency (with hh:mm:ss time axis)
+        self._xaxis_freq = _SecondsTimeAxis(orientation='bottom')
+        self._xaxis_freq.enableAutoSIPrefix(False)
+        self._xaxis_freq.setPen(axis_color)
+        self._xaxis_freq.setTextPen(axis_color)
+        self._plt_freq = self._plot_widget.addPlot(
+            row=0, col=0, axisItems={'bottom': self._xaxis_freq})
         self._plt_freq.setLabel('left', 'Resonance Frequency', units='Hz', color=text_color)
-        self._plt_freq.setLabel('bottom', 'Relative Time', units='s', color=text_color)
+        self._plt_freq.setLabel('bottom', 'Time (hh:mm:ss)', units='', color=text_color)
         self._plt_freq.showGrid(x=True, y=True, alpha=0.3)
         self._plt_freq.getAxis('left').setPen(axis_color)
         self._plt_freq.getAxis('left').setTextPen(axis_color)
-        self._plt_freq.getAxis('bottom').setPen(axis_color)
-        self._plt_freq.getAxis('bottom').setTextPen(axis_color)
         legend_freq = self._plt_freq.addLegend(offset=(10, 10))
         legend_freq.setBrush(pg.mkBrush('#3c3c3c80' if theme == 'dark' else '#ffffff80'))
         legend_freq.setPen(pg.mkPen('#555555' if theme == 'dark' else '#cccccc'))
 
-        # Plot 2: Dissipation
-        self._plt_diss = self._plot_widget.addPlot(row=1, col=0)
+        # Plot 2: Dissipation (with hh:mm:ss time axis)
+        self._xaxis_diss = _SecondsTimeAxis(orientation='bottom')
+        self._xaxis_diss.enableAutoSIPrefix(False)
+        self._xaxis_diss.setPen(axis_color)
+        self._xaxis_diss.setTextPen(axis_color)
+        self._plt_diss = self._plot_widget.addPlot(
+            row=1, col=0, axisItems={'bottom': self._xaxis_diss})
         self._plt_diss.setLabel('left', 'Dissipation', color=text_color)
-        self._plt_diss.setLabel('bottom', 'Relative Time', units='s', color=text_color)
+        self._plt_diss.setLabel('bottom', 'Time (hh:mm:ss)', units='', color=text_color)
         self._plt_diss.showGrid(x=True, y=True, alpha=0.3)
         self._plt_diss.getAxis('left').setPen(axis_color)
         self._plt_diss.getAxis('left').setTextPen(axis_color)
-        self._plt_diss.getAxis('bottom').setPen(axis_color)
-        self._plt_diss.getAxis('bottom').setTextPen(axis_color)
         legend_diss = self._plt_diss.addLegend(offset=(10, 10))
         legend_diss.setBrush(pg.mkBrush('#3c3c3c80' if theme == 'dark' else '#ffffff80'))
         legend_diss.setPen(pg.mkPen('#555555' if theme == 'dark' else '#cccccc'))
 
         # Link X axes
         self._plt_diss.setXLink(self._plt_freq)
+
+        # Disable default context menus, use custom right-click
+        self._plt_freq.setMenuEnabled(False)
+        self._plt_freq.getViewBox().setMenuEnabled(False)
+        self._plt_diss.setMenuEnabled(False)
+        self._plt_diss.getViewBox().setMenuEnabled(False)
+        self._plt_freq.scene().sigMouseClicked.connect(
+            lambda ev: self._on_plot_right_click(self._plt_freq, ev))
+        self._plt_diss.scene().sigMouseClicked.connect(
+            lambda ev: self._on_plot_right_click(self._plt_diss, ev))
 
         # Load and plot data
         if csv_path:
@@ -218,6 +260,32 @@ class DataViewerDialog(QtWidgets.QDialog):
 
         except Exception as e:
             self._info_label.setText("Error loading file: {}".format(str(e)))
+
+    def _on_plot_right_click(self, plot, event):
+        """Custom right-click context menu matching the main GUI."""
+        import pyqtgraph as pg
+        if event.button() == QtCore.Qt.RightButton:
+            menu = QtWidgets.QMenu()
+            auto_scale_action = menu.addAction("Auto-scale")
+            reset_zoom_action = menu.addAction("Reset Zoom")
+            menu.addSeparator()
+            pan_mode_action = menu.addAction("Pan Mode")
+            select_mode_action = menu.addAction("Select Mode")
+
+            pos = event.screenPos()
+            qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
+            action = menu.exec_(qpos)
+
+            if action == auto_scale_action:
+                plot.enableAutoRange()
+            elif action == reset_zoom_action:
+                plot.getViewBox().autoRange()
+            elif action == pan_mode_action:
+                plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
+            elif action == select_mode_action:
+                plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+
+            event.accept()
 
 
 ###############################################################################################################
