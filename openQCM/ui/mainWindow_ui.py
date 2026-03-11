@@ -573,6 +573,23 @@ class Ui_Main(object):
         brandLayout.setContentsMargins(6, 2, 8, 2)
         brandLayout.setSpacing(6)
 
+        titleTextLayout = QtWidgets.QVBoxLayout()
+        titleTextLayout.setContentsMargins(0, 0, 0, 0)
+        titleTextLayout.setSpacing(0)
+
+        self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
+        self.lblBrandTitle.setStyleSheet("font-size: 11pt; font-weight: bold; color: #008EC0;")
+        self.lblBrandTitle.setAlignment(QtCore.Qt.AlignRight)
+
+        self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
+        self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
+        self.lblBrandSubtitle.setStyleSheet("font-size: 7pt; color: #888888;")
+        self.lblBrandSubtitle.setAlignment(QtCore.Qt.AlignRight)
+
+        titleTextLayout.addWidget(self.lblBrandTitle)
+        titleTextLayout.addWidget(self.lblBrandSubtitle)
+        brandLayout.addLayout(titleTextLayout)
+
         self.lblLogo = QtWidgets.QLabel()
         self.lblLogo.setFixedSize(30, 30)
         logo_pixmap = QtGui.QPixmap(get_resource_path('icons/favicon.png'))
@@ -580,21 +597,6 @@ class Ui_Main(object):
             self.lblLogo.setPixmap(logo_pixmap.scaled(
                 30, 30, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         brandLayout.addWidget(self.lblLogo)
-
-        titleTextLayout = QtWidgets.QVBoxLayout()
-        titleTextLayout.setContentsMargins(0, 0, 0, 0)
-        titleTextLayout.setSpacing(0)
-
-        self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
-        self.lblBrandTitle.setStyleSheet("font-size: 11pt; font-weight: bold; color: #008EC0;")
-
-        self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
-        self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
-        self.lblBrandSubtitle.setStyleSheet("font-size: 7pt; color: #888888;")
-
-        titleTextLayout.addWidget(self.lblBrandTitle)
-        titleTextLayout.addWidget(self.lblBrandSubtitle)
-        brandLayout.addLayout(titleTextLayout)
 
         # grpBrand will be placed in the tab bar via setCornerWidget (see below)
 
