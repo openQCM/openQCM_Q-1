@@ -176,7 +176,7 @@ class Constants:
     slash = os.sep
 
     csv_delimiter = "," # for splitting data of the serial port and CSV file storage
-    csv_default_prefix = "%Y-%b-%d_%H-%M-%S"#"%H-%M-%S-%d-%b-%Y" # Hour-Minute-Second-month-day-Year
+    csv_default_prefix = "%Y-%m-%d_%H-%M-%S"  # YYYY-MM-DD_hh-mm-ss
     csv_extension = "csv"
     txt_extension = "txt"
     csv_export_path = get_data_path("logged_data")
