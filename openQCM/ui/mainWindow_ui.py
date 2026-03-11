@@ -523,7 +523,7 @@ class Ui_Main(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setMinimumSize(QtCore.QSize(1000, 600))
-        MainWindow.resize(1200, 850)
+        MainWindow.resize(1200, 900)
 
         # Store MainWindow reference for dialogs
         self._mainWindow = MainWindow
@@ -726,7 +726,7 @@ class Ui_Main(object):
         self.pButton_Autoscale = QtWidgets.QPushButton("Autoscale")
         self.pButton_Autoscale.setFixedHeight(28)
         self.pButton_Autoscale.setEnabled(False)
-        self.pButton_Autoscale.setToolTip("Auto-fit Y-axis range to visible data")
+        self.pButton_Autoscale.setToolTip("Auto-fit axis range to visible data")
         self.grpPlotControlsLayout.addWidget(self.pButton_Autoscale)
 
         self.leftSidebarLayout.addWidget(self.grpPlotControls)
