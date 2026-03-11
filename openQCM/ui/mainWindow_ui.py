@@ -613,6 +613,7 @@ class Ui_Main(object):
         self.grpConnectionLayout.addWidget(self.portLabel)
 
         self.cBox_Port = QtWidgets.QComboBox()
+        self.cBox_Port.setToolTip("Select the serial port connected to the openQCM device")
         self.grpConnectionLayout.addWidget(self.cBox_Port)
 
         # Refresh and Connect buttons
@@ -620,9 +621,11 @@ class Ui_Main(object):
         self.connectionButtonsLayout.setSpacing(6)
         self.pButton_Refresh = QtWidgets.QPushButton("Refresh")
         self.pButton_Refresh.setFixedHeight(28)
+        self.pButton_Refresh.setToolTip("Scan for available serial ports")
         self.pButton_Connect = QtWidgets.QPushButton("Connect")
         self.pButton_Connect.setObjectName("btnConnect")
         self.pButton_Connect.setFixedHeight(28)
+        self.pButton_Connect.setToolTip("Open connection to the selected serial port")
         self.connectionButtonsLayout.addWidget(self.pButton_Refresh)
         self.connectionButtonsLayout.addWidget(self.pButton_Connect)
         self.grpConnectionLayout.addLayout(self.connectionButtonsLayout)
@@ -643,6 +646,7 @@ class Ui_Main(object):
         self.grpMeasurementLayout.addWidget(self.modeLabel)
 
         self.cBox_Source = QtWidgets.QComboBox()
+        self.cBox_Source.setToolTip("Measurement: real-time acquisition\nPeak Detection: calibration sweep to find resonance peaks")
         self.grpMeasurementLayout.addWidget(self.cBox_Source)
 
         # Spacer between Mode and Frequency
@@ -654,6 +658,7 @@ class Ui_Main(object):
         self.grpMeasurementLayout.addWidget(self.freqLabel)
 
         self.cBox_Speed = QtWidgets.QComboBox()
+        self.cBox_Speed.setToolTip("Select the resonance frequency for the active overtone")
         self.grpMeasurementLayout.addWidget(self.cBox_Speed)
 
         # Overtone quick-select buttons
@@ -661,11 +666,17 @@ class Ui_Main(object):
         self.overtone_buttons_layout.setSpacing(2)
         self.overtone_buttons_layout.setContentsMargins(0, 2, 0, 0)
         self.overtone_buttons = {}
+        overtone_tooltips = {
+            'F0': 'Fundamental frequency',
+            'F3': '3rd overtone', 'F5': '5th overtone',
+            'F7': '7th overtone', 'F9': '9th overtone'
+        }
         for label in ['F0', 'F3', 'F5', 'F7', 'F9']:
             btn = QtWidgets.QPushButton(label)
             btn.setCheckable(True)
             btn.setEnabled(False)
             btn.setFixedHeight(26)
+            btn.setToolTip(overtone_tooltips[label])
             self.overtone_buttons[label] = btn
             self.overtone_buttons_layout.addWidget(btn)
         self.grpMeasurementLayout.addLayout(self.overtone_buttons_layout)
@@ -704,15 +715,18 @@ class Ui_Main(object):
 
         self.pButton_Clear = QtWidgets.QPushButton("Clear")
         self.pButton_Clear.setFixedHeight(28)
+        self.pButton_Clear.setToolTip("Clear all plot data and reset graphs")
         self.grpPlotControlsLayout.addWidget(self.pButton_Clear)
 
         self.pButton_Reference = QtWidgets.QPushButton("Set Reference")
         self.pButton_Reference.setFixedHeight(28)
+        self.pButton_Reference.setToolTip("Set current values as reference baseline (plots will show delta)")
         self.grpPlotControlsLayout.addWidget(self.pButton_Reference)
 
         self.pButton_Autoscale = QtWidgets.QPushButton("Autoscale")
         self.pButton_Autoscale.setFixedHeight(28)
         self.pButton_Autoscale.setEnabled(False)
+        self.pButton_Autoscale.setToolTip("Auto-fit Y-axis range to visible data")
         self.grpPlotControlsLayout.addWidget(self.pButton_Autoscale)
 
         self.leftSidebarLayout.addWidget(self.grpPlotControls)
@@ -743,6 +757,7 @@ class Ui_Main(object):
         self.pButton_StartStop = QtWidgets.QPushButton("START")
         self.pButton_StartStop.setObjectName("btnStart")
         self.pButton_StartStop.setFixedHeight(36)
+        self.pButton_StartStop.setToolTip("Start or stop the data acquisition")
         self.grpAcquisition2Layout.addWidget(self.pButton_StartStop)
 
         self.leftSidebarLayout.addWidget(self.grpAcquisition2)
