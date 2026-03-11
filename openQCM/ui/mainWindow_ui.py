@@ -574,11 +574,11 @@ class Ui_Main(object):
         brandLayout.setSpacing(6)
 
         self.lblLogo = QtWidgets.QLabel()
-        self.lblLogo.setFixedSize(30, 30)
+        self.lblLogo.setFixedSize(60, 60)
         logo_pixmap = QtGui.QPixmap(get_resource_path('icons/favicon.png'))
         if not logo_pixmap.isNull():
             self.lblLogo.setPixmap(logo_pixmap.scaled(
-                30, 30, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                60, 60, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         brandLayout.addWidget(self.lblLogo)
 
         titleTextLayout = QtWidgets.QVBoxLayout()
