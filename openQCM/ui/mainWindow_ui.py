@@ -207,10 +207,8 @@ class DataViewerDialog(QtWidgets.QDialog):
         self._plt_freq.getViewBox().setMenuEnabled(False)
         self._plt_diss.setMenuEnabled(False)
         self._plt_diss.getViewBox().setMenuEnabled(False)
-        self._plt_freq.scene().sigMouseClicked.connect(
-            lambda ev: self._on_plot_right_click(self._plt_freq, ev))
-        self._plt_diss.scene().sigMouseClicked.connect(
-            lambda ev: self._on_plot_right_click(self._plt_diss, ev))
+        # Connect once (both plots share the same scene)
+        self._plot_widget.scene().sigMouseClicked.connect(self._on_scene_click)
 
         # Load and plot data
         if csv_path:
@@ -261,31 +259,43 @@ class DataViewerDialog(QtWidgets.QDialog):
         except Exception as e:
             self._info_label.setText("Error loading file: {}".format(str(e)))
 
-    def _on_plot_right_click(self, plot, event):
+    def _on_scene_click(self, event):
         """Custom right-click context menu matching the main GUI."""
         import pyqtgraph as pg
-        if event.button() == QtCore.Qt.RightButton:
-            menu = QtWidgets.QMenu()
-            auto_scale_action = menu.addAction("Auto-scale")
-            reset_zoom_action = menu.addAction("Reset Zoom")
-            menu.addSeparator()
-            pan_mode_action = menu.addAction("Pan Mode")
-            select_mode_action = menu.addAction("Select Mode")
+        if event.button() != QtCore.Qt.RightButton:
+            return
 
-            pos = event.screenPos()
-            qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
-            action = menu.exec_(qpos)
+        # Determine which plot was clicked
+        scene_pos = event.scenePos()
+        plot = None
+        for p in [self._plt_freq, self._plt_diss]:
+            if p.sceneBoundingRect().contains(scene_pos):
+                plot = p
+                break
+        if plot is None:
+            return
 
-            if action == auto_scale_action:
-                plot.enableAutoRange()
-            elif action == reset_zoom_action:
-                plot.getViewBox().autoRange()
-            elif action == pan_mode_action:
-                plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
-            elif action == select_mode_action:
-                plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+        menu = QtWidgets.QMenu()
+        auto_scale_action = menu.addAction("Auto-scale")
+        reset_zoom_action = menu.addAction("Reset Zoom")
+        menu.addSeparator()
+        pan_mode_action = menu.addAction("Pan Mode")
+        select_mode_action = menu.addAction("Select Mode")
 
-            event.accept()
+        pos = event.screenPos()
+        qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
+        action = menu.exec_(qpos)
+
+        if action == auto_scale_action:
+            plot.enableAutoRange()
+        elif action == reset_zoom_action:
+            plot.getViewBox().autoRange()
+        elif action == pan_mode_action:
+            plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
+        elif action == select_mode_action:
+            plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+
+        event.accept()
 
 
 ###############################################################################################################
