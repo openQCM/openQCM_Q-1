@@ -574,11 +574,11 @@ class Ui_Main(object):
         brandLayout.setSpacing(6)
 
         self.lblLogo = QtWidgets.QLabel()
-        self.lblLogo.setFixedSize(40, 40)
+        self.lblLogo.setFixedSize(30, 30)
         logo_pixmap = QtGui.QPixmap(get_resource_path('icons/favicon.png'))
         if not logo_pixmap.isNull():
             self.lblLogo.setPixmap(logo_pixmap.scaled(
-                40, 40, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                30, 30, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         brandLayout.addWidget(self.lblLogo)
 
         titleTextLayout = QtWidgets.QVBoxLayout()
@@ -586,7 +586,7 @@ class Ui_Main(object):
         titleTextLayout.setSpacing(0)
 
         self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
-        self.lblBrandTitle.setStyleSheet("font-size: 12pt; font-weight: bold; color: #008EC0;")
+        self.lblBrandTitle.setStyleSheet("font-size: 11pt; font-weight: bold; color: #008EC0;")
 
         self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
         self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
