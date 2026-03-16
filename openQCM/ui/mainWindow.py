@@ -17,6 +17,11 @@ from datetime import datetime
 
 TAG = ""#"[MainWindow]"
 
+# Minimum Y-axis display ranges (prevents autoscale "noise explosion" on stable signals)
+MIN_FREQ_RANGE = 100        # Hz
+MIN_DISS_RANGE = 0.000001   # 1e-6 (TODO: optimize based on real-world measurements)
+MIN_TEMP_RANGE = 2.0        # °C
+
 ##########################################################################################
 # Stream redirector class to capture print output and send to QTextEdit
 ##########################################################################################
@@ -144,6 +149,9 @@ class MainWindow(QtGui.QMainWindow):
         self._connected_port = None
         self._serial_lock = None  # Serial object to keep port open
         self._lock_file = None    # File lock for exclusive access
+
+        # Minimum Y-axis scale enforcement (prevents noise explosion on stable signals)
+        self._min_scale_enabled = True
 
         # Reference variables
         self._reference_flag = False
@@ -762,6 +770,9 @@ class MainWindow(QtGui.QMainWindow):
         for label, btn in self.ui.overtone_buttons.items():
             btn.clicked.connect(lambda checked, l=label: self._on_overtone_button_clicked(l))
         self.ui.cBox_Speed.currentIndexChanged.connect(self._sync_overtone_buttons)
+        #--------
+        # Easter egg: right-click on logo to unlock/lock axis limits
+        self.ui.lblLogo.customContextMenuRequested.connect(self._on_logo_context_menu)
 
     ###########################################################################
     # Toggle START / STOP
@@ -1151,10 +1162,15 @@ class MainWindow(QtGui.QMainWindow):
             self._vector_2 = np.array(self.worker.get_d2_buffer())-self._reference_value_dissipation
             self._curve_dissipation.setData(x=self.worker.get_t2_buffer(), y=self._vector_2)
 
+            # Enforce minimum Y-axis scale (reference mode)
+            self._apply_min_scale(self._plt2, self._vector_1, MIN_FREQ_RANGE)
+            self._apply_min_scale(self._plt3, self._vector_2, MIN_DISS_RANGE)
+
             ###################################################################
             # Temperature plot - using setData() for efficiency
             t3_buffer = self.worker.get_t3_buffer()
-            self._curve_temperature.setData(x=t3_buffer, y=self.worker.get_d3_buffer())
+            temp_data = self.worker.get_d3_buffer()
+            self._curve_temperature.setData(x=t3_buffer, y=temp_data)
             # Set start time for elapsed time axis from first valid (non-NaN) data point
             if len(t3_buffer) > 0:
                 # Find first non-NaN value
@@ -1162,6 +1178,8 @@ class MainWindow(QtGui.QMainWindow):
                 if np.any(valid_mask):
                     first_valid = t3_buffer[valid_mask][0]
                     self._xaxis_temp.set_start_time(first_valid)
+            # Enforce minimum Y-axis scale for temperature (reference mode)
+            self._apply_min_scale(self._plt4, temp_data, MIN_TEMP_RANGE)
             # Temperature color: always use theme color (white for dark, black for light)
             # Does NOT change when Reference is pressed
             temp_color = self._theme_temp_color if self._theme_temp_color else '#ffffff'
@@ -1202,34 +1220,28 @@ class MainWindow(QtGui.QMainWindow):
                 if np.any(valid_mask):
                     first_valid = t1_buffer[valid_mask][0]
                     self._xaxis.set_start_time(first_valid)
-            self._curve_dissipation.setData(x=self.worker.get_t2_buffer(), y=self.worker.get_d2_buffer())
+            diss_data = self.worker.get_d2_buffer()
+            self._curve_dissipation.setData(x=self.worker.get_t2_buffer(), y=diss_data)
 
-            ##############################
-            # Add  lines with labels
-            #inf1 = pg.InfiniteLine(movable=True, angle=90, label='x={value:0.2f}',
-            #self._plt2.addItem(self._inf1)
-            #self._plt2.addItem(self._lr)
-            ##############################
-            '''
-            # Resonance frequency plot
-            self._plt2.clear()
-            self._plt2.plot(x= self.worker.get_t1_buffer(),y=self.worker.get_d1_buffer(),pen=Constants.plot_colors[2])
-            # dissipation plot
-            self._plt3.clear()
-            self._plt3.plot(x= self.worker.get_t2_buffer(),y=self.worker.get_d2_buffer(),pen=Constants.plot_colors[3])
-            '''
+            # Enforce minimum Y-axis scale
+            self._apply_min_scale(self._plt2, self.worker.get_d1_buffer(), MIN_FREQ_RANGE)
+            self._apply_min_scale(self._plt3, diss_data, MIN_DISS_RANGE)
+
             ###################################################################
             # Temperature plot - using setData() for efficiency
             t3_buffer = self.worker.get_t3_buffer()
-            self._curve_temperature.setData(x=t3_buffer, y=self.worker.get_d3_buffer())
+            temp_data = self.worker.get_d3_buffer()
+            self._curve_temperature.setData(x=t3_buffer, y=temp_data)
             # Set start time for elapsed time axis from first valid (non-NaN) data point
             if len(t3_buffer) > 0:
                 # Find first non-NaN value
                 valid_mask = ~np.isnan(t3_buffer)
                 if np.any(valid_mask):
                     first_valid = t3_buffer[valid_mask][0]
-                    self._xaxis_temp.set_start_time(first_valid)     
-          
+                    self._xaxis_temp.set_start_time(first_valid)
+            # Enforce minimum Y-axis scale for temperature
+            self._apply_min_scale(self._plt4, temp_data, MIN_TEMP_RANGE)
+
     ###########################################################################################################################################
 
     ###########################################################################
@@ -1779,7 +1791,57 @@ class MainWindow(QtGui.QMainWindow):
                     self._vector_reference_frequency[:] = [s - self._reference_value_frequency for s in self._readFREQ]
                     xs = np.array(np.linspace(0, ((self._readFREQ[-1]-self._readFREQ[0])/self._readFREQ[0]), len(self._readFREQ)))
                     self._vector_reference_dissipation = xs-self._reference_value_dissipation
-                    
+
+                # Force Y-axis autoscale when toggling reference
+                # (values jump from absolute to relative or vice versa)
+                if self._plt2 is not None:
+                    self._plt2.enableAutoRange(axis='y', enable=True)
+                if self._plt3 is not None:
+                    self._plt3.enableAutoRange(axis='y', enable=True)
+
+    ###########################################################################
+    # Minimum Y-axis scale enforcement
+    ###########################################################################
+    def _apply_min_scale(self, plot_or_vb, y_data, min_range):
+        """Enforce minimum Y-axis display range centered on data.
+        If data range < min_range, set range to min_range centered on data.
+        If data range >= min_range, let autoscale handle it normally.
+        Works with both PlotItem and ViewBox objects.
+        """
+        if not self._min_scale_enabled or len(y_data) == 0:
+            return
+        valid = y_data[~np.isnan(y_data)]
+        if len(valid) == 0:
+            return
+        y_min, y_max = np.min(valid), np.max(valid)
+        data_range = y_max - y_min
+        if data_range < min_range:
+            center = (y_min + y_max) / 2.0
+            half = min_range / 2.0
+            lo, hi = center - half, center + half
+            # ViewBox uses setRange(), PlotItem uses setYRange()
+            if isinstance(plot_or_vb, pg.ViewBox):
+                plot_or_vb.disableAutoRange(axis='y')
+                plot_or_vb.setRange(yRange=(lo, hi), padding=0)
+            else:
+                plot_or_vb.setYRange(lo, hi, padding=0)
+        else:
+            plot_or_vb.enableAutoRange(axis='y', enable=True)
+
+    def _on_logo_context_menu(self, pos):
+        """Easter egg: right-click on logo to toggle min axis scale limits."""
+        menu = QtWidgets.QMenu()
+        if self._min_scale_enabled:
+            action = menu.addAction("Unlock Axes")
+        else:
+            action = menu.addAction("Lock Axes")
+        result = menu.exec_(self.ui.lblLogo.mapToGlobal(pos))
+        if result == action:
+            self._min_scale_enabled = not self._min_scale_enabled
+            state = "locked" if self._min_scale_enabled else "unlocked"
+            print(TAG, f"Axis scale limits {state}", end='\r')
+            self.autoscale()
+
     ###########################################################################
     # Autoscale all plots (X and Y axes)
     ###########################################################################
