@@ -124,7 +124,8 @@ class MainWindow(QtGui.QMainWindow):
         self._curve_dissipation = None    # Dissipation curve (plt3)
         self._curve_temperature = None    # Temperature curve (plt4)
 
-        # Theme-specific curve color (only temperature changes with theme)
+        # Theme-specific curve colors (amplitude and temperature change with theme)
+        self._theme_amp_color = '#ffffff'   # Default: white for dark mode
         self._theme_temp_color = None
 
         # =============================================================================
@@ -611,10 +612,10 @@ class MainWindow(QtGui.QMainWindow):
         # These curves are reused with setData() in _update_plot() instead of being
         # recreated on every timer tick, which dramatically reduces CPU overhead.
         # =============================================================================
-        # Amplitude curve (will be updated with setData in _update_plot)
-        self._curve_amplitude = self._plt0.plot(pen=Constants.plot_colors[0], name='Amplitude')
-        # Phase curve (ViewBox item) - added to legend manually
-        self._curve_phase = pg.PlotCurveItem(pen=Constants.plot_colors[1], name='Phase')
+        # Amplitude curve — white (dark mode) / black (light mode)
+        self._curve_amplitude = self._plt0.plot(pen='#ffffff', name='Amplitude')
+        # Phase curve — same blue as Frequency (#008EC0)
+        self._curve_phase = pg.PlotCurveItem(pen='#008EC0', name='Phase')
         self._plt1.addItem(self._curve_phase)
         self._legend0.addItem(self._curve_phase, 'Phase')
         # Resonance frequency curve (color changes based on reference flag)
@@ -1180,8 +1181,9 @@ class MainWindow(QtGui.QMainWindow):
                     self._xaxis_temp.set_start_time(first_valid)
             # Enforce minimum Y-axis scale for temperature (reference mode)
             self._apply_min_scale(self._plt4, temp_data, MIN_TEMP_RANGE)
-            # Temperature color: always use theme color (white for dark, black for light)
-            # Does NOT change when Reference is pressed
+            # Theme-dependent colors: amplitude and temperature (white dark / black light)
+            amp_color = self._theme_amp_color if self._theme_amp_color else '#ffffff'
+            self._curve_amplitude.setPen(amp_color)
             temp_color = self._theme_temp_color if self._theme_temp_color else '#ffffff'
             self._curve_temperature.setPen(temp_color)
 
@@ -1725,13 +1727,16 @@ class MainWindow(QtGui.QMainWindow):
         self._legend4.setBrush(pg.mkBrush(legend_bg))
         self._legend4.setPen(pg.mkPen(legend_border))
 
-        # Update temperature curve color based on theme
-        # Frequency and Dissipation colors remain constant across themes
+        # Update theme-dependent curve colors
+        # Frequency (#008EC0), Dissipation (#DD8E6B), Phase (#008EC0) remain constant
         if theme == 'light':
+            self._theme_amp_color = '#000000'       # Black for amplitude in light mode
             self._theme_temp_color = '#000000'      # Black for temperature in light mode
         else:
+            self._theme_amp_color = '#ffffff'       # White for amplitude in dark mode
             self._theme_temp_color = '#ffffff'      # White for temperature in dark mode
 
+        self._curve_amplitude.setPen(self._theme_amp_color)
         self._curve_temperature.setPen(self._theme_temp_color)
 
         print(TAG, f"Theme switched to: {theme}", end='\r')

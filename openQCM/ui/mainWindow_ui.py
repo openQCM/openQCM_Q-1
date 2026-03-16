@@ -360,17 +360,17 @@ class RawDataViewDialog(QtWidgets.QDialog):
 
         # Layer 1: Raw data scatter (SG-filtered data from queue1)
         self._curve_raw = pg.ScatterPlotItem(
-            size=3, pen=None,
-            brush=pg.mkBrush('#00bcd4' if theme == 'dark' else '#0288d1'),
-            name='SG-Filtered Data'
+            size=5, pen=None,
+            brush=pg.mkBrush('#ffffff' if theme == 'dark' else '#000000'),
         )
         self._plt_amp.addItem(self._curve_raw)
+        legend_amp.addItem(self._curve_raw, 'Amplitude')
 
         # Layer 2: Spline fit line
         self._curve_spline = self._plt_amp.plot(
             pen=pg.mkPen('#ff9800' if theme == 'dark' else '#e65100', width=2),
-            name='Spline Fit'
         )
+        legend_amp.addItem(self._curve_spline, 'Spline Fit')
 
         # Layer 3: Peak maximum marker (red diamond)
         self._peak_marker = pg.ScatterPlotItem(
@@ -408,14 +408,24 @@ class RawDataViewDialog(QtWidgets.QDialog):
         for ax_name in ['left', 'bottom']:
             self._plt_phase.getAxis(ax_name).setPen(axis_color)
             self._plt_phase.getAxis(ax_name).setTextPen(axis_color)
+        legend_phase = self._plt_phase.addLegend(offset=(10, 10))
+        legend_phase.setBrush(pg.mkBrush('#3c3c3c80' if theme == 'dark' else '#f0f0f0e0'))
+        legend_phase.setPen(pg.mkPen('#555555' if theme == 'dark' else '#cccccc'))
 
         self._curve_phase = self._plt_phase.plot(
-            pen=pg.mkPen('#e040fb' if theme == 'dark' else '#7b1fa2', width=1.5),
+            pen=pg.mkPen('#008EC0', width=1.5),
             name='Phase'
         )
 
         # Link X axes (zoom/pan synchronized)
         self._plt_phase.setXLink(self._plt_amp)
+
+        # Disable default context menus, use custom right-click
+        self._plt_amp.setMenuEnabled(False)
+        self._plt_amp.getViewBox().setMenuEnabled(False)
+        self._plt_phase.setMenuEnabled(False)
+        self._plt_phase.getViewBox().setMenuEnabled(False)
+        self._plot_widget.scene().sigMouseClicked.connect(self._on_scene_click)
 
         # Timer for periodic updates (300ms interval)
         self._update_timer = QtCore.QTimer(self)
@@ -551,6 +561,38 @@ class RawDataViewDialog(QtWidgets.QDialog):
             self._bw_region.setVisible(False)
             self._threshold_line.setVisible(False)
             self._info_label.setText("Live sweep (spline computation pending...)")
+
+    def _on_scene_click(self, event):
+        """Custom right-click context menu matching the main GUI."""
+        import pyqtgraph as pg
+        if event.button() != QtCore.Qt.RightButton:
+            return
+        scene_pos = event.scenePos()
+        plot = None
+        for p in [self._plt_amp, self._plt_phase]:
+            if p.sceneBoundingRect().contains(scene_pos):
+                plot = p
+                break
+        if plot is None:
+            return
+        menu = QtWidgets.QMenu()
+        auto_scale_action = menu.addAction("Auto-scale")
+        reset_zoom_action = menu.addAction("Reset Zoom")
+        menu.addSeparator()
+        pan_mode_action = menu.addAction("Pan Mode")
+        select_mode_action = menu.addAction("Select Mode")
+        pos = event.screenPos()
+        qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
+        action = menu.exec_(qpos)
+        if action == auto_scale_action:
+            plot.enableAutoRange()
+        elif action == reset_zoom_action:
+            plot.getViewBox().autoRange()
+        elif action == pan_mode_action:
+            plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
+        elif action == select_mode_action:
+            plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+        event.accept()
 
     def closeEvent(self, event):
         """Stop the timer when dialog is closed."""
