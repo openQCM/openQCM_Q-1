@@ -1876,7 +1876,8 @@ class MainWindow(QtGui.QMainWindow):
         f2, d2 = self._get_values_at_time(t2, t_buffer, freq_buffer, diss_buffer)
 
         # Calculate deltas
-        delta_t = abs(t2 - t1)
+        TS_MULT_us = 1e6
+        delta_t = abs(t2 - t1) / TS_MULT_us  # convert from microseconds to seconds
         delta_f = f2 - f1 if not (np.isnan(f1) or np.isnan(f2)) else float('nan')
         delta_d = (d2 - d1) * 1e6 if not (np.isnan(d1) or np.isnan(d2)) else float('nan')
 

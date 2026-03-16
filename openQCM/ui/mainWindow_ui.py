@@ -65,7 +65,7 @@ class DeviceInfoDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Device Information")
+        self.setWindowTitle("Measurement Parameters")
         self.setMinimumSize(280, 320)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.Window)  # Independent window
 
@@ -1116,7 +1116,7 @@ class Ui_Main(object):
 
         # Device Information action
         self.actionDeviceInfo = QtWidgets.QAction(MainWindow)
-        self.actionDeviceInfo.setText("Device Information")
+        self.actionDeviceInfo.setText("Measurement Parameters")
         self.actionDeviceInfo.triggered.connect(self._show_device_info)
         self.menuView.addAction(self.actionDeviceInfo)
 
