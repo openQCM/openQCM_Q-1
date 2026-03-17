@@ -104,8 +104,8 @@ class CalibrationPlotWindow(QtGui.QDialog):
             raw_phase = calib_data[:, 2]
             print(TAG, "Loaded calibration data from: {}".format(calib_file_path))
 
-            # Load peak frequencies
-            peak_data = np.loadtxt(peaks_file_path)
+            # Load peak frequencies (atleast_2d handles single-peak case)
+            peak_data = np.atleast_2d(np.loadtxt(peaks_file_path))
             peak_freqs = peak_data[:, 0]
             print(TAG, "Loaded {} peak frequencies from: {}".format(len(peak_freqs), peaks_file_path))
 

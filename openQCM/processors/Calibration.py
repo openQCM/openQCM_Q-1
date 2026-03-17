@@ -536,8 +536,13 @@ class CalibrationProcess(multiprocessing.Process):
                        if len(missing) > 0:
                            print(TAG, "WARNING: {} overtone(s) not found at positions: {}".format(
                                len(missing), missing))
+                           # If ALL peaks are missing (fundamental + overtones), flag error
+                           if len(missing) == len(max_freq_mag):
+                               self._flag2 = 1
 
-                       if freq_fundamental > 0:
+                       # Validate fundamental is a plausible QCM frequency (5 MHz or 10 MHz range)
+                       is_valid_qcm = (4e6 < freq_fundamental < 6e6) or (9e6 < freq_fundamental < 11e6)
+                       if freq_fundamental > 0 and is_valid_qcm:
                           # SAVES independently of the state of the export box
                           print(TAG, "Saving data in file...")
                           np.savetxt(path, np.column_stack([max_freq_mag, max_freq_mag]))
@@ -546,7 +551,9 @@ class CalibrationProcess(multiprocessing.Process):
                           FileStorage.TXT_sweeps_save(filename_calib, Constants.csv_calibration_export_path, readFREQ, temp1, temp2)
                           print(TAG, "Peak Detection for {} saved in: {}".format(qcm_label, path_calib))
                        else:
-                          print(TAG, "WARNING: unable to identify fundamental peak")
+                          print(TAG, "WARNING: unable to identify valid fundamental peak")
+                          if freq_fundamental > 0:
+                              print(TAG, "Detected frequency {} Hz is not a valid QCM resonance".format(freq_fundamental))
                           print(TAG, "Please, repeat Peak Detection!")
                           self._flag2 = 1
 
