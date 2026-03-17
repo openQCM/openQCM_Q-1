@@ -471,4 +471,55 @@ Added to the repository:
 
 ---
 
+# PART 8: GUI POLISH, PLOT IMPROVEMENTS & BUG FIXES — March 2026
+
+## Brand Header Relocated to Tab Bar
+
+Moved brand header (logo + "openQCM Q-1" + subtitle) from left sidebar to the tab bar using `QTabWidget.setCornerWidget(Qt.TopRightCorner)`. Text-first layout (right-aligned) with 30x30 icon. Frees sidebar vertical space, no vertical space taken from plots.
+
+## Log Filename Format
+
+Changed CSV log filename format from `2026-Mar-11_11-44-15_3th Overtone.csv` to `2026-03-11_11-44-15_F3.csv`:
+- Numeric month (`%m`) instead of abbreviated (`%b`)
+- Compact overtone names: F0, F3, F5, F7, F9
+
+## Log Data View Improvements
+
+- X-axis now uses `hh:mm:ss` time format (matching main GUI)
+- Custom right-click context menu: Auto-scale, Reset Zoom, Pan Mode, Select Mode
+- Fixed double context menu bug (both plots shared same scene, signal was connected twice)
+
+## Minimum Y-Axis Scale Enforcement
+
+Prevents autoscale "noise explosion" when signals are stable:
+- Frequency: minimum 100 Hz range
+- Dissipation: minimum 1e-6 range
+- Temperature: minimum 2°C range
+
+Hidden easter egg: right-click on logo → "Unlock Axes" / "Lock Axes" to toggle limits.
+
+## Plot Color Uniformity
+
+- Amplitude: white (dark mode) / black (light mode)
+- Phase: #008EC0 (blue, matching frequency color)
+- Same colors applied in Raw Data View (scatter + spline)
+- Raw Data View: larger scatter points (size 5), proper legends
+- Raw Data View: custom right-click context menu
+
+## Peak Detection Bug Fixes
+
+- **False "Success" fix**: validate fundamental is a plausible QCM frequency (4-6 MHz or 9-11 MHz range). Spurious peaks (e.g. 1.173 MHz) now correctly trigger "Peak Detection Warning"
+- **Flag missing overtones**: error flag set when ALL expected peaks are zero
+- **CalibrationPlot crash fix**: `np.atleast_2d()` prevents IndexError when only one peak is found in PeakFrequencies.txt
+
+## Cursor Delta Time Fix
+
+Fixed cursor ΔT calculation: values were in microseconds (raw timestamp units), now correctly converted to seconds for display.
+
+## Default Window Size
+
+Reduced from 900px to 850px height — fits MacBook Air 13" with dock visible.
+
+---
+
 *Development assisted by Claude Code — February–March 2026*
