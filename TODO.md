@@ -3,6 +3,7 @@
 Development checklist. Each item can become a GitHub Issue.
 
 ## Bug & Fix
+- [ ] Controllare la procedura di peak detection, ho trovato un contro - esempio di peak detection che non ha funzionato, quarzo da 10 Mhz non ha identificato 3rd overotono. 
 - [ ] Validate 9th overtone parameters (`constants.py:106`) — L/R frequency and SG window values are placeholders
 
 ## Optimization
