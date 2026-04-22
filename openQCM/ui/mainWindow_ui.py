@@ -707,12 +707,12 @@ class Ui_Main(object):
         titleTextLayout.setSpacing(0)
 
         self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
-        self.lblBrandTitle.setStyleSheet("font-size: 11pt; font-weight: bold; color: #008EC0;")
+        self.lblBrandTitle.setStyleSheet("font-size: 18pt; font-weight: bold; color: #008EC0;")
         self.lblBrandTitle.setAlignment(QtCore.Qt.AlignLeft)
 
         self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
         self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
-        self.lblBrandSubtitle.setStyleSheet("font-size: 7pt; color: #888888;")
+        self.lblBrandSubtitle.setStyleSheet("font-size: 10pt; color: #888888;")
         self.lblBrandSubtitle.setAlignment(QtCore.Qt.AlignLeft)
 
         titleTextLayout.addWidget(self.lblBrandTitle)
