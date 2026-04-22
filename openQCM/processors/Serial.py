@@ -285,8 +285,22 @@ class SerialProcess(multiprocessing.Process):
         i_trailing = (percent*f_max - c)/m
         #compute the FWHM/others
         bandwidth = abs(i_trailing - i_leading)
-        Qfac=freq[i_max]/bandwidth
-        return i_max, f_max, bandwidth, index_m, index_M, Qfac  
+        if bandwidth > 0:
+            Qfac = freq[i_max]/bandwidth
+        else:
+            Qfac = 0
+        # SIGNAL QUALITY CHECK
+        # When the sensor is physically disconnected, the board keeps sending
+        # amplifier noise. argmax() still returns a "peak" and the -3dB walk may
+        # find edges in random fluctuations (err1/err2 stay 0). To catch this
+        # case, we validate the Q-factor: a real QCM resonance has Q >> 100.
+        # If Qfac is below the threshold, raise both edge flags → the normal
+        # "cut-off not found" warning + tracking-safety logic kicks in.
+        if Qfac < Constants.min_valid_q_factor:
+            self._err1 = 1
+            self._err2 = 1
+        return i_max, f_max, bandwidth, index_m, index_M, Qfac
+
     
     
     ###########################################################################

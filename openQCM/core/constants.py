@@ -275,6 +275,11 @@ class Constants:
     # Maximum consecutive sweeps with missing cut-off frequencies (_err1 or _err2)
     # before the auto-tracking is disabled. User must STOP/START to re-enable.
     auto_tracking_max_edge_errors = 10
+    # Minimum Q-factor below which the resonance is considered invalid.
+    # Typical QCM resonance: Q >> 100 (thousands). When the sensor is disconnected
+    # the signal is just noise → Q collapses (huge bandwidth). Setting _err1/_err2
+    # on Qfac < this threshold triggers the normal "cut-off not found" warning.
+    min_valid_q_factor = 100
 
     ##############################
     # Parameters for the average #

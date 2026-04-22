@@ -10,6 +10,17 @@ Development checklist. Each item can become a GitHub Issue.
   La GUI mostra "Tracking Stopped" (rosso). Re-abilitazione automatica non appena
   il picco torna con almeno una cut-off frequency identificabile ("Tracking Resumed", verde).
 
+- [ ] Signal quality check: aggiunto minimo Q-factor (`min_valid_q_factor = 100`
+  in constants.py) per rilevare il caso in cui il sensore è staccato ma la
+  board continua a inviare rumore. Approfondire:
+    - Soglie Q per-overtone (overtoni alti hanno tipicamente Q inferiore)
+    - Check aggiuntivi: ampiezza minima picco post-baseline, bandwidth massima
+      per overtone, stima SNR
+    - Flag dedicato `_signal_quality_error` con messaggio utente specifico
+      ("No valid resonance — check sensor connection") invece di riusare i flag
+      cut-off esistenti
+    - Soglia 100 è conservativa: validare su più sensori reali
+
 - [ ] Peak detection mag/phase freq_diff threshold: raised to 50 kHz (was 25 kHz)
   after counter-example `tools/Calibration_10MHz.txt` showed valid F3 overtone
   rejected by only 10 kHz excess. Provisional fix — need to:
