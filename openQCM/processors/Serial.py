@@ -375,6 +375,12 @@ class SerialProcess(multiprocessing.Process):
         # frequency can be identified again.
         both_edges_missing = (self._err1 == 1 and self._err2 == 1)
 
+        # DEBUG: show sweep status + tracking counter
+        print("[TRACKING-DEBUG] err1={} err2={} Qfac={:.1f} both_missing={} counter={}/{} disabled={}".format(
+            self._err1, self._err2, Qfac_fit, both_edges_missing,
+            self._consecutive_edge_errors, Constants.auto_tracking_max_edge_errors,
+            self._tracking_disabled_by_errors))
+
         if both_edges_missing:
             self._consecutive_edge_errors += 1
             if (self._consecutive_edge_errors >= Constants.auto_tracking_max_edge_errors
