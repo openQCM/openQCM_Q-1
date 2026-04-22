@@ -285,17 +285,19 @@ class SerialProcess(multiprocessing.Process):
         i_trailing = (percent*f_max - c)/m
         #compute the FWHM/others
         bandwidth = abs(i_trailing - i_leading)
-        if bandwidth > 0:
-            Qfac = freq[i_max]/bandwidth
-        else:
-            Qfac = 0
+        # Preserve the original numpy behavior: if bandwidth is 0 (degenerate
+        # case, edges collapse to the peak sample), let Qfac become +inf so
+        # that downstream 1/Qfac = 0 (dissipation = 0). Setting Qfac = 0 here
+        # would make 1/Qfac = inf and cause huge jumps in the dissipation plot.
+        with np.errstate(divide='ignore', invalid='ignore'):
+            Qfac = freq[i_max] / bandwidth
         # SIGNAL QUALITY CHECK
         # When the sensor is physically disconnected, the board keeps sending
         # amplifier noise. argmax() still returns a "peak" and the -3dB walk may
         # find edges in random fluctuations (err1/err2 stay 0). To catch this
         # case, we validate the Q-factor: a real QCM resonance has Q >> 100.
-        # If Qfac is below the threshold, raise both edge flags → the normal
-        # "cut-off not found" warning + tracking-safety logic kicks in.
+        # Note: Qfac=inf (bandwidth=0) passes this check, which is the desired
+        # behavior since inf gives dissipation=0, not a visible jump.
         if Qfac < Constants.min_valid_q_factor:
             self._err1 = 1
             self._err2 = 1
@@ -367,6 +369,35 @@ class SerialProcess(multiprocessing.Process):
         
         # PARAMETERS FINDER
         (index_peak_fit, max_peak_fit, bandwidth_fit,index_f1_fit,index_f2_fit, Qfac_fit)= self.parameters_finder(freq_range, mag_result_fit, percent=0.707)
+
+        # ========== DIAGNOSTIC: detect anomalous sweeps ==========
+        # Only prints when something unusual happens — helps identify the root
+        # cause of occasional "jumps" in the frequency/dissipation plots.
+        # Remove this block once the issue is diagnosed.
+        _freq_raw_dbg = freq_range[int(index_peak_fit)]
+        _qfac_is_inf = (Qfac_fit == float('inf'))
+        _diss_raw_dbg = 0.0 if (_qfac_is_inf or Qfac_fit <= 0) else 1.0/Qfac_fit
+
+        _reasons = []
+        if bandwidth_fit < 10:
+            _reasons.append("bw<10Hz({:.2f})".format(bandwidth_fit))
+        if not _qfac_is_inf and Qfac_fit < 100:
+            _reasons.append("Q<100({:.1f})".format(Qfac_fit))
+        if not _qfac_is_inf and Qfac_fit > 100000:
+            _reasons.append("Q>100k({:.0f})".format(Qfac_fit))
+        _prev_freq = getattr(self, '_prev_freq_raw', None)
+        if _prev_freq is not None:
+            _jump = abs(_freq_raw_dbg - _prev_freq)
+            if _jump > 500:  # >500 Hz sweep-to-sweep jump is anomalous
+                _reasons.append("df={:.0f}Hz".format(_jump))
+        if _reasons:
+            print("[SWEEP-DEBUG k={}] freq={:.2f} Q={} bw={:.3f} diss={:.3e} err1={} err2={} | {}".format(
+                k, _freq_raw_dbg,
+                "inf" if _qfac_is_inf else "{:.1f}".format(Qfac_fit),
+                bandwidth_fit, _diss_raw_dbg,
+                self._err1, self._err2, ", ".join(_reasons)))
+        self._prev_freq_raw = _freq_raw_dbg
+        # ========== END DIAGNOSTIC ==========
 
         # TRACKING SAFETY: count consecutive sweeps where BOTH cut-off frequencies
         # are missing (peak effectively lost). If this persists for too many sweeps,
