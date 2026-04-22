@@ -256,7 +256,9 @@ class Constants:
     # Phase threshold: minimum phase peak value (degrees) to accept an overtone
     peak_phase_threshold = 10  # degrees
     # Frequency difference divisor: diff_threshold = (calib_fStep * points_overtone) / peak_freq_diff_divisor
-    peak_freq_diff_divisor = 4
+    # NOTE: raised to 2 (50 kHz threshold) after counter-example tools/Calibration_10MHz.txt
+    # showed valid F3 overtone rejected by 10 kHz. Provisional — needs more counter-examples.
+    peak_freq_diff_divisor = 2
 
     ###########################
     # Ring Buffers Parameters #

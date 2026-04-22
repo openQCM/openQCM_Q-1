@@ -26,7 +26,7 @@ PEAK_POINTS_OVERTONE = 100             # argrelextrema order (~100 kHz min spaci
 OVERTONE_MULTIPLIERS = [3, 5, 7, 9]   # Odd harmonics
 PEAK_MAX_FREQ_LIMIT = 51_000_000       # 51 MHz upper limit
 PEAK_PHASE_THRESHOLD = 10              # degrees — minimum phase peak
-PEAK_FREQ_DIFF_DIVISOR = 4            # For mag/phase cross-validation threshold
+PEAK_FREQ_DIFF_DIVISOR = 2            # 50 kHz threshold (provisional, see TODO)
 VALID_5MHZ = (4e6, 6e6)               # Valid fundamental range for 5 MHz QCM
 VALID_10MHZ = (9e6, 11e6)             # Valid fundamental range for 10 MHz QCM
 

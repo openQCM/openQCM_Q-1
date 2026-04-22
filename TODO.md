@@ -3,7 +3,13 @@
 Development checklist. Each item can become a GitHub Issue.
 
 ## Bug & Fix
-- [ ] Controllare la procedura di peak detection, ho trovato un contro - esempio di peak detection che non ha funzionato, quarzo da 10 Mhz non ha identificato 3rd overotono. 
+- [ ] Peak detection mag/phase freq_diff threshold: raised to 50 kHz (was 25 kHz)
+  after counter-example `tools/Calibration_10MHz.txt` showed valid F3 overtone
+  rejected by only 10 kHz excess. Provisional fix — need to:
+    - Collect more counter-examples to validate the threshold value
+    - Consider adaptive threshold proportional to frequency (e.g. 0.1% of f_expected)
+    - Evaluate weighting decision by amplitude and phase beyond frequency diff alone
+    - Higher overtones have broader asymmetric peaks — may need per-overtone tuning
 - [ ] Validate 9th overtone parameters (`constants.py:106`) — L/R frequency and SG window values are placeholders
 
 ## Optimization
