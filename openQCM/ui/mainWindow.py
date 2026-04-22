@@ -161,6 +161,9 @@ class MainWindow(QtGui.QMainWindow):
         self._vector_1 = None
         self._vector_2 = None
 
+        # Auto-tracking persistent state (carried between sweeps)
+        self._tracking_stopped_active = False
+
         # Instantiates a Worker class
         self.worker = Worker()
 
@@ -898,30 +901,21 @@ class MainWindow(QtGui.QMainWindow):
                   labelbar = 'Please wait, processing early data...'
 
                elif (str(vector1[0])=='nan' and (self._ser_error1 or self._ser_error2)):
+                      label1= ""
+                      label2= ""
+                      label3= ""
+                      labelstatus = 'Warning'
+                      color_err = '#ff0000'
+                      self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
                       if self._ser_error1 and self._ser_error2:
-                        label1= ""
-                        label2= ""
-                        label3= ""
-                        labelstatus = 'Warning'
-                        color_err = '#ff0000'
-                        labelbar = 'Warning: unable to apply half-power bandwidth method, lower and upper cut-off frequency not found'
-                        self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
+                        labelbar = 'Warning: lower and upper cut-off not found'
                       elif self._ser_error1:
-                        label1= ""
-                        label2= ""
-                        label3= ""
-                        labelstatus = 'Warning'
-                        color_err = '#ff0000'
-                        labelbar = 'Warning: unable to apply half-power bandwidth method, lower cut-off frequency (left side) not found'
-                        self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
+                        labelbar = 'Warning: lower cut-off not found'
                       elif self._ser_error2:
-                        label1= ""
-                        label2= ""
-                        label3= ""
-                        labelstatus = 'Warning'
-                        color_err = '#ff0000'
-                        labelbar = 'Warning: unable to apply half-power bandwidth method, upper cut-off frequency (right side) not found'
-                        self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
+                        labelbar = 'Warning: upper cut-off not found'
+                      if self._tracking_stopped_active:
+                          labelstatus = 'Tracking Stopped'
+                          labelbar += ' — Auto-tracking stopped'
                else:
                   if not self._ser_error1 and not self._ser_error2:
                       if not self._reference_flag:
@@ -936,36 +930,31 @@ class MainWindow(QtGui.QMainWindow):
                           d3=float("{0:.1f}".format(vectortemp[0]))
                       label1= str(d1)+ " Hz"
                       label2= str(d2)+ "e-06"
-                      label3= str(d3)+ " °C" 
+                      label3= str(d3)+ " °C"
                       labelstatus = 'Monitoring'
                       color_err = '#000000'
                       labelbar = 'Monitoring!'
                       self.ui.infostatus.setStyleSheet('background: #00ff72; padding: 1px; border: 1px solid #cccccc')
+                      # If tracking was stopped and now the signal is back, show the resume message
+                      # (the flag is cleared by _handle_auto_tracking when the worker reports re-enable)
+                      if self._tracking_stopped_active:
+                          labelbar = 'Monitoring! — Auto-tracking still stopped, waiting for resume'
                   else:
+                      label1= "-"
+                      label2= "-"
+                      label3= "-"
+                      labelstatus = 'Warning'
+                      color_err = '#ff0000'
+                      self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
                       if self._ser_error1 and self._ser_error2:
-                        label1= "-"
-                        label2= "-"
-                        label3= "-"
-                        labelstatus = 'Warning'
-                        color_err = '#ff0000'
-                        labelbar = 'Warning: unable to apply half-power bandwidth method, lower and upper cut-off frequency not found'
-                        self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
+                        labelbar = 'Warning: lower and upper cut-off not found'
                       elif self._ser_error1:
-                        label1= "-"
-                        label2= "-"
-                        label3= "-"
-                        labelstatus = 'Warning'
-                        color_err = '#ff0000'
-                        labelbar = 'Warning: unable to apply half-power bandwidth method, lower cut-off frequency (left side) not found'
-                        self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
+                        labelbar = 'Warning: lower cut-off not found'
                       elif self._ser_error2:
-                        label1= "-"
-                        label2= "-"
-                        label3= "-"
-                        labelstatus = 'Warning'
-                        color_err = '#ff0000'
-                        labelbar = 'Warning: unable to apply half-power bandwidth method, upper cut-off frequency (right side) not found'
-                        self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
+                        labelbar = 'Warning: upper cut-off not found'
+                      if self._tracking_stopped_active:
+                          labelstatus = 'Tracking Stopped'
+                          labelbar += ' — Auto-tracking stopped'
                          
                label_samp = "{0:.0f} ms".format(_sampling_time_s * 1000) if _sampling_time_s > 0 else "---"
                _set_data_value(self.ui.l6a, label3)
@@ -1256,26 +1245,16 @@ class MainWindow(QtGui.QMainWindow):
         Also handles the "tracking disabled by errors" state.
         """
         # Check tracking safety state (disable/re-enable by edge errors)
+        # Only update the persistent flag here — the message is composed later
+        # in _update_plot together with the cut-off warning (which otherwise
+        # overwrites it on every sweep).
         (disabled, first_disabled, reenabled) = self.worker.get_tracking_disabled()
-        if disabled and first_disabled:
-            self.ui.infostatus.setStyleSheet(
-                'background: #ff0000; padding: 1px; border: 1px solid #cccccc')
-            self.ui.infostatus.setText("Tracking Stopped")
-            self.ui.infobar.setStyleSheet(
-                'background-color: #ffebee; color: #c62828; padding: 8px; border-radius: 4px;')
-            self.ui.infobar.setText(
-                "Auto-tracking stopped: peak lost (both cut-off frequencies missing for {} "
-                "consecutive sweeps). Will auto-resume when peak reappears.".format(
-                    Constants.auto_tracking_max_edge_errors))
-            print("[MainWindow] Auto-tracking disabled")
-        elif reenabled:
-            self.ui.infostatus.setStyleSheet(
-                'background: #4caf50; padding: 1px; border: 1px solid #cccccc')
-            self.ui.infostatus.setText("Tracking Resumed")
-            self.ui.infobar.setStyleSheet(
-                'background-color: #e8f5e9; color: #2e7d32; padding: 8px; border-radius: 4px;')
-            self.ui.infobar.setText(
-                "Auto-tracking automatically re-enabled: peak detected again.")
+        if disabled:
+            self._tracking_stopped_active = True
+            if first_disabled:
+                print("[MainWindow] Auto-tracking disabled")
+        if reenabled:
+            self._tracking_stopped_active = False
             print("[MainWindow] Auto-tracking re-enabled automatically")
 
         (activated, start_freq, stop_freq, ref_freq, count) = self.worker.get_tracking_state()
