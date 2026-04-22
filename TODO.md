@@ -4,10 +4,11 @@ Development checklist. Each item can become a GitHub Issue.
 
 ## Bug & Fix
 
-- [x] Tracking safety: se il picco scompare e le cut-off frequencies non vengono
-  trovate per 10 sweep consecutivi (`auto_tracking_max_edge_errors` in constants.py),
-  l'auto-tracking viene disabilitato automaticamente. La GUI mostra "Tracking Stopped"
-  con messaggio esplicativo. Re-abilitazione: STOP + START.
+- [x] Tracking safety: se il picco scompare e **entrambe** le cut-off frequencies
+  non vengono trovate per 10 sweep consecutivi (`auto_tracking_max_edge_errors`
+  in constants.py), l'auto-tracking viene disabilitato automaticamente.
+  La GUI mostra "Tracking Stopped" (rosso). Re-abilitazione automatica non appena
+  il picco torna con almeno una cut-off frequency identificabile ("Tracking Resumed", verde).
 
 - [ ] Peak detection mag/phase freq_diff threshold: raised to 50 kHz (was 25 kHz)
   after counter-example `tools/Calibration_10MHz.txt` showed valid F3 overtone

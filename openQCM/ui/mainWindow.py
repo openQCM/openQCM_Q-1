@@ -1255,19 +1255,28 @@ class MainWindow(QtGui.QMainWindow):
         Updates the X-axis of the Amplitude/Phase plot and shows notifications.
         Also handles the "tracking disabled by errors" state.
         """
-        # First, check if tracking has been disabled by persistent edge errors
-        (disabled, first_read) = self.worker.get_tracking_disabled()
-        if disabled and first_read:
+        # Check tracking safety state (disable/re-enable by edge errors)
+        (disabled, first_disabled, reenabled) = self.worker.get_tracking_disabled()
+        if disabled and first_disabled:
             self.ui.infostatus.setStyleSheet(
                 'background: #ff0000; padding: 1px; border: 1px solid #cccccc')
             self.ui.infostatus.setText("Tracking Stopped")
             self.ui.infobar.setStyleSheet(
                 'background-color: #ffebee; color: #c62828; padding: 8px; border-radius: 4px;')
             self.ui.infobar.setText(
-                "Auto-tracking stopped: peak lost (cut-off frequencies missing for {} "
-                "consecutive sweeps). Press STOP and START to reset.".format(
+                "Auto-tracking stopped: peak lost (both cut-off frequencies missing for {} "
+                "consecutive sweeps). Will auto-resume when peak reappears.".format(
                     Constants.auto_tracking_max_edge_errors))
-            print("[MainWindow] Auto-tracking disabled by GUI notification")
+            print("[MainWindow] Auto-tracking disabled")
+        elif reenabled:
+            self.ui.infostatus.setStyleSheet(
+                'background: #4caf50; padding: 1px; border: 1px solid #cccccc')
+            self.ui.infostatus.setText("Tracking Resumed")
+            self.ui.infobar.setStyleSheet(
+                'background-color: #e8f5e9; color: #2e7d32; padding: 8px; border-radius: 4px;')
+            self.ui.infobar.setText(
+                "Auto-tracking automatically re-enabled: peak detected again.")
+            print("[MainWindow] Auto-tracking re-enabled automatically")
 
         (activated, start_freq, stop_freq, ref_freq, count) = self.worker.get_tracking_state()
 

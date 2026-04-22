@@ -354,32 +354,46 @@ class SerialProcess(multiprocessing.Process):
         # PARAMETERS FINDER
         (index_peak_fit, max_peak_fit, bandwidth_fit,index_f1_fit,index_f2_fit, Qfac_fit)= self.parameters_finder(freq_range, mag_result_fit, percent=0.707)
 
-        # TRACKING SAFETY: count consecutive sweeps with missing cut-off frequencies.
-        # If left/right -3dB edges are not found for too many sweeps, the peak is
-        # likely gone and auto-tracking must be disabled to avoid chasing a ghost.
-        if self._err1 == 1 or self._err2 == 1:
+        # TRACKING SAFETY: count consecutive sweeps where BOTH cut-off frequencies
+        # are missing (peak effectively lost). If this persists for too many sweeps,
+        # auto-tracking is disabled to avoid chasing a ghost resonance.
+        # Automatic re-enable: as soon as the peak is back and at least one cut-off
+        # frequency can be identified again.
+        both_edges_missing = (self._err1 == 1 and self._err2 == 1)
+
+        if both_edges_missing:
             self._consecutive_edge_errors += 1
             if (self._consecutive_edge_errors >= Constants.auto_tracking_max_edge_errors
                     and not self._tracking_disabled_by_errors):
                 self._tracking_disabled_by_errors = True
-                # Signal GUI via tracking parser queue with disabled flag
                 self._parser_tracking.add_tracking([
                     False,          # activated
-                    None,           # start_freq
-                    None,           # stop_freq
-                    None,           # ref_freq
+                    None, None, None,
                     self._auto_tracking_count,
-                    True            # disabled_by_errors (new)
+                    True            # disabled_by_errors
                 ])
                 print("\n" + "=" * 60)
                 print(" AUTO-TRACKING DISABLED")
-                print(" Reason: cut-off frequencies missing for {} consecutive sweeps"
+                print(" Reason: both cut-off frequencies missing for {} consecutive sweeps"
                       .format(self._consecutive_edge_errors))
-                print(" Press STOP and START to reset and re-enable tracking")
+                print(" Will auto-resume when peak and at least one cut-off reappear")
                 print("=" * 60 + "\n")
         else:
-            # Reset counter on any sweep where both edges are successfully found
+            # Peak found with at least one cut-off frequency → good enough
             self._consecutive_edge_errors = 0
+            if self._tracking_disabled_by_errors:
+                # Automatic re-enable: send notification to GUI
+                self._tracking_disabled_by_errors = False
+                self._parser_tracking.add_tracking([
+                    False,          # activated
+                    None, None, None,
+                    self._auto_tracking_count,
+                    False           # disabled_by_errors = False → re-enabled
+                ])
+                print("\n" + "=" * 60)
+                print(" AUTO-TRACKING RE-ENABLED")
+                print(" Peak recovered — resuming resonance tracking")
+                print("=" * 60 + "\n")
 
         # BANDWIDTH 70.7% of MAX
         #self._bw3.append(bandwidth_fit)

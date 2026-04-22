@@ -72,6 +72,7 @@ class Worker:
         self._tracking_count = 0
         self._tracking_disabled_by_errors = False
         self._tracking_disabled_notified = False
+        self._tracking_reenabled_pending = False
 
         # instances of the processes
         self._acquisition_process = None
@@ -334,10 +335,17 @@ class Worker:
         self._tracking_stop_freq = data[2]
         self._tracking_ref_freq = data[3]
         self._tracking_count = data[4]
-        # New (optional) flag: tracking disabled by persistent edge-detection errors
-        if len(data) > 5 and data[5]:
-            self._tracking_disabled_by_errors = True
-            self._tracking_disabled_notified = False  # GUI will see it on next poll
+        # Tracking disabled/re-enabled flag (optional, only sent on state transitions)
+        if len(data) > 5:
+            new_disabled = bool(data[5])
+            if new_disabled and not self._tracking_disabled_by_errors:
+                # Transition: enabled → disabled
+                self._tracking_disabled_by_errors = True
+                self._tracking_disabled_notified = False
+            elif (not new_disabled) and self._tracking_disabled_by_errors:
+                # Transition: disabled → re-enabled (automatic recovery)
+                self._tracking_disabled_by_errors = False
+                self._tracking_reenabled_pending = True
         # Update the frequency range for sweep storage and display
         if self._tracking_activated:
             samples = self._samples
@@ -416,21 +424,26 @@ class Worker:
 
     def get_tracking_disabled(self):
         """
-        Returns whether auto-tracking has been disabled by persistent
-        edge-detection errors, and whether this is the first read
-        (one-shot for GUI notification).
-        :return: (disabled, first_read)
+        Returns auto-tracking "safety" state for GUI notifications.
+        :return: (disabled, first_disabled, reenabled)
+          - disabled: True if tracking is currently disabled by errors
+          - first_disabled: True only on the first read after a disable transition
+          - reenabled: True only on the first read after an automatic re-enable
         """
         disabled = self._tracking_disabled_by_errors
-        first_read = disabled and not self._tracking_disabled_notified
-        if first_read:
+        first_disabled = disabled and not self._tracking_disabled_notified
+        if first_disabled:
             self._tracking_disabled_notified = True
-        return (disabled, first_read)
+        reenabled = self._tracking_reenabled_pending
+        if reenabled:
+            self._tracking_reenabled_pending = False
+        return (disabled, first_disabled, reenabled)
 
     def reset_tracking_disabled(self):
         """Called when user presses START — re-enable tracking."""
         self._tracking_disabled_by_errors = False
         self._tracking_disabled_notified = False
+        self._tracking_reenabled_pending = False
     
 
     ###########################################################################
