@@ -1253,7 +1253,22 @@ class MainWindow(QtGui.QMainWindow):
         """
         Check if auto-tracking has been triggered and update the GUI accordingly.
         Updates the X-axis of the Amplitude/Phase plot and shows notifications.
+        Also handles the "tracking disabled by errors" state.
         """
+        # First, check if tracking has been disabled by persistent edge errors
+        (disabled, first_read) = self.worker.get_tracking_disabled()
+        if disabled and first_read:
+            self.ui.infostatus.setStyleSheet(
+                'background: #ff0000; padding: 1px; border: 1px solid #cccccc')
+            self.ui.infostatus.setText("Tracking Stopped")
+            self.ui.infobar.setStyleSheet(
+                'background-color: #ffebee; color: #c62828; padding: 8px; border-radius: 4px;')
+            self.ui.infobar.setText(
+                "Auto-tracking stopped: peak lost (cut-off frequencies missing for {} "
+                "consecutive sweeps). Press STOP and START to reset.".format(
+                    Constants.auto_tracking_max_edge_errors))
+            print("[MainWindow] Auto-tracking disabled by GUI notification")
+
         (activated, start_freq, stop_freq, ref_freq, count) = self.worker.get_tracking_state()
 
         if activated and start_freq is not None and stop_freq is not None:

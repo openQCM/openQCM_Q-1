@@ -272,7 +272,10 @@ class Constants:
     # When measured frequency deviates from reference by more than this value,
     # the sweep window is automatically recalculated
     auto_tracking_threshold = 100  # Hz
-    
+    # Maximum consecutive sweeps with missing cut-off frequencies (_err1 or _err2)
+    # before the auto-tracking is disabled. User must STOP/START to re-enable.
+    auto_tracking_max_edge_errors = 10
+
     ##############################
     # Parameters for the average #
     ##############################  

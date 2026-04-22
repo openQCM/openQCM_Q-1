@@ -70,6 +70,8 @@ class Worker:
         self._tracking_stop_freq = None
         self._tracking_ref_freq = None
         self._tracking_count = 0
+        self._tracking_disabled_by_errors = False
+        self._tracking_disabled_notified = False
 
         # instances of the processes
         self._acquisition_process = None
@@ -325,13 +327,17 @@ class Worker:
     def _queue_data_tracking(self, data):
         """
         AUTO-TRACKING: Process tracking notification data
-        :param data: [activated, start_freq, stop_freq, ref_freq, count]
+        :param data: [activated, start_freq, stop_freq, ref_freq, count, disabled_by_errors?]
         """
         self._tracking_activated = data[0]
         self._tracking_start_freq = data[1]
         self._tracking_stop_freq = data[2]
         self._tracking_ref_freq = data[3]
         self._tracking_count = data[4]
+        # New (optional) flag: tracking disabled by persistent edge-detection errors
+        if len(data) > 5 and data[5]:
+            self._tracking_disabled_by_errors = True
+            self._tracking_disabled_notified = False  # GUI will see it on next poll
         # Update the frequency range for sweep storage and display
         if self._tracking_activated:
             samples = self._samples
@@ -407,6 +413,24 @@ class Worker:
                 self._tracking_stop_freq,
                 self._tracking_ref_freq,
                 self._tracking_count)
+
+    def get_tracking_disabled(self):
+        """
+        Returns whether auto-tracking has been disabled by persistent
+        edge-detection errors, and whether this is the first read
+        (one-shot for GUI notification).
+        :return: (disabled, first_read)
+        """
+        disabled = self._tracking_disabled_by_errors
+        first_read = disabled and not self._tracking_disabled_notified
+        if first_read:
+            self._tracking_disabled_notified = True
+        return (disabled, first_read)
+
+    def reset_tracking_disabled(self):
+        """Called when user presses START — re-enable tracking."""
+        self._tracking_disabled_by_errors = False
+        self._tracking_disabled_notified = False
     
 
     ###########################################################################

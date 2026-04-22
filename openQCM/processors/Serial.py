@@ -33,6 +33,11 @@ class SerialProcess(multiprocessing.Process):
         :param samples: Number of samples for sweep
         :return: True if tracking was updated, False otherwise
         """
+        # If tracking has been disabled due to persistent edge-detection failures,
+        # skip tracking updates until STOP/START is pressed
+        if getattr(self, '_tracking_disabled_by_errors', False):
+            return False
+
         # Calculate frequency drift from reference
         freq_drift = abs(current_freq - self._reference_frequency)
 
@@ -348,7 +353,34 @@ class SerialProcess(multiprocessing.Process):
         
         # PARAMETERS FINDER
         (index_peak_fit, max_peak_fit, bandwidth_fit,index_f1_fit,index_f2_fit, Qfac_fit)= self.parameters_finder(freq_range, mag_result_fit, percent=0.707)
-        
+
+        # TRACKING SAFETY: count consecutive sweeps with missing cut-off frequencies.
+        # If left/right -3dB edges are not found for too many sweeps, the peak is
+        # likely gone and auto-tracking must be disabled to avoid chasing a ghost.
+        if self._err1 == 1 or self._err2 == 1:
+            self._consecutive_edge_errors += 1
+            if (self._consecutive_edge_errors >= Constants.auto_tracking_max_edge_errors
+                    and not self._tracking_disabled_by_errors):
+                self._tracking_disabled_by_errors = True
+                # Signal GUI via tracking parser queue with disabled flag
+                self._parser_tracking.add_tracking([
+                    False,          # activated
+                    None,           # start_freq
+                    None,           # stop_freq
+                    None,           # ref_freq
+                    self._auto_tracking_count,
+                    True            # disabled_by_errors (new)
+                ])
+                print("\n" + "=" * 60)
+                print(" AUTO-TRACKING DISABLED")
+                print(" Reason: cut-off frequencies missing for {} consecutive sweeps"
+                      .format(self._consecutive_edge_errors))
+                print(" Press STOP and START to reset and re-enable tracking")
+                print("=" * 60 + "\n")
+        else:
+            # Reset counter on any sweep where both edges are successfully found
+            self._consecutive_edge_errors = 0
+
         # BANDWIDTH 70.7% of MAX
         #self._bw3.append(bandwidth_fit)
         # Q FACTOR/DISSIPATION
@@ -531,6 +563,9 @@ class SerialProcess(multiprocessing.Process):
         self._flag_error_usb = 0
         self._err1 = 0
         self._err2 = 0
+        # Consecutive sweeps with missing cut-off frequencies (for tracking safety)
+        self._consecutive_edge_errors = 0
+        self._tracking_disabled_by_errors = False
               
         # CALLS baseline_coeffs method
         coeffs_all = self.baseline_coeffs()
