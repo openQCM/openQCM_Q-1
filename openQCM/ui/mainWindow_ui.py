@@ -685,30 +685,13 @@ class Ui_Main(object):
         self.leftSidebarLayout.setSpacing(10)
 
         # -----------------------------------------------------------------
-        # Brand Header (logo + title) — added to tab bar later via setCornerWidget
+        # Brand Header (logo + title) — top-left, above Serial Connection
         # -----------------------------------------------------------------
         self.grpBrand = QtWidgets.QWidget()
         self.grpBrand.setObjectName("grpBrand")
         brandLayout = QtWidgets.QHBoxLayout(self.grpBrand)
-        brandLayout.setContentsMargins(6, 2, 8, 2)
-        brandLayout.setSpacing(6)
-
-        titleTextLayout = QtWidgets.QVBoxLayout()
-        titleTextLayout.setContentsMargins(0, 0, 0, 0)
-        titleTextLayout.setSpacing(0)
-
-        self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
-        self.lblBrandTitle.setStyleSheet("font-size: 11pt; font-weight: bold; color: #008EC0;")
-        self.lblBrandTitle.setAlignment(QtCore.Qt.AlignRight)
-
-        self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
-        self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
-        self.lblBrandSubtitle.setStyleSheet("font-size: 7pt; color: #888888;")
-        self.lblBrandSubtitle.setAlignment(QtCore.Qt.AlignRight)
-
-        titleTextLayout.addWidget(self.lblBrandTitle)
-        titleTextLayout.addWidget(self.lblBrandSubtitle)
-        brandLayout.addLayout(titleTextLayout)
+        brandLayout.setContentsMargins(4, 2, 4, 2)
+        brandLayout.setSpacing(8)
 
         self.lblLogo = QtWidgets.QLabel()
         self.lblLogo.setFixedSize(30, 30)
@@ -719,7 +702,26 @@ class Ui_Main(object):
         self.lblLogo.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         brandLayout.addWidget(self.lblLogo)
 
-        # grpBrand will be placed in the tab bar via setCornerWidget (see below)
+        titleTextLayout = QtWidgets.QVBoxLayout()
+        titleTextLayout.setContentsMargins(0, 0, 0, 0)
+        titleTextLayout.setSpacing(0)
+
+        self.lblBrandTitle = QtWidgets.QLabel("openQCM Q-1")
+        self.lblBrandTitle.setStyleSheet("font-size: 11pt; font-weight: bold; color: #008EC0;")
+        self.lblBrandTitle.setAlignment(QtCore.Qt.AlignLeft)
+
+        self.lblBrandSubtitle = QtWidgets.QLabel("Quartz Crystal Microbalance")
+        self.lblBrandSubtitle.setObjectName("lblBrandSubtitle")
+        self.lblBrandSubtitle.setStyleSheet("font-size: 7pt; color: #888888;")
+        self.lblBrandSubtitle.setAlignment(QtCore.Qt.AlignLeft)
+
+        titleTextLayout.addWidget(self.lblBrandTitle)
+        titleTextLayout.addWidget(self.lblBrandSubtitle)
+        brandLayout.addLayout(titleTextLayout)
+        brandLayout.addStretch()
+
+        # Add brand to left sidebar above Serial Connection
+        self.leftSidebarLayout.addWidget(self.grpBrand)
 
         # -----------------------------------------------------------------
         # Serial Connection Group
@@ -997,9 +999,6 @@ class Ui_Main(object):
         self.tabLogLayout.addWidget(self.systemLog)
 
         self.tabWidget.addTab(self.tabLog, "System Log")
-
-        # Place brand header in the left corner of the tab bar
-        self.tabWidget.setCornerWidget(self.grpBrand, QtCore.Qt.TopRightCorner)
 
         self.centerLayout.addWidget(self.tabWidget, stretch=1)
 
