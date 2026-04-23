@@ -370,35 +370,6 @@ class SerialProcess(multiprocessing.Process):
         # PARAMETERS FINDER
         (index_peak_fit, max_peak_fit, bandwidth_fit,index_f1_fit,index_f2_fit, Qfac_fit)= self.parameters_finder(freq_range, mag_result_fit, percent=0.707)
 
-        # ========== DIAGNOSTIC: detect anomalous sweeps ==========
-        # Only prints when something unusual happens — helps identify the root
-        # cause of occasional "jumps" in the frequency/dissipation plots.
-        # Remove this block once the issue is diagnosed.
-        _freq_raw_dbg = freq_range[int(index_peak_fit)]
-        _qfac_is_inf = (Qfac_fit == float('inf'))
-        _diss_raw_dbg = 0.0 if (_qfac_is_inf or Qfac_fit <= 0) else 1.0/Qfac_fit
-
-        _reasons = []
-        if bandwidth_fit < 10:
-            _reasons.append("bw<10Hz({:.2f})".format(bandwidth_fit))
-        if not _qfac_is_inf and Qfac_fit < 100:
-            _reasons.append("Q<100({:.1f})".format(Qfac_fit))
-        if not _qfac_is_inf and Qfac_fit > 100000:
-            _reasons.append("Q>100k({:.0f})".format(Qfac_fit))
-        _prev_freq = getattr(self, '_prev_freq_raw', None)
-        if _prev_freq is not None:
-            _jump = abs(_freq_raw_dbg - _prev_freq)
-            if _jump > 500:  # >500 Hz sweep-to-sweep jump is anomalous
-                _reasons.append("df={:.0f}Hz".format(_jump))
-        if _reasons:
-            print("[SWEEP-DEBUG k={}] freq={:.2f} Q={} bw={:.3f} diss={:.3e} err1={} err2={} | {}".format(
-                k, _freq_raw_dbg,
-                "inf" if _qfac_is_inf else "{:.1f}".format(Qfac_fit),
-                bandwidth_fit, _diss_raw_dbg,
-                self._err1, self._err2, ", ".join(_reasons)))
-        self._prev_freq_raw = _freq_raw_dbg
-        # ========== END DIAGNOSTIC ==========
-
         # TRACKING SAFETY: count consecutive sweeps where BOTH cut-off frequencies
         # are missing (peak effectively lost). If this persists for too many sweeps,
         # auto-tracking is disabled to avoid chasing a ghost resonance.
