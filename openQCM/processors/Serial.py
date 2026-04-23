@@ -10,6 +10,7 @@ from serial.tools import list_ports
 import numpy as np
 from numpy import loadtxt
 from scipy.interpolate import UnivariateSpline
+from scipy.stats import trim_mean
 
 from progressbar import Bar, Percentage, ProgressBar, RotatingMarker,Timer
 
@@ -427,15 +428,15 @@ class SerialProcess(multiprocessing.Process):
         self._temperature_buffer.append(temperature)
         
         if self._k>=self._environment:
-           #FREQUENCY
-           vec_app1 = self.savitzky_golay(self._frequency_buffer.get_all(), window_size = Constants.SG_window_environment, order = Constants.SG_order_environment)
-           freq_range_mean = np.average(vec_app1)
-           #DISSIPATION
-           vec_app1d = self.savitzky_golay(self._dissipation_buffer.get_all(), window_size = Constants.SG_window_environment, order = Constants.SG_order_environment)
-           diss_mean = np.average(vec_app1d)
-           #TEMPERATURE
-           vec_app1t = self.savitzky_golay(self._temperature_buffer.get_all(), window_size = Constants.SG_window_environment, order = Constants.SG_order_environment)
-           temperature_mean = np.average(vec_app1t)
+           # Trimmed mean over the circular buffer: drops top 10% and bottom 10%
+           # of samples, then averages. Robust against up to ~5 outliers per side
+           # on a 50-sample buffer, while preserving the smoothness of the mean.
+           # (Previously used a Savitzky-Golay pre-filter + np.average, which is
+           # mathematically equivalent to np.average alone for outlier sensitivity.)
+           trim_fraction = Constants.trim_mean_fraction
+           freq_range_mean = trim_mean(self._frequency_buffer.get_all(), trim_fraction)
+           diss_mean       = trim_mean(self._dissipation_buffer.get_all(), trim_fraction)
+           temperature_mean = trim_mean(self._temperature_buffer.get_all(), trim_fraction)
 
            # AUTO-TRACKING: Check for frequency drift and update sweep window if needed
            # This is checked after the environment averaging for stable measurements

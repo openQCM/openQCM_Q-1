@@ -285,8 +285,13 @@ class Constants:
     # Parameters for the average #
     ##############################  
     environment = 50
-    SG_order_environment = 1
-    SG_window_environment = 3
+    SG_order_environment = 1       # legacy (no longer used in elaborate)
+    SG_window_environment = 3      # legacy (no longer used in elaborate)
+    # Trimmed mean fraction applied to the circular buffer of frequency,
+    # dissipation and temperature before sending to GUI. Drops this fraction
+    # from both ends of the sorted buffer, then averages the rest.
+    # 0.10 = drop 10% lowest + 10% highest (5+5 samples on a 50-sample buffer).
+    trim_mean_fraction = 0.10
     
     ###################
     class SocketClient: #unused

@@ -10,6 +10,16 @@ Development checklist. Each item can become a GitHub Issue.
   La GUI mostra "Tracking Stopped" (rosso). Re-abilitazione automatica non appena
   il picco torna con almeno una cut-off frequency identificabile ("Tracking Resumed", verde).
 
+- [ ] Trimmed mean buffer statistics: replaced SG + np.average with
+  `scipy.stats.trim_mean` on frequency/dissipation/temperature circular buffers
+  (50 samples, 10% trim per side). Verified robustness on synthetic outliers,
+  but the 10% parameter needs validation on real measurement data:
+    - Test on long experiments with known outlier patterns
+    - Compare response to drift vs pure mean (should be very close)
+    - Tune `trim_mean_fraction` in constants.py if needed
+    - Consider per-signal tuning (freq/diss/temp may need different fractions)
+    - Evaluate alternatives if 10% is not enough: Hampel filter or median
+
 - [ ] Signal quality check: aggiunto minimo Q-factor (`min_valid_q_factor = 100`
   in constants.py) per rilevare il caso in cui il sensore è staccato ma la
   board continua a inviare rumore. Approfondire:
