@@ -155,7 +155,7 @@ class QCMAnalyzer(QtWidgets.QMainWindow):
                          "Frequency (Hz)", left_name="Count")
         self.plt_hist_diss = self.plot_widget.addPlot(row=3, col=1)
         self._style_plot(self.plt_hist_diss, "Dissipation Distribution",
-                         "Dissipation", left_name="Count")
+                         "Dissipation (\u00d710\u207b\u2076)", left_name="Count")
 
         # Curves (populated on file load)
         self.curve_freq = self.plt_freq.plot(pen=pg.mkPen(FREQ_COLOR, width=1))
@@ -300,7 +300,9 @@ class QCMAnalyzer(QtWidgets.QMainWindow):
 
         self._draw_hist(self.plt_sampling, sel_samp_ms, FREQ_COLOR, n_bins=50)
         self._draw_hist(self.plt_hist_freq, sel_freq, FREQ_COLOR, n_bins=50)
-        self._draw_hist(self.plt_hist_diss, sel_diss, DISS_COLOR, n_bins=50)
+        # Dissipation scaled by 1e6 for display (×10⁻⁶), avoids pyqtgraph
+        # rendering issues with extremely small bar widths (~1e-7)
+        self._draw_hist(self.plt_hist_diss, sel_diss * 1e6, DISS_COLOR, n_bins=50)
 
     @staticmethod
     def _stats_block(name, data, fmt="{:.4f}"):
