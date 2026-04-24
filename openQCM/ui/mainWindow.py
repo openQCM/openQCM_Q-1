@@ -920,13 +920,13 @@ class MainWindow(QtGui.QMainWindow):
                   if not self._ser_error1 and not self._ser_error2:
                       if not self._reference_flag:
                           d1=float("{0:.1f}".format(vector1[0]))
-                          d2=float("{0:.2f}".format(vector2[0]*1e6))
+                          d2=float("{0:.1f}".format(vector2[0]*1e6))
                           d3=float("{0:.1f}".format(vectortemp[0]))
                       else:
                           a1= vector1[0]-self._reference_value_frequency
                           a2= vector2[0]-self._reference_value_dissipation
                           d1=float("{0:.1f}".format(a1))
-                          d2=float("{0:.2f}".format(a2*1e6))
+                          d2=float("{0:.1f}".format(a2*1e6))
                           d3=float("{0:.1f}".format(vectortemp[0]))
                       label1= str(d1)+ " Hz"
                       label2= str(d2)+ "e-06"
@@ -1792,7 +1792,7 @@ class MainWindow(QtGui.QMainWindow):
                     self._reference_flag = True
                     self.ui.pButton_Reference.setText("Clear Reference")
                     d1=float("{0:.2f}".format(self._reference_value_frequency))
-                    d2=float("{0:.4f}".format(self._reference_value_dissipation*1e6))
+                    d2=float("{0:.1f}".format(self._reference_value_dissipation*1e6))
                     self._labelref1 = str(d1)+ "Hz"
                     self._labelref2 = str(d2)+ "e-06"
                     print(TAG, "Reference set!     ", end='\r')
