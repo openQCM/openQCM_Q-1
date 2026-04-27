@@ -1,446 +1,320 @@
-from enum import Enum
+"""
+openQCM Q-1 — application-wide constants and helper axis classes.
+
+Constants are grouped by feature area:
+    - Application & plot defaults
+    - Per-overtone signal-processing parameters (5 MHz / 10 MHz sensors)
+    - Serial / process / log / file paths
+    - Peak detection (calibration) tuning
+    - Auto-tracking and signal-quality thresholds
+    - Buffer averaging (trimmed mean)
+
+Custom pyqtgraph axis classes used by the live plots are defined at the
+bottom of this module:
+    - DateAxis           absolute timestamp → HH:MM:SS
+    - ElapsedTimeAxis    relative time → HH:MM:SS / M:SS / SS
+    - NonScientificAxis  integer ticks (no SI prefix)
+    - OneDecimalAxis     one-decimal ticks (used for temperature)
+"""
 import os
+import datetime
+from enum import Enum
+from time import strftime, localtime
+
 import numpy as np
 from pyqtgraph import AxisItem
-from time import strftime, localtime
-import time
-import datetime
 
-from openQCM.common.architecture import Architecture,OSType
 from openQCM.common.resources import get_data_path
 
-###############################################################################    
-# Enum for the types of sources. Indices MUST match app_sources constant
-###############################################################################
-class SourceType(Enum):
-    serial = 0
-    calibration = 1
-    SocketClient = 2
-    
 
 ###############################################################################
-# Specifies the minimal Python version required
+# Acquisition mode (must match the order of `Constants.app_sources`)
+###############################################################################
+class SourceType(Enum):
+    serial = 0          # Measurement
+    calibration = 1     # Peak Detection
+    SocketClient = 2    # reserved (unused)
+
+
+###############################################################################
+# Minimum supported Python version (checked at startup)
 ###############################################################################
 class MinimalPython:
     major = 3
     minor = 2
-    release = 0    
- 
-  
-###############################################################################    
-# Common constants and parameters for the application.
+    release = 0
+
+
+###############################################################################
+# Application-wide constants
 ###############################################################################
 class Constants:
-    
-    ##########################
-    # Application Parameters #
-    ##########################
+    # ---------- Application ----------
     app_title = "Real-Time openQCM GUI"
     app_version = '3.0'
-    fw_version = "2.2"  # Expected firmware version (must match firmware #define FW_VERSION)
-    app_sources = ["Measurement", "Peak Detection"]#, "Socket Client"]
+    fw_version = "2.2"                                     # expected firmware version (must match firmware FW_VERSION)
+    app_sources = ["Measurement", "Peak Detection"]        # indices match SourceType
     app_encoding = "utf-8"
-    
-    
-    ###################
-    # PLOT parameters #
-    ###################
-    plot_update_ms = 50  # Timer polling interval in ms (was 200ms)
-    plot_colors = ['#ff0000', '#0072bd', '#008EC0', '#DD8E6B', '#7e2f8e', '#77ac30', '#4dbeee', '#a2142f']
-    plot_max_lines = len(plot_colors)
-    
-    
-    ####################
-    #  SAMPLES NUMBER  #
-    ####################
-    argument_default_samples = 501#1001
-    
-    
-    ####################################
-    # FILTERING and FITTING parameters #
-    ####################################
-    # Notes:
-    # left and right frequencies in the area of the resonance frequency
-    # Savitzky-Golay size of the data window 
-    # Savitzky-Golay order of the polynomial fit
-    # Number of spline points: same as the frequency band +1 (es.5001)
-    # Spline smoothing factor
-    
-    # Savitzky-Golay order of the polynomial fit (common for all)
-    SG_order = 3
 
-    #--------------
-    # 5MHz 
-    #--------------
-    # left and right frequencies
+    # ---------- Plot ----------
+    plot_update_ms = 50                                    # GUI plot refresh interval
+    plot_colors = ['#ff0000', '#0072bd', '#008EC0',
+                   '#DD8E6B', '#7e2f8e', '#77ac30',
+                   '#4dbeee', '#a2142f']
+
+    # ---------- Sweep size ----------
+    argument_default_samples = 501                         # samples per measurement sweep
+
+    # ---------- Signal processing per overtone ----------
+    # For each overtone:
+    #   L*  = Hz to subtract from the peak to define sweep start
+    #   R*  = Hz to add to the peak to define sweep stop
+    #   SG_window_size* = Savitzky-Golay smoothing window (must be odd)
+    #   Spline_factor*  = scipy UnivariateSpline smoothing factor (s parameter)
+    SG_order = 3                                           # SG polynomial order (common to all overtones)
+
+    # 5 MHz sensor — fundamental F0 ~5 MHz
     L5_fundamental = 15000
     R5_fundamental = 5000
-    # Savitzky-Golay size of the data window 
     SG_window_size5_fundamental = 9
-    # Spline smoothing factor
     Spline_factor5_fundamental = 0.05
-    # left and right frequencies
+    # 5 MHz sensor — 3rd overtone F3 ~15 MHz
     L5_3th_overtone = 15000
     R5_3th_overtone = 5000
-    # Savitzky-Golay size of the data window 
     SG_window_size5_3th_overtone = 11
-    # Spline smoothing factor
     Spline_factor5_3th_overtone = 0.01
-    
-    # left and right frequencies
+    # 5 MHz sensor — 5th overtone F5 ~25 MHz
     L5_5th_overtone = 15000
     R5_5th_overtone = 5000
-    # Savitzky-Golay size of the data window 
     SG_window_size5_5th_overtone = 11
-    # Spline smoothing factor
     Spline_factor5_5th_overtone = 0.01
-    
-    # left and right frequencies
+    # 5 MHz sensor — 7th overtone F7 ~35 MHz
     L5_7th_overtone = 50000
     R5_7th_overtone = 2500
-    # Savitzky-Golay size of the data window 
     SG_window_size5_7th_overtone = 33
-    # Spline smoothing factor
     Spline_factor5_7th_overtone = 0.01
-    
-    # TODO
-    # left and right frequencies 
+    # 5 MHz sensor — 9th overtone F9 ~45 MHz
+    # NOTE: parameters are placeholders pending hardware validation (see TODO.md)
     L5_9th_overtone = 5000000
     R5_9th_overtone = 100000
-    # Savitzky-Golay size of the data window 
     SG_window_size5_9th_overtone = 5
-    # Spline smoothing factor
     Spline_factor5_9th_overtone = 0.5
-    
-    #--------------
-    # 10MHz 
-    #--------------
-    # left and right frequencies
+
+    # 10 MHz sensor — fundamental F0 ~10 MHz
     L10_fundamental = 15000
     R10_fundamental = 5000
-    # Savitzky-Golay size of the data window 
     SG_window_size10_fundamental = 11
-    # Spline smoothing factor
     Spline_factor10_fundamental = 0.01
-    
-    # left and right frequencies
+    # 10 MHz sensor — 3rd overtone F3 ~30 MHz
     L10_3th_overtone = 15000
     R10_3th_overtone = 5000
-    # Savitzky-Golay size of the data window 
-    SG_window_size10_3th_overtone = 11    
-    # Spline smoothing factor
+    SG_window_size10_3th_overtone = 11
     Spline_factor10_3th_overtone = 0.01
-    
-    # left and right frequencies
+    # 10 MHz sensor — 5th overtone F5 ~50 MHz
     L10_5th_overtone = 23000
     R10_5th_overtone = 3000
-    # Savitzky-Golay size of the data window 
     SG_window_size10_5th_overtone = 19
-    # Spline smoothing factor
     Spline_factor10_5th_overtone = 0.01
 
-
-    ##########################
-    # SERIAL PORT Parameters #
-    ##########################
+    # ---------- Serial port ----------
     serial_default_speed = 115200
     serial_default_overtone = None
     serial_default_QCS = "@10MHz"
     serial_writetimeout_ms = 0
-    serial_timeout_ms = None#0.01
+    serial_timeout_ms = None
 
-    
-    ######################
-    # Process parameters #
-    ######################
+    # ---------- Multiprocessing ----------
     process_join_timeout_ms = 2000
-    simulator_default_speed = 0.1 # not used
     parser_timeout_ms = 0.005
-    
-    
-    ##################
-    # Log parameters #
-    ##################
-    # Use get_data_path() for PyInstaller compatibility (absolute paths)
+
+    # ---------- Logging ----------
     log_export_path = get_data_path("logged_data")
     log_filename = "{}.log".format(app_title)
     log_max_bytes = 5120
     log_default_level = 1
     log_default_console_log = False
 
-
-    ######################################
-    # File parameters for exporting data #
-    ######################################
-    # Use os.sep for cross-platform path separator
-    slash = os.sep
-
-    csv_delimiter = "," # for splitting data of the serial port and CSV file storage
-    csv_default_prefix = "%Y-%m-%d_%H-%M-%S"  # YYYY-MM-DD_hh-mm-ss
+    # ---------- File paths ----------
+    slash = os.sep                                         # platform path separator (kept for legacy callers)
+    csv_delimiter = ","
+    csv_default_prefix = "%Y-%m-%d_%H-%M-%S"               # log filename timestamp prefix → YYYY-MM-DD_hh-mm-ss
     csv_extension = "csv"
     txt_extension = "txt"
-    csv_export_path = get_data_path("logged_data")
-    csv_filename = (strftime(csv_default_prefix, localtime()))#+'_DataLog')
-    csv_sweeps_export_path = os.path.join(csv_export_path, csv_filename)
-    csv_sweeps_filename = "sweep"
+    csv_export_path = get_data_path("logged_data")         # measurement CSV logs
+    csv_sweeps_filename = "sweep"                          # base name for raw sweep dumps (when enabled)
 
-    # Calibration: scan (WRITE for @3MHz, @5MHz and @10MHz QCS) path: 'openQCM\'
+    # Calibration files: one per supported sensor type
+    csv_calibration_export_path = get_data_path("openQCM")
     csv_calibration_filename3   = "Calibration_3MHz"
     csv_calibration_filename    = "Calibration_5MHz"
     csv_calibration_filename10  = "Calibration_10MHz"
-    csv_calibration_export_path = get_data_path("openQCM")
+    csv_calibration_path3  = os.path.join(csv_calibration_export_path,
+                                          "{}.{}".format(csv_calibration_filename3, txt_extension))
+    csv_calibration_path   = os.path.join(csv_calibration_export_path,
+                                          "{}.{}".format(csv_calibration_filename,  txt_extension))
+    csv_calibration_path10 = os.path.join(csv_calibration_export_path,
+                                          "{}.{}".format(csv_calibration_filename10, txt_extension))
 
-    ##################
-    # Calibration: baseline correction (READ for @3MHz, @5MHz and @10MHz QCS) path: 'openQCM\'
-    csv_calibration_path3  = os.path.join(csv_calibration_export_path, "{}.{}".format(csv_calibration_filename3, txt_extension))
-    csv_calibration_path   = os.path.join(csv_calibration_export_path, "{}.{}".format(csv_calibration_filename, txt_extension))
-    csv_calibration_path10 = os.path.join(csv_calibration_export_path, "{}.{}".format(csv_calibration_filename10, txt_extension))
+    # Detected fundamental + overtone frequencies, written by Peak Detection
+    csv_peakfrequencies_filename = "PeakFrequencies"
+    cvs_peakfrequencies_path = os.path.join(csv_calibration_export_path,
+                                            "{}.{}".format(csv_peakfrequencies_filename, txt_extension))
 
-    # Frequencies: Fundamental and overtones (READ and WRITE for @5MHz and @10MHz QCS)
-    csv_peakfrequencies_filename   = "PeakFrequencies"
-    #csv_peakfrequencies_filename   = "PeakFrequencies_5MHz"
-    #csv_peakfrequencies_filename10 = "PeakFrequencies_10MHz"
-    cvs_peakfrequencies_path    = os.path.join(csv_calibration_export_path, "{}.{}".format(csv_peakfrequencies_filename, txt_extension))
-    #cvs_peakfrequencies_path10 = os.path.join(csv_calibration_export_path, "{}.{}".format(csv_peakfrequencies_filename10, txt_extension))    
-    #########################    
-    '''
-    # Calibration: baseline correction (READ for @5MHz and @10MHz QCS) path: 'common\'
-    csv_calibration_path   = "{}\{}.{}".format(csv_calibration_export_path,csv_calibration_filename,txt_extension)
-    csv_calibration_path10 = "{}\{}.{}".format(csv_calibration_export_path,csv_calibration_filename10,txt_extension)
-    
-    # Frequencies: Fundamental and overtones (READ and WRITE for @5MHz and @10MHz QCS)
-    csv_peakfrequencies_filename   = "PeakFrequencies"
-    #csv_peakfrequencies_filename   = "PeakFrequencies_5MHz"
-    #csv_peakfrequencies_filename10 = "PeakFrequencies_10MHz"
-    cvs_peakfrequencies_path    = "{}\{}.{}".format(csv_calibration_export_path,csv_peakfrequencies_filename,txt_extension)
-    #cvs_peakfrequencies_path10 = "{}\{}.{}".format(csv_calibration_export_path,csv_peakfrequencies_filename10,txt_extension)
-    '''
-    
-    ##########################
-    # CALIBRATION PARAMETERS #
-    ##########################
-    
-    # Peak Detection - distance in samples between neighbouring peaks
-    dist5  =  8000 # for @5MHz
-    dist10 =  10000 # for @10MHz
+    # ---------- Peak detection (calibration) ----------
+    # Distance in samples between neighbouring peaks for the legacy FindPeak
+    # algorithm. The two-phase algorithm (find fundamental, then find overtones)
+    # uses peak_points_fundamental / peak_points_overtone instead.
+    dist5  = 8000      # 5 MHz sensor
+    dist10 = 10000     # 10 MHz sensor
+
+    # Full-spectrum calibration scan: 1 MHz → 51 MHz, 1 kHz step
     calibration_default_samples = 50001
-    calibration_frequency_start =  1000000
-    calibration_frequency_stop  = 51000000 
-    calibration_fStep = (calibration_frequency_stop - calibration_frequency_start) / (calibration_default_samples-1)
-    calibration_readFREQ  = np.arange(calibration_default_samples) * (calibration_fStep) + calibration_frequency_start
-    #-------------------
+    calibration_frequency_start = 1000000
+    calibration_frequency_stop  = 51000000
+    calibration_fStep = (calibration_frequency_stop - calibration_frequency_start) / (calibration_default_samples - 1)
+    calibration_readFREQ = np.arange(calibration_default_samples) * calibration_fStep + calibration_frequency_start
+
+    # Calibration is acquired in `calib_sections` partial sweeps that are then
+    # concatenated to cover the whole spectrum.
     calib_fStep = 1000
-    calib_fRange = 5000000 #
+    calib_fRange = 5000000
     calib_samples = 5001
     calib_sections = 10
 
-    ###########################################
-    # NEW PEAK DETECTION ALGORITHM (v0.1.6)  #
-    ###########################################
-    # Fundamental frequency detection range
-    peak_freq_sweep_min = 1000000      # 1 MHz - lower bound for fundamental search
-    peak_freq_sweep_max = 12000000     # 12 MHz - upper bound for fundamental search
-    # Scipy argrelextrema order for fundamental detection
-    # 6000 points x 1000 Hz/point = 6 MHz minimum distance between peaks
-    peak_points_fundamental = 6000
-    # Half-interval around expected overtone frequency for overtone search
-    peak_freq_range_half = 400000      # +/-400 kHz window around each overtone
-    # Scipy argrelextrema order for overtone detection
-    # 100 points x 1000 Hz/point = 100 kHz minimum distance between peaks
-    peak_points_overtone = 100
-    # Odd overtone multipliers
+    # Two-phase peak detection — fundamental search
+    peak_freq_sweep_min = 1000000        # 1 MHz lower bound
+    peak_freq_sweep_max = 12000000       # 12 MHz upper bound
+    peak_points_fundamental = 6000       # argrelextrema order: 6 MHz min spacing
+    # Two-phase peak detection — overtone search
+    peak_freq_range_half = 400000        # ±400 kHz window centred on the expected overtone
+    peak_points_overtone = 100           # argrelextrema order: 100 kHz min spacing
     peak_overtone_multipliers = [3, 5, 7, 9]
-    # Maximum frequency limit for overtone detection
-    peak_max_frequency_limit = 51000000  # 51 MHz
-    # Phase-magnitude cross-validation thresholds (v0.1.6)
-    # Phase threshold: minimum phase peak value (degrees) to accept an overtone
-    peak_phase_threshold = 10  # degrees
-    # Frequency difference divisor: diff_threshold = (calib_fStep * points_overtone) / peak_freq_diff_divisor
-    # NOTE: raised to 2 (50 kHz threshold) after counter-example tools/Calibration_10MHz.txt
-    # showed valid F3 overtone rejected by 10 kHz. Provisional — needs more counter-examples.
+    peak_max_frequency_limit = 51000000
+    # Cross-validation between magnitude and phase peaks
+    peak_phase_threshold = 10            # minimum phase peak (degrees) to accept an overtone
+    # Frequency-difference threshold between magnitude and phase peaks:
+    #   diff_threshold = (calib_fStep * peak_points_overtone) / peak_freq_diff_divisor
+    # Currently 50 kHz (divisor=2). See TODO.md — needs more counter-examples to tune.
     peak_freq_diff_divisor = 2
 
-    ###########################
-    # Ring Buffers Parameters #
-    ###########################
-    ring_buffer_samples = 16363
+    # ---------- Ring buffers (live measurement) ----------
+    ring_buffer_samples = 16363          # max history kept in memory for plotting
 
-    ###########################
-    # Auto-Tracking Parameters #
-    ###########################
-    # Threshold for frequency drift detection (Hz)
-    # When measured frequency deviates from reference by more than this value,
-    # the sweep window is automatically recalculated
-    auto_tracking_threshold = 100  # Hz
-    # Maximum consecutive sweeps with missing cut-off frequencies (_err1 or _err2)
-    # before the auto-tracking is disabled. User must STOP/START to re-enable.
+    # ---------- Auto-tracking & signal-quality safety ----------
+    # When the measured resonance frequency drifts more than this threshold
+    # from the current reference, the sweep window is recentred automatically.
+    auto_tracking_threshold = 100        # Hz
+    # If both -3dB cut-off frequencies are missing for this many consecutive
+    # sweeps, auto-tracking is disabled. It re-enables automatically as soon
+    # as the peak returns with at least one cut-off identifiable.
     auto_tracking_max_edge_errors = 10
     # Minimum Q-factor below which the resonance is considered invalid.
-    # Typical QCM resonance: Q >> 100 (thousands). When the sensor is disconnected
-    # the signal is just noise → Q collapses (huge bandwidth). Setting _err1/_err2
-    # on Qfac < this threshold triggers the normal "cut-off not found" warning.
+    # Used to detect "sensor disconnected" (board sends amplifier noise).
+    # Real QCM resonances have Q ≫ 100; pure noise gives a tiny Q.
     min_valid_q_factor = 100
 
-    ##############################
-    # Parameters for the average #
-    ##############################  
+    # ---------- Buffer averaging (sent to GUI / auto-tracking) ----------
+    # `environment` samples are accumulated in a circular buffer; once full,
+    # frequency / dissipation / temperature are aggregated with a trimmed mean
+    # to smooth noise and reject occasional outliers.
     environment = 50
-    SG_order_environment = 1       # legacy (no longer used in elaborate)
-    SG_window_environment = 3      # legacy (no longer used in elaborate)
-    # Trimmed mean fraction applied to the circular buffer of frequency,
-    # dissipation and temperature before sending to GUI. Drops this fraction
-    # from both ends of the sorted buffer, then averages the rest.
-    # 0.10 = drop 10% lowest + 10% highest (5+5 samples on a 50-sample buffer).
-    trim_mean_fraction = 0.10
-    
-    ###################
-    class SocketClient: #unused
+    trim_mean_fraction = 0.10            # drop 10% lowest + 10% highest before averaging
+
+    # ---------- Reserved (unused) ----------
+    class SocketClient:
         timeout = 0.01
         host_default = "localhost"
         port_default = [5555, 8080, 9090]
         buffer_recv_size = 1024
-    ###################  
 
 
-
-'''
 ###############################################################################
-#  Provides a date-time aware axis
-###############################################################################    
-class DateAxis(AxisItem):
-    
-    """
-    A tool that provides a date-time aware axis. It is implemented as an AxisItem 
-    that interprets positions as UNIX timestamps (i.e. seconds since 1970). 
-    The labels and the tick positions are dynamically adjusted depending on the range.
-    """
-
-    def __init__(self, *args, **kwargs):
-        AxisItem.__init__(self, *args, **kwargs)
-        self._oldAxis = None
-    
-    def tickStrings(self, values, scale, spacing):
-        ret = []
-        ep = datetime.datetime(1970,1,1,0,0,0)
-        tonow = (datetime.datetime.utcnow()- ep).total_seconds()
-        if not values:
-            return []
-        if spacing >= 31622400:  #366days
-            fmt = "%Y"
-        elif spacing >= 2678400: #31days
-            fmt = "%Y %b"
-        elif spacing >= 86400:   #1day
-            fmt = "%b/%d"
-        elif spacing >= 3600:    #1h
-            fmt = "%b/%d-%Hh"
-        elif spacing >= 60:      #1m
-            fmt = "%H:%M"
-        elif spacing >= 1:       #1s
-            fmt = "%H:%M:%S"
-        else: # less than 2s (show microseconds)
-            #fmt = "%S.%f"""
-            fmt = '[+%fms]'  # explicitly relative to last second   
-        for x in values:
-            try:
-                ret.append(time.strftime(fmt, time.localtime(x*.1+tonow))) #time.localtime(x*.1+tonow)
-            except ValueError:  # Windows can't handle dates before 1970
-                ret.append('')
-            except:
-                ret.append('')    
-        return ret
-'''
-###############################################################################
-#  Provides a date-time aware axis (legacy - shows HH:MM:SS)
+# Custom pyqtgraph axis classes
 ###############################################################################
 class DateAxis(AxisItem):
+    """Format a Unix timestamp (microseconds) as HH:MM:SS."""
     def __init__(self, *args, **kwargs):
         super(DateAxis, self).__init__(*args, **kwargs)
 
     def tickStrings(self, values, scale, spacing):
         TS_MULT_us = 1e6
         try:
-            z= [(datetime.datetime.utcfromtimestamp(float(value)/TS_MULT_us)).strftime("%H:%M:%S") for value in values]
-        except:
-            z= ''
-        return z
-        #return [(datetime.datetime.utcfromtimestamp(float(value)/TS_MULT_us)).strftime("%b-%d %H:%M:%S") for value in values]
+            return [datetime.datetime.utcfromtimestamp(float(v) / TS_MULT_us).strftime("%H:%M:%S")
+                    for v in values]
+        except Exception:
+            return ['' for _ in values]
 
 
-###############################################################################
-#  Provides an elapsed time axis (shows seconds from start)
-###############################################################################
 class ElapsedTimeAxis(AxisItem):
+    """
+    Format elapsed time relative to a start reference as H:MM:SS / M:SS / SS.
+
+    The start reference is set externally with `set_start_time(value)` from
+    the first valid (non-NaN) sample of the data series. Use `reset_start_time()`
+    when restarting the acquisition.
+    """
+    TS_MULT_us = 1e6
+
     def __init__(self, *args, **kwargs):
         super(ElapsedTimeAxis, self).__init__(*args, **kwargs)
-        self._start_time = None  # Will be set externally with first data point
+        self._start_time = None
 
     def tickStrings(self, values, scale, spacing):
-        TS_MULT_us = 1e6
         try:
-            if len(values) == 0:
+            if not values:
                 return []
-
-            # If start time not set yet, return empty strings
             if self._start_time is None:
                 return [''] * len(values)
 
-            # Calculate elapsed time in seconds from start
-            elapsed = [(float(value) - float(self._start_time)) / TS_MULT_us for value in values]
-
-            # Format as integer seconds or with decimals for small values
             result = []
-            for t in elapsed:
+            for v in values:
+                t = (float(v) - float(self._start_time)) / self.TS_MULT_us
                 if t < 0:
-                    t = 0  # Prevent negative values
-                if t >= 3600:  # More than 1 hour: show H:MM:SS
+                    t = 0
+                if t >= 3600:
                     h = int(t // 3600)
                     m = int((t % 3600) // 60)
                     s = int(t % 60)
                     result.append(f"{h}:{m:02d}:{s:02d}")
-                elif t >= 60:  # More than 1 minute: show M:SS
+                elif t >= 60:
                     m = int(t // 60)
                     s = int(t % 60)
                     result.append(f"{m}:{s:02d}")
-                else:  # Less than 1 minute: show seconds
+                else:
                     result.append(f"{int(t)}")
             return result
         except Exception:
             return [''] * len(values)
 
     def set_start_time(self, start_time):
-        """Set the start time from first data point (ignores NaN values)"""
+        """Latch the start reference once, ignoring NaN/invalid values."""
         import math
         if self._start_time is None and start_time is not None:
             try:
                 val = float(start_time)
-                # Only set if it's a valid number (not NaN)
                 if not math.isnan(val):
                     self._start_time = val
             except (ValueError, TypeError):
-                pass  # Ignore invalid values
+                pass
 
     def reset_start_time(self):
-        """Reset the start time (call when START is pressed)"""
+        """Clear the start reference so the next sample latches a new one."""
         self._start_time = None
 
 
-###############################################################################
-#  Provides a non scientific axis notation
-###############################################################################  
 class NonScientificAxis(AxisItem):
+    """Render tick labels as plain integers (no SI prefix, no scientific form)."""
     def __init__(self, *args, **kwargs):
         super(NonScientificAxis, self).__init__(*args, **kwargs)
 
     def tickStrings(self, values, scale, spacing):
-        return [int(value*1) for value in values]
+        return [int(v) for v in values]
 
 
-###############################################################################
-#  Provides an axis with one decimal place (for Temperature)
-###############################################################################
 class OneDecimalAxis(AxisItem):
+    """Render tick labels with exactly one decimal digit (used for temperature)."""
     def __init__(self, *args, **kwargs):
         super(OneDecimalAxis, self).__init__(*args, **kwargs)
 
     def tickStrings(self, values, scale, spacing):
-        return [f"{value:.1f}" for value in values] 
+        return [f"{v:.1f}" for v in values]
