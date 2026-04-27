@@ -1,86 +1,99 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller Spec File for openQCM Q-1 Application
+PyInstaller spec for the openQCM Q-1 Windows executable.
 
-This spec file is configured to create a standalone executable that:
-1. Bundles all Python dependencies
-2. Includes resource files (icons, images)
-3. Works correctly with the resources.py path helper
+Mode:
+    onefile — produces a single self-contained .exe in `dist/`.
+    Console window kept visible for the first beta builds (set
+    `CONSOLE = False` once the GUI is stable to hide the DOS prompt).
 
-Usage:
+Build:
     cd OPENQCM
     pyinstaller openQCM_Q-1.spec
 
 Output:
-    dist/openQCM_Q-1/  (folder with executable and dependencies)
-    or
-    dist/openQCM_Q-1   (single file executable if onefile=True)
-"""
+    dist/openQCM_Q-1.exe
 
-import sys
+Runtime data files (NOT bundled — stay next to the .exe so they remain
+writable across runs):
+    logged_data/                    — measurement CSV logs
+    openQCM/Calibration_5MHz.txt    — calibration sweeps (written by Peak
+    openQCM/Calibration_10MHz.txt     Detection)
+    openQCM/PeakFrequencies.txt     — detected peak frequencies
+
+`openQCM/common/resources.py:get_data_path()` resolves these paths next
+to the executable when running frozen, and next to OPENQCM/ in dev mode.
+"""
 import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
-# Application info
+# ---------- Build options ----------
 APP_NAME = 'openQCM_Q-1'
 MAIN_SCRIPT = 'run.py'
+CONSOLE = True          # Show the console window — flip to False for release
+ONEFILE = True          # Single-file executable (False → onedir)
 
-# Get the spec file directory (OPENQCM folder)
 spec_dir = os.path.dirname(os.path.abspath(SPEC))
 
-# Analysis: collect all modules and dependencies
+
+# ---------- Analysis: dependency discovery ----------
 a = Analysis(
     [MAIN_SCRIPT],
     pathex=[spec_dir],
     binaries=[],
     datas=[
-        # Resource files (bundled with the app)
+        # Resource files bundled inside the executable. At runtime they are
+        # extracted to sys._MEIPASS and accessed via get_resource_path().
         ('icons/favicon.ico', 'icons'),
         ('icons/favicon.png', 'icons'),
         ('icons/openqcm-logo.png', 'icons'),
         ('icons/start_icon.ico', 'icons'),
         ('icons/clear_icon.ico', 'icons'),
         ('icons/download_icon.ico', 'icons'),
-        # Calibration data (if needed to be bundled)
-        # ('openQCM/Calibration_5MHz.txt', 'openQCM'),
-        # ('openQCM/Calibration_10MHz.txt', 'openQCM'),
-        # ('openQCM/PeakFrequencies.txt', 'openQCM'),
     ],
     hiddenimports=[
-        # PyQt5 modules
+        # PyQt5 — fonts / styles / image plugins are picked up automatically
+        # by PyInstaller's PyQt5 hook (no manual handling needed).
         'PyQt5',
         'PyQt5.QtCore',
         'PyQt5.QtGui',
         'PyQt5.QtWidgets',
         # pyqtgraph
         'pyqtgraph',
-        # numpy and scipy
+        # NumPy / SciPy
         'numpy',
         'scipy',
         'scipy.signal',
         'scipy.interpolate',
-        # serial communication
+        'scipy.stats',                # explicit — used for trim_mean
+        # Serial communication
         'serial',
         'serial.tools',
         'serial.tools.list_ports',
-        # pandas for web info
-        'pandas',
-        # multiprocessing
-        'multiprocessing',
-        # other
+        # Console progress widgets used by Serial / Calibration processes
+        'progressbar',
+        # Standard library modules referenced at runtime
+        'urllib',
+        'urllib.request',
         'csv',
         'logging',
+        'multiprocessing',
+        'webbrowser',
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        # Exclude unnecessary modules to reduce size
+        # Excluded to shrink the bundle — none of these are needed at runtime.
         'tkinter',
         'matplotlib',
         'IPython',
         'jupyter',
         'notebook',
+        # `pandas` is heavy (~150 MB) and only used by `get_web_info()` for
+        # parsing the openQCM news HTML table. The function gracefully
+        # disables itself if pandas is unavailable (see mainWindow.py).
+        'pandas',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
@@ -88,67 +101,82 @@ a = Analysis(
     noarchive=False,
 )
 
-# Create the PYZ archive
 pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 
-# Create the executable
-exe = EXE(
-    pyz,
-    a.scripts,
-    [],  # Empty for onedir mode; use a.binaries + a.zipfiles + a.datas for onefile
-    exclude_binaries=True,  # True for onedir, False for onefile
-    name=APP_NAME,
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,  # Use UPX compression if available
-    console=True,  # Set to False for GUI-only (no console window)
-    disable_windowed_traceback=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon='icons/favicon.ico',  # Application icon
-)
 
-# Collect files for distribution (onedir mode)
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name=APP_NAME,
-)
+# ---------- EXE / COLLECT ----------
+if ONEFILE:
+    # Single-file executable: pass binaries + zipfiles + datas to EXE,
+    # do not use COLLECT.
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        [],
+        name=APP_NAME,
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        runtime_tmpdir=None,
+        console=CONSOLE,
+        disable_windowed_traceback=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon='icons/favicon.ico',
+    )
+else:
+    # onedir: EXE references the binaries, COLLECT bundles them in a folder.
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name=APP_NAME,
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        console=CONSOLE,
+        disable_windowed_traceback=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+        icon='icons/favicon.ico',
+    )
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        name=APP_NAME,
+    )
 
 # =============================================================================
-# NOTES FOR BUILDING
+# Build notes
 # =============================================================================
+# 1. Install PyInstaller in the project conda environment:
+#        pip install pyinstaller
 #
-# 1. INSTALL PYINSTALLER:
-#    pip install pyinstaller
+# 2. Build:
+#        cd OPENQCM
+#        pyinstaller openQCM_Q-1.spec
 #
-# 2. BUILD THE APPLICATION:
-#    cd OPENQCM
-#    pyinstaller openQCM_Q-1.spec
+# 3. Distribute (Windows):
+#        - Single file:    dist/openQCM_Q-1.exe
+#        - Ship next to it: an empty `logged_data/` folder, and an
+#          `openQCM/` folder where Peak Detection will write the
+#          calibration files.
 #
-# 3. OUTPUT LOCATION:
-#    dist/openQCM_Q-1/
+# 4. To hide the console window in release: set CONSOLE = False above.
 #
-# 4. IMPORTANT FILES TO INCLUDE WITH DISTRIBUTION:
-#    - logged_data/ folder (create empty if not exists)
-#    - openQCM/ folder with calibration files:
-#      - Calibration_5MHz.txt
-#      - Calibration_10MHz.txt
-#      - PeakFrequencies.txt
-#
-# 5. FOR SINGLE-FILE EXECUTABLE (optional):
-#    Change exclude_binaries=False in EXE section
-#    Remove COLLECT section
-#    Add a.binaries + a.zipfiles + a.datas to EXE
-#
-# 6. FOR GUI-ONLY (no console window):
-#    Change console=True to console=False in EXE section
-#
+# 5. To switch to onedir distribution: set ONEFILE = False above. The
+#    output becomes `dist/openQCM_Q-1/` (folder with the exe + DLLs).
 # =============================================================================

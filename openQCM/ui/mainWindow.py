@@ -2048,8 +2048,17 @@ class MainWindow(QtGui.QMainWindow):
     ########################################################################################################
     # Gets information from openQCM webpage and enables download button if new version software is available
     ########################################################################################################
-    def get_web_info(self):    
-        import pandas as pd
+    def get_web_info(self):
+        # `pandas` is only needed here to parse the openQCM news/version HTML
+        # table. It is excluded from the PyInstaller bundle to keep the
+        # standalone executable small (~150 MB saved). When the dependency
+        # is missing, the update check is gracefully disabled.
+        try:
+            import pandas as pd
+        except ImportError:
+            print(TAG, "pandas not available — update check disabled")
+            self._internet_connected = False
+            return
         # check if an Internet connection is active
         self._internet_connected = self.internet_on()
         # Get latest info from openQCM webpage
