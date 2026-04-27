@@ -1,116 +1,101 @@
-from multiprocessing import freeze_support
+"""
+Application entry point for the openQCM Q-1 GUI.
+
+Sets up the QApplication, the platform-specific taskbar / dock icon, parses
+the CLI arguments and the logger, then opens the MainWindow.
+
+Run from the project root with:
+    python -m openQCM.app
+or via the platform-specific launcher scripts in `scripts/`.
+"""
+import os
 import sys
-import os #add
+from multiprocessing import freeze_support
+
 from PyQt5 import QtGui, QtWidgets
-from openQCM.common.architecture import Architecture,OSType
+
+from openQCM.common.architecture import Architecture, OSType
 from openQCM.common.arguments import Arguments
 from openQCM.common.logger import Logger as Log
 from openQCM.common.resources import get_resource_path
 from openQCM.core.constants import MinimalPython, Constants
 from openQCM.ui import mainWindow
 
-TAG = ""#"[Application]"
+
+TAG = ""  # set to "[Application]" for verbose tagged prints
 
 
-###############################################################################
-# Main Application
-###############################################################################
 class OPENQCM:
+    """Top-level coordinator: builds the QApplication and runs the event loop."""
 
-    ###########################################################################
-    # Initializing values for application
-    ###########################################################################
     def __init__(self, argv=sys.argv):
-
+        # Required for PyInstaller-frozen builds that spawn children
         freeze_support()
         self._args = self._init_logger()
 
-        # WINDOWS TASKBAR ICON FIX:
-        # On Windows, we need to set AppUserModelID before creating QApplication
-        # This tells Windows to use our icon in the taskbar instead of Python's
+        # On Windows, AppUserModelID must be set BEFORE creating the QApplication
+        # so the taskbar groups our windows under the openQCM icon and not under
+        # the Python interpreter icon.
         if Architecture.get_os() is OSType.windows:
             import ctypes
-            # Set unique AppUserModelID for taskbar icon grouping
-            app_id = 'openQCM.Q1.RealTimeMonitor.2.1'
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                'openQCM.Q1.RealTimeMonitor.2.1')
 
         self._app = QtWidgets.QApplication(argv)
 
-        # Set application-wide icon (appears in taskbar on all platforms)
-        # Windows taskbar prefers ICO format, MAC/Linux prefer PNG
+        # Application icon: ICO is preferred on Windows, PNG on macOS / Linux.
         if Architecture.get_os() is OSType.windows:
             icon_path = get_resource_path('icons/favicon.ico')
         else:
             icon_path = get_resource_path('icons/favicon.png')
-        app_icon = QtGui.QIcon(icon_path)
-        self._app.setWindowIcon(app_icon)
+        self._app.setWindowIcon(QtGui.QIcon(icon_path))
 
-        ##
+        # Set the Windows console title (only relevant when launched from cmd)
         if Architecture.get_os() is OSType.windows:
-          '''
-          # Python console position and dimensions
-          import win32gui
-          xpos = 10
-          ypos = 10
-          width = 980
-          length = 510
-          def enumHandler(hwnd, lParam):
-             if win32gui.IsWindowVisible(hwnd):
-                win32gui.MoveWindow(hwnd, xpos, ypos, width, length, True)
-          win32gui.EnumWindows(enumHandler, None)
-          '''
-          ## Set python console title
-          import ctypes
-          ctypes.windll.kernel32.SetConsoleTitleW("Real-Time openQCM GUI - command line")
-        ##
-    
-    ###########################################################################
-    # Runs the application
-    ###########################################################################
+            import ctypes
+            ctypes.windll.kernel32.SetConsoleTitleW(
+                "Real-Time openQCM GUI - command line")
+
     def run(self):
-        if Architecture.is_python_version(MinimalPython.major, minor=MinimalPython.minor):
-            print(TAG,"Path:",os.path.dirname(__file__)) #add
-            print('')
-            print(TAG,"Application started")
-            Log.i(TAG, "Application started")
-            win = mainWindow.MainWindow(samples=self._args.get_user_samples())
-            #win.setWindowTitle("{} - {}".format(Constants.app_title, Constants.app_version))
-            #win.move(500, 20) #GUI position (x,y) on the screen 
-            #win.show()
-            self._app.exec()
-            print(TAG, "Finishing Application...")
-            print(TAG, "Application closed")
-            Log.i(TAG, "Finishing Application...\n")
-            Log.i(TAG, "Application closed\n")
-            win.close()
-        else:
+        """Open the main window and enter the Qt event loop."""
+        if not Architecture.is_python_version(MinimalPython.major, minor=MinimalPython.minor):
             self._fail()
+            self.close()
+            return
+
+        print(TAG, "Path:", os.path.dirname(__file__))
+        print('')
+        print(TAG, "Application started")
+        Log.i(TAG, "Application started")
+
+        win = mainWindow.MainWindow(samples=self._args.get_user_samples())
+        self._app.exec()
+        print(TAG, "Finishing Application...")
+        print(TAG, "Application closed")
+        Log.i(TAG, "Finishing Application...\n")
+        Log.i(TAG, "Application closed\n")
+        win.close()
         self.close()
 
-    ###########################################################################
-    # Closes application
-    ###########################################################################
     def close(self):
+        """Tear down the Qt event loop and exit the interpreter."""
         self._app.exit()
         Log.close()
         sys.exit()
-               
-    ###########################################################################
-    # Initializing logger
-    ###########################################################################
+
     @staticmethod
     def _init_logger():
+        """Parse CLI arguments and instantiate the logger."""
         args = Arguments()
         args.create()
         args.set_user_log_level()
         return args
-    
-    ###########################################################################
-    # Specifies the minimal Python version required
-    ###########################################################################
+
     @staticmethod
     def _fail():
-        txt = str("Application requires Python {}.{} to run".format(MinimalPython.major, MinimalPython.minor))
+        """Emit a clear error if the running Python version is too old."""
+        txt = "Application requires Python {}.{} to run".format(
+            MinimalPython.major, MinimalPython.minor)
         print(TAG, txt)
         Log.e(TAG, txt)
 
