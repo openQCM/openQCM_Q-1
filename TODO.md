@@ -55,3 +55,7 @@ Development checklist. Each item can become a GitHub Issue.
 
 ## Documentation
 - [ ] Document firmware serial protocol (commands, sweep data format, `F` command)
+- [ ] Fix the User Guide link in Help → User Guide. The current URL points
+  to the v2.0 manual (`https://openqcm.com/shared/q-1/openQCM_Q-1-userguide-v2.0.pdf`)
+  which is outdated for v3.0. Set in `mainWindow_ui.py` (lambda on
+  `actionUserGuide.triggered`). Update once the new user guide PDF is published.
