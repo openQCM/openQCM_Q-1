@@ -25,6 +25,7 @@ writable across runs):
 to the executable when running frozen, and next to OPENQCM/ in dev mode.
 """
 import os
+import shutil
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 # ---------- Build options ----------
@@ -34,6 +35,15 @@ CONSOLE = True          # Show the console window — flip to False for release
 ONEFILE = True          # Single-file executable (False → onedir)
 
 spec_dir = os.path.dirname(os.path.abspath(SPEC))
+
+# ---------- Clean previous build artifacts ----------
+# Removed `build/` and `dist/` from any previous run before starting a fresh
+# build. Avoids stale binaries / hooks contaminating the new bundle.
+for d in ('build', 'dist'):
+    p = os.path.join(spec_dir, d)
+    if os.path.isdir(p):
+        print('[spec] Removing previous {}'.format(p))
+        shutil.rmtree(p, ignore_errors=True)
 
 
 # ---------- Analysis: dependency discovery ----------

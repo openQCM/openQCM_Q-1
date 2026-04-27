@@ -33,6 +33,12 @@ class OPENQCM:
         freeze_support()
         self._args = self._init_logger()
 
+        # Ensure the runtime data directories exist next to the executable
+        # (or next to the source tree in dev mode). This makes the .exe
+        # self-sufficient: a fresh user can launch it without any companion
+        # folder and Peak Detection will be able to write its output files.
+        self._ensure_runtime_dirs()
+
         # On Windows, AppUserModelID must be set BEFORE creating the QApplication
         # so the taskbar groups our windows under the openQCM icon and not under
         # the Python interpreter icon.
@@ -90,6 +96,25 @@ class OPENQCM:
         args.create()
         args.set_user_log_level()
         return args
+
+    @staticmethod
+    def _ensure_runtime_dirs():
+        """
+        Make sure the runtime data directories exist.
+
+        Creates `openQCM/` (calibration files) and `logged_data/` (CSV logs)
+        next to the executable so Peak Detection and Measurement can write
+        their output without crashing on a fresh install.
+        """
+        for path in (Constants.csv_calibration_export_path,
+                     Constants.csv_export_path,
+                     Constants.log_export_path):
+            if path and not os.path.isdir(path):
+                try:
+                    os.makedirs(path, exist_ok=True)
+                    print(TAG, "Created runtime directory:", path)
+                except OSError as e:
+                    print(TAG, "WARNING: cannot create {}: {}".format(path, e))
 
     @staticmethod
     def _fail():

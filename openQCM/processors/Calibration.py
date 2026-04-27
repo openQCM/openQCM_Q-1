@@ -495,6 +495,11 @@ class CalibrationProcess(multiprocessing.Process):
                 is_valid_qcm = (4e6 < freq_fundamental < 6e6) or (9e6 < freq_fundamental < 11e6)
                 if freq_fundamental > 0 and is_valid_qcm:
                     print(TAG, "Saving data in file...")
+                    # Ensure the destination directory exists (the application
+                    # creates it at startup, but this guards against a manual
+                    # deletion or first-run race conditions in frozen builds).
+                    import os
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
                     np.savetxt(path, np.column_stack([max_freq_mag, max_freq_mag]))
                     print(TAG, "Peak frequencies for {} saved in: {}".format(qcm_label, path))
                     FileStorage.TXT_sweeps_save(filename_calib,
@@ -535,6 +540,8 @@ class CalibrationProcess(multiprocessing.Process):
                                  (9e6 < max_freq_mag[0] < 11e6)))
                     if is_valid:
                         print(TAG, "Saving data in file...")
+                        import os
+                        os.makedirs(os.path.dirname(path), exist_ok=True)
                         np.savetxt(path, np.column_stack([max_freq_mag, max_freq_mag]))
                         print(TAG, "Peak frequencies saved in: {}".format(path))
                         FileStorage.TXT_sweeps_save(filename_calib,
