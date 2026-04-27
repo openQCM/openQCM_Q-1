@@ -1157,22 +1157,34 @@ class Ui_Main(object):
         MainWindow.setMenuBar(self.menubar)
 
         # -----------------------------------------------------------------
-        # View Menu
+        # File menu — file I/O and application lifecycle
+        # -----------------------------------------------------------------
+        self.menuFile = QtWidgets.QMenu(self.menubar)
+        self.menuFile.setTitle("File")
+        self.menubar.addMenu(self.menuFile)
+
+        # Open Log (replaces the legacy "Log Data View" entry; same handler).
+        # The action name is preserved so MainWindow signal wiring is unchanged.
+        self.actionDataView = QtWidgets.QAction(MainWindow)
+        self.actionDataView.setText("Open Log…")
+        self.actionDataView.setShortcut(QtGui.QKeySequence.Open)   # Cmd/Ctrl+O
+        self.menuFile.addAction(self.actionDataView)
+
+        self.menuFile.addSeparator()
+
+        # Quit — standard application close
+        self.actionQuit = QtWidgets.QAction(MainWindow)
+        self.actionQuit.setText("Quit")
+        self.actionQuit.setShortcut(QtGui.QKeySequence.Quit)       # Cmd/Ctrl+Q
+        self.actionQuit.triggered.connect(MainWindow.close)
+        self.menuFile.addAction(self.actionQuit)
+
+        # -----------------------------------------------------------------
+        # View menu — layout / appearance toggles only
         # -----------------------------------------------------------------
         self.menuView = QtWidgets.QMenu(self.menubar)
         self.menuView.setTitle("View")
         self.menubar.addMenu(self.menuView)
-
-        # Device Information action
-        self.actionDeviceInfo = QtWidgets.QAction(MainWindow)
-        self.actionDeviceInfo.setText("Measurement Parameters")
-        self.actionDeviceInfo.triggered.connect(self._show_device_info)
-        self.menuView.addAction(self.actionDeviceInfo)
-
-        # Toggle Status Bar
-        self.actionToggleStatus = self.statusDock.toggleViewAction()
-        self.actionToggleStatus.setText("Status Bar")
-        self.menuView.addAction(self.actionToggleStatus)
 
         # Toggle Left Panel
         self.actionToggleLeftPanel = QtWidgets.QAction(MainWindow)
@@ -1182,7 +1194,12 @@ class Ui_Main(object):
         self.actionToggleLeftPanel.triggered.connect(self._toggle_left_panel)
         self.menuView.addAction(self.actionToggleLeftPanel)
 
-        # Toggle Cursors (for Frequency/Dissipation plot)
+        # Toggle Status Bar (auto-toggle action provided by the dock widget)
+        self.actionToggleStatus = self.statusDock.toggleViewAction()
+        self.actionToggleStatus.setText("Status Bar")
+        self.menuView.addAction(self.actionToggleStatus)
+
+        # Toggle Cursors on the Frequency/Dissipation plot
         self.actionToggleCursors = QtWidgets.QAction(MainWindow)
         self.actionToggleCursors.setText("Cursors")
         self.actionToggleCursors.setCheckable(True)
@@ -1196,7 +1213,6 @@ class Ui_Main(object):
         self.menuTheme.setTitle("Theme")
         self.menuView.addMenu(self.menuTheme)
 
-        # Theme actions
         self.actionDarkTheme = QtWidgets.QAction(MainWindow)
         self.actionDarkTheme.setText("Dark Theme")
         self.actionDarkTheme.setCheckable(True)
@@ -1209,39 +1225,49 @@ class Ui_Main(object):
         self.actionLightTheme.setChecked(False)
         self.menuTheme.addAction(self.actionLightTheme)
 
-        # Theme action group
+        # Mutually exclusive theme selection
         self.themeActionGroup = QtWidgets.QActionGroup(MainWindow)
         self.themeActionGroup.addAction(self.actionDarkTheme)
         self.themeActionGroup.addAction(self.actionLightTheme)
         self.themeActionGroup.setExclusive(True)
 
         # -----------------------------------------------------------------
-        # Data Menu
+        # Tools menu — diagnostic dialogs and device commands
         # -----------------------------------------------------------------
-        self.menuData = QtWidgets.QMenu(self.menubar)
-        self.menuData.setTitle("Data")
-        self.menubar.addMenu(self.menuData)
+        self.menuTools = QtWidgets.QMenu(self.menubar)
+        self.menuTools.setTitle("Tools")
+        self.menubar.addMenu(self.menuTools)
 
-        self.actionDataView = QtWidgets.QAction(MainWindow)
-        self.actionDataView.setText("Log Data View")
-        self.menuData.addAction(self.actionDataView)
+        # Measurement Parameters dialog (current sweep / overtone / Q-factor)
+        self.actionDeviceInfo = QtWidgets.QAction(MainWindow)
+        self.actionDeviceInfo.setText("Measurement Parameters")
+        self.actionDeviceInfo.triggered.connect(self._show_device_info)
+        self.menuTools.addAction(self.actionDeviceInfo)
 
+        # Live amplitude/phase scatter + spline analysis
         self.actionRawDataView = QtWidgets.QAction(MainWindow)
         self.actionRawDataView.setText("Raw Data View")
-        self.menuData.addAction(self.actionRawDataView)
+        self.menuTools.addAction(self.actionRawDataView)
 
+        # Calibration / peak detection diagnostic
         self.actionPeakDataView = QtWidgets.QAction(MainWindow)
         self.actionPeakDataView.setText("Peak Data View")
-        self.menuData.addAction(self.actionPeakDataView)
+        self.menuTools.addAction(self.actionPeakDataView)
+
+        self.menuTools.addSeparator()
+
+        # Firmware version check (active command on the connected device)
+        self.actionFirmwareCheck = QtWidgets.QAction(MainWindow)
+        self.actionFirmwareCheck.setText("Check Firmware Version")
+        self.menuTools.addAction(self.actionFirmwareCheck)
 
         # -----------------------------------------------------------------
-        # Help Menu
+        # Help menu — documentation, software updates, about
         # -----------------------------------------------------------------
         self.menuHelp = QtWidgets.QMenu(self.menubar)
         self.menuHelp.setTitle("Help")
         self.menubar.addMenu(self.menuHelp)
 
-        # User Guide
         self.actionUserGuide = QtWidgets.QAction(MainWindow)
         self.actionUserGuide.setText("User Guide")
         self.actionUserGuide.triggered.connect(
@@ -1249,7 +1275,6 @@ class Ui_Main(object):
         )
         self.menuHelp.addAction(self.actionUserGuide)
 
-        # Website
         self.actionWebsite = QtWidgets.QAction(MainWindow)
         self.actionWebsite.setText("Website")
         self.actionWebsite.triggered.connect(
@@ -1257,7 +1282,6 @@ class Ui_Main(object):
         )
         self.menuHelp.addAction(self.actionWebsite)
 
-        # Email Support
         self.actionEmailSupport = QtWidgets.QAction(MainWindow)
         self.actionEmailSupport.setText("Email Support")
         self.actionEmailSupport.triggered.connect(
@@ -1265,27 +1289,19 @@ class Ui_Main(object):
         )
         self.menuHelp.addAction(self.actionEmailSupport)
 
-        # Firmware Version Check
-        self.actionFirmwareCheck = QtWidgets.QAction(MainWindow)
-        self.actionFirmwareCheck.setText("Check Firmware Version")
-        self.menuHelp.addAction(self.actionFirmwareCheck)
-
         self.menuHelp.addSeparator()
 
-        # Check for Updates
         self.actionCheckUpdates = QtWidgets.QAction(MainWindow)
-        self.actionCheckUpdates.setText("Check for Updates...")
+        self.actionCheckUpdates.setText("Check for Updates…")
         self.menuHelp.addAction(self.actionCheckUpdates)
 
-        # Download Update (initially disabled)
         self.actionDownloadUpdate = QtWidgets.QAction(MainWindow)
         self.actionDownloadUpdate.setText("Download Update")
-        self.actionDownloadUpdate.setEnabled(False)
+        self.actionDownloadUpdate.setEnabled(False)   # enabled when a newer version is detected
         self.menuHelp.addAction(self.actionDownloadUpdate)
 
         self.menuHelp.addSeparator()
 
-        # About
         self.actionAbout = QtWidgets.QAction(MainWindow)
         self.actionAbout.setText("About openQCM Q-1")
         self.actionAbout.triggered.connect(self._show_about)
