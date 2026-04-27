@@ -36,6 +36,7 @@ from openQCM.core.constants import (
 )
 from openQCM.common.logger import Logger as Log
 from openQCM.common.architecture import Architecture, OSType
+from openQCM.common.resources import get_data_path
 
 
 TAG = ""  # set to "[MainWindow]" for verbose tagged prints
@@ -2229,8 +2230,11 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.infostatus.setText("Disconnected")
         self.ui.infobar.setText("Disconnected for firmware update")
 
-        # firmware_update/ is at OPENQCM/firmware_update/ (sibling of openQCM/ package)
-        updater_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "firmware_update")
+        # firmware_update/ lives next to the executable (frozen build) or
+        # next to the OPENQCM/ source tree (dev mode). `get_data_path()`
+        # resolves both cases — it returns sys.executable's directory when
+        # frozen and the OPENQCM/ root when running from source.
+        updater_dir = get_data_path("firmware_update")
         os_type = Architecture.get_os()
         try:
             if os_type == OSType.windows:

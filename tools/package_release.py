@@ -5,13 +5,16 @@ After PyInstaller has produced `dist/openQCM_Q-1.exe`, run this script to
 assemble the user-facing release folder under `dist/openQCM_Q-1_release/`:
 
     dist/openQCM_Q-1_release/
-        openQCM_Q-1.exe          ← the standalone executable
-        openQCM/                 ← runtime data directory
-            PeakFrequencies.txt   (factory default — overwritten by Peak Detection)
-            Calibration_5MHz.txt  (factory default)
-            Calibration_10MHz.txt (factory default)
-        logged_data/             ← empty, will fill with measurement CSV logs
-        README.txt               ← first-run instructions
+        openQCM_Q-1.exe              ← the standalone executable
+        openQCM/                     ← runtime data directory
+            PeakFrequencies.txt       (factory default — overwritten by Peak Detection)
+            Calibration_5MHz.txt      (factory default)
+            Calibration_10MHz.txt     (factory default)
+        firmware_update/             ← firmware updater tool (used by Help menu)
+            TyUploader.exe            (Windows updater)
+            openQCM_Q-1_FW_*.hex      (firmware binary to flash)
+        logged_data/                 ← empty, will fill with measurement CSV logs
+        README.txt                   ← first-run instructions
 
 Usage:
     cd OPENQCM
@@ -41,6 +44,13 @@ RUNTIME_FILES = [
     REPO_ROOT / "openQCM" / "Calibration_10MHz.txt",
 ]
 
+# Firmware updater payload — copied into <release>/firmware_update/.
+# Help → Firmware Update launches TyUploader.exe from this folder.
+FIRMWARE_UPDATE_FILES = [
+    REPO_ROOT / "firmware_update" / "TyUploader.exe",
+    # The .hex name is firmware-version specific; pick whichever exists.
+]
+
 README_CONTENT = """\
 openQCM Q-1 — Standalone Windows build
 ======================================
@@ -62,10 +72,19 @@ Each acquisition is saved as a CSV file in the `logged_data/` folder
 with the name `YYYY-MM-DD_hh-mm-ss_Fn.csv` (e.g.
 `2026-04-27_15-30-00_F3.csv`).
 
+Firmware update
+---------------
+If a new firmware is required, choose Tools → Check Firmware Version
+in the menu bar. When prompted, the application launches
+`firmware_update/TyUploader.exe` and releases the serial port so the
+updater can talk to the Teensy on the Q-1 board. After the firmware
+is flashed, close the updater and reconnect from the application.
+
 Folder layout
 -------------
 openQCM_Q-1.exe          — the application
 openQCM/                 — calibration files (auto-updated)
+firmware_update/         — firmware updater tool + .hex binary
 logged_data/             — measurement CSV logs (auto-created on each run)
 
 Source code, documentation and updates
@@ -91,6 +110,7 @@ def main():
     RELEASE_DIR.mkdir(parents=True)
     (RELEASE_DIR / "openQCM").mkdir()
     (RELEASE_DIR / "logged_data").mkdir()
+    (RELEASE_DIR / "firmware_update").mkdir()
 
     # Copy the executable
     shutil.copy2(exe_src, RELEASE_DIR / EXE_NAME)
@@ -108,6 +128,22 @@ def main():
         print("WARNING: missing factory-default files:", ", ".join(missing))
         print("The release will still boot, but the user will need to run")
         print("Peak Detection before any Measurement is possible.")
+
+    # Copy the firmware updater tool + the .hex binary (any version found)
+    fw_dir_src = REPO_ROOT / "firmware_update"
+    if fw_dir_src.is_dir():
+        for src in FIRMWARE_UPDATE_FILES:
+            if src.is_file():
+                shutil.copy2(src, RELEASE_DIR / "firmware_update" / src.name)
+                print("Copied:", src.name)
+            else:
+                print("WARNING: missing firmware updater file:", src.name)
+        # Copy any firmware .hex found in firmware_update/ (version-specific name).
+        for hex_file in fw_dir_src.glob("*.hex"):
+            shutil.copy2(hex_file, RELEASE_DIR / "firmware_update" / hex_file.name)
+            print("Copied:", hex_file.name)
+    else:
+        print("WARNING: firmware_update/ directory not found in repo")
 
     # Write the README
     (RELEASE_DIR / "README.txt").write_text(README_CONTENT, encoding="utf-8")
