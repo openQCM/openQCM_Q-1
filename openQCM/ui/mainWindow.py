@@ -185,10 +185,16 @@ class MainWindow(QtGui.QMainWindow):
         # Configures the connections between signals and UI elements
         self._configure_signals()
 
-        # Populates combo box for serial ports
-        self._source_changed()
+        # Default to Peak Detection mode at launch. Setting the index BEFORE
+        # the first `_source_changed()` call avoids a spurious Measurement-
+        # mode initialisation that would try to read PeakFrequencies.txt
+        # before any calibration exists. Signals are blocked so that
+        # _source_changed runs exactly once with the correct mode.
+        self.ui.cBox_Source.blockSignals(True)
         self.ui.cBox_Source.setCurrentIndex(SourceType.calibration.value)
-        self.ui.sBox_Samples.setValue(samples)  #samples
+        self.ui.cBox_Source.blockSignals(False)
+        self._source_changed()
+        self.ui.sBox_Samples.setValue(samples)
 
         # enable ui
         self._enable_ui(True)
@@ -1301,11 +1307,17 @@ class MainWindow(QtGui.QMainWindow):
 
         # Only populate speed dropdown in measurement mode
         if self._get_source() != SourceType.calibration:
-            speeds = self.worker.get_source_speeds(source)
-            if speeds is not None:
+            speeds = self.worker.get_source_speeds(source) or []
+            if speeds:
                 self.ui.cBox_Speed.addItems(speeds)
-            if self._get_source() == SourceType.serial:
-                self.ui.cBox_Speed.setCurrentIndex(len(speeds) - 1)
+                if self._get_source() == SourceType.serial:
+                    self.ui.cBox_Speed.setCurrentIndex(len(speeds) - 1)
+            else:
+                # No PeakFrequencies.txt yet → guide the user to Peak Detection
+                if self._get_source() == SourceType.serial:
+                    self.ui.infobar.setText(
+                        "No calibration found — switch to Peak Detection mode "
+                        "and click START to calibrate the sensor first.")
             self._update_overtone_buttons()
 
     ###########################################################################

@@ -634,10 +634,22 @@ class SerialProcess(multiprocessing.Process):
 
     @staticmethod
     def get_speeds():
-        """Return the overtone frequencies (Hz) as strings, in descending order."""
-        data = loadtxt(Constants.cvs_peakfrequencies_path)
-        peaks_mag = data[:, 0]
-        return [str(v) for v in peaks_mag[::-1]]
+        """
+        Return the overtone frequencies (Hz) as strings, in descending order.
+
+        Returns an empty list if `PeakFrequencies.txt` is missing or unreadable
+        (e.g. on first launch before Peak Detection has been run). The GUI
+        handles the empty list by disabling Measurement mode until a
+        calibration is generated.
+        """
+        try:
+            data = loadtxt(Constants.cvs_peakfrequencies_path)
+            peaks_mag = data[:, 0]
+            return [str(v) for v in peaks_mag[::-1]]
+        except (OSError, IOError, ValueError, IndexError) as e:
+            print(TAG, "PeakFrequencies.txt not available ({}). "
+                       "Run Peak Detection first.".format(e))
+            return []
 
     def _is_port_available(self, port):
         """True if `port` is among the discovered openQCM ports."""

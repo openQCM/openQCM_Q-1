@@ -136,6 +136,17 @@ class Worker:
         # Fresh log filename per START press: YYYY-MM-DD_hh-mm-ss
         self._csv_filename = strftime(Constants.csv_default_prefix, localtime())
 
+        # Measurement mode requires a previous Peak Detection. Bail out early
+        # with a clear log message instead of crashing when the calibration
+        # files are missing (typical first-run state of a fresh install).
+        if self._source == SourceType.serial:
+            import os
+            if not os.path.isfile(Constants.cvs_peakfrequencies_path):
+                print(TAG, "Cannot start Measurement: PeakFrequencies.txt is missing. "
+                           "Run Peak Detection first.")
+                Log.w(TAG, "Cannot start Measurement: PeakFrequencies.txt is missing")
+                return False
+
         if self._source == SourceType.serial:
             self._samples = Constants.argument_default_samples
         elif self._source == SourceType.calibration:
