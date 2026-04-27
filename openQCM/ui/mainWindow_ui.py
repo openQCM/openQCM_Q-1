@@ -1,40 +1,47 @@
+"""
+Layout / UI definitions for the openQCM Q-1 main window and its dialogs.
+
+This module contains:
+    - The colour palettes for the dark and light themes
+    - `_SecondsTimeAxis`           — pyqtgraph axis formatter for log files
+    - `DeviceInfoDialog`           — Measurement Parameters dialog
+    - `DataViewerDialog`           — Log Data View (replay a saved CSV)
+    - `RawDataViewDialog`          — live amplitude / phase scatter + spline
+    - `Ui_Main`                    — the main window layout itself
+      (status bar, left sidebar, central tabs, menu bar, brand header)
+
+`MainWindow` (in mainWindow.py) wires these widgets to the Worker and the
+acquisition processes; this file only defines the visual structure.
+"""
+import webbrowser
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from pyqtgraph import GraphicsLayoutWidget
+from pyqtgraph import AxisItem as _AxisItem
+
 from openQCM.common.resources import get_resource_path
-import webbrowser
 
 
-###############################################################################################################
-# UNIFIED MAIN WINDOW UI - Dark/Light Theme Scientific Interface
-# Restructured: Minimal left sidebar, no right sidebar, bottom status dock, horizontal splitter
-###############################################################################################################
-
-# Dark theme colors
+# ---------- Theme palettes ----------
+# Dark theme
 DARK_BG = "#2b2b2b"
 DARK_PANEL = "#3c3c3c"
 DARK_BORDER = "#555555"
 DARK_TEXT = "#e0e0e0"
 DARK_TEXT_SECONDARY = "#a0a0a0"
 
-# Light theme colors
+# Light theme
 LIGHT_BG = "#f5f5f5"
 LIGHT_PANEL = "#ffffff"
 LIGHT_BORDER = "#cccccc"
 LIGHT_TEXT = "#333333"
 LIGHT_TEXT_SECONDARY = "#666666"
 
-# Accent colors (shared between themes)
+# Accent colors shared between themes
 ACCENT_CYAN = "#00bcd4"
 ACCENT_ORANGE = "#ff9800"
 ACCENT_GREEN = "#4caf50"
 ACCENT_RED = "#f44336"
-
-
-###############################################################################################################
-# Custom axis: format seconds as hh:mm:ss (used by DataViewerDialog)
-###############################################################################################################
-from pyqtgraph import AxisItem as _AxisItem
 
 class _SecondsTimeAxis(_AxisItem):
     """Format seconds as hh:mm:ss, matching the main GUI time axis style."""
