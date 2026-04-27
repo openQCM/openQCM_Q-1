@@ -522,4 +522,154 @@ Reduced from 900px to 850px height — fits MacBook Air 13" with dock visible.
 
 ---
 
-*Development assisted by Claude Code — February–March 2026*
+# PART 9: TRACKING SAFETY, SIGNAL QUALITY & BUFFER STATISTICS — April 2026
+
+## Tracking Safety (Auto-disable / Auto-resume)
+
+Auto-tracking now disables itself when the resonance peak is lost for too many consecutive sweeps and re-enables itself automatically when the peak returns. New constants in `constants.py`:
+
+- `auto_tracking_max_edge_errors = 10` — disable after 10 consecutive sweeps with both -3dB cut-off frequencies missing
+- Re-enable trigger: a single sweep with the peak back and at least one cut-off identifiable
+
+The Serial process maintains a `_consecutive_edge_errors` counter and emits dedicated tracking events (`disabled_by_errors=True/False`) on the `parser_tracking` queue. The Worker turns these into one-shot GUI notifications: the status bar shows **"Tracking Stopped"** (red) on the disable transition and **"Tracking Resumed"** (green) on auto re-enable.
+
+## Sensor Disconnection Detection
+
+When the quartz sensor is physically disconnected, the openQCM board keeps streaming amplifier noise. `parameters_finder()` would still find a "peak" (argmax of noise) and the -3dB walk would find spurious edges — no warning was ever raised. Fix:
+
+- New `Constants.min_valid_q_factor = 100`
+- `parameters_finder()` now sets `_err1 = _err2 = 1` if the computed Q-factor is below this threshold
+- This reuses the existing "cut-off not found" warning pipeline AND the tracking-safety counter, so a disconnected sensor triggers the same recovery flow as a lost peak
+
+## Trimmed Mean Buffer Statistics
+
+The circular buffer of 50 samples used for frequency / dissipation / temperature smoothing was previously processed with Savitzky-Golay (window=3, order=1) followed by `np.average`. Numerical analysis revealed that mean(SG(buffer)) ≡ mean(buffer) w.r.t. outlier sensitivity (a single outlier of 10 kHz contributed +200 Hz regardless of SG window size).
+
+Switched to `scipy.stats.trim_mean` with 10% per side (drops 5 highest + 5 lowest, averages the remaining 40). Verified on synthetic scenarios:
+
+| Method | 1 outlier (+10 kHz) | Burst of 3 outliers | Linear drift (real signal) |
+|---|---|---|---|
+| `np.average` | +200 Hz error | +600 Hz error | +0.17 Hz |
+| `np.median` | +0.23 Hz | +0.32 Hz | +1.10 Hz |
+| **`trim_mean(0.10)`** | **+0.31 Hz** | **0.00 Hz** | **+0.26 Hz** |
+
+5h27 acquisition validation on Windows VM showed continuous fluid streaming with zero drops. The 10% parameter is provisional and tracked for tuning in TODO.md.
+
+## Cut-off Edge Threshold Refinement
+
+Peak detection magnitude/phase frequency-difference threshold raised from 25 kHz to 50 kHz (`peak_freq_diff_divisor: 4 → 2`). A real-world counter-example (`tools/Calibration_10MHz.txt`) showed a valid F3 overtone at 30.091 MHz being rejected by only 10 kHz excess due to asymmetric peak shape on higher overtones.
+
+## Standalone Diagnostic Tools
+
+Three new analysis scripts in `tools/`:
+
+- **`peak_detection_analyzer.py`** — full replay of the peak-detection algorithm on a calibration file with 4-panel matplotlib diagnostic
+- **`overtone_analyzer.py`** — focused zoom on a single overtone window (magnitude + phase + cross-validation visualisation)
+- **`qcm_data_analyzer.py`** — interactive PyQt5 + pyqtgraph tool: opens a CSV log, plots Frequency / Dissipation vs Time with two draggable cursors, shows live statistics (mean, variance, std, min, max, median) and histograms (sampling interval, frequency, dissipation) on the cursor-selected subset
+
+Counter-example data is shipped in `tools/Calibration_10MHz.txt` for regression analysis.
+
+---
+
+# PART 10: CODE CLEANUP & PUBLIC RELEASE PREP — April 2026
+
+Comprehensive cleanup pass to prepare the codebase for public sharing on GitHub and openQCM community contribution. No behavioural changes.
+
+## Module-Level Cleanup
+
+Every backend module (`Serial.py`, `Calibration.py`, `worker.py`, `constants.py`, `switcher.py`, `Parser.py`, `ringBuffer.py`, `app.py`, `popUp.py`, common helpers) received:
+
+- Module-level docstrings describing responsibilities
+- Removal of dead commented-out code (legacy CSV-on-each-sweep dumps, wavelet smoothing demo, `#TODO check QCM` Italian banners, debug-only `print` lines, unused `progress` import comments)
+- Method-level docstrings rewritten in idiomatic English
+- Italian comments translated
+- Section banners (`####################`) trimmed and made functional
+- Imports regrouped per PEP 8 (stdlib → third-party → project)
+
+Total: ~3500 lines removed, ~2400 added. Net reduction in source size while improving readability.
+
+## Latent Bugfixes Found During Cleanup
+
+Real defects spotted and corrected in passing:
+
+- `Architecture.get_os()` was missing the `@staticmethod` decorator (the line read just `staticmethod` without the `@`)
+- `FileManager.create_full_path()` used `is (A or B)` for the OS check, which evaluates to `is A` due to Python operator precedence → on Linux it incorrectly used Windows backslashes
+- `FileManager.create_dir(None)` raised `TypeError` instead of returning False
+- `FileManager.file_exists(None)` returned `None` implicitly
+
+## Menu Bar Reorganisation
+
+Switched from `View / Data / Help` to the standard scientific desktop convention `File / View / Tools / Help`:
+
+| Menu | Contents |
+|---|---|
+| **File** | Open Log… (Ctrl+O) — Quit (Ctrl+Q) |
+| **View** | Left Panel — Status Bar — Cursors — Theme submenu |
+| **Tools** | Measurement Parameters — Raw Data View — Peak Data View — `─` — Check Firmware Version |
+| **Help** | User Guide — Website — Email Support — `─` — Check for Updates… — Download Update — `─` — About openQCM Q-1 |
+
+All action variable names preserved → no signal-wiring changes needed in `mainWindow.py`. Convention aligns with Origin, ImageJ, MATLAB, NIS-Elements, FIJI.
+
+## UI Polish
+
+- Default window size finalised to 1200 × 900 px
+- Dissipation displayed with one decimal digit (`{:.1f}e-06`)
+- `pandas` import in `get_web_info()` wrapped in try/except so the application boots even when the dependency is excluded from the frozen build
+
+---
+
+# PART 11: WINDOWS STANDALONE DISTRIBUTION — April 2026
+
+First binary release infrastructure: a single self-contained `.exe` for Windows users who do not want a Python install.
+
+## PyInstaller Configuration
+
+`openQCM_Q-1.spec` reorganised:
+
+- `ONEFILE = True` → single `dist/openQCM_Q-1.exe` (~305 MB after exclusions)
+- `CONSOLE = True` for the first beta builds (toggle to False for production)
+- Hidden imports added: `progressbar`, `scipy.stats`, `urllib.request`, `webbrowser`
+- `pandas` excluded from the bundle (saves ~150 MB) — `get_web_info()` falls back gracefully
+- Other excludes: `tkinter`, `matplotlib`, `IPython`, `jupyter`, `notebook`
+
+## Robustness for Fresh Installs
+
+The application now self-creates its runtime directories at startup so the bundled `.exe` works on a fresh Windows install with no companion folder:
+
+- New `OPENQCM._ensure_runtime_dirs()` helper creates `openQCM/`, `logged_data/` and the log directory next to the executable
+- `Serial.get_speeds()` returns `[]` instead of crashing if `PeakFrequencies.txt` is missing
+- `MainWindow._source_changed()` shows a guidance message in Measurement mode when no calibration is available
+- `Worker.start()` blocks Measurement-mode acquisition with a clear log message if the calibration file is absent
+- `Calibration.py` does `os.makedirs(..., exist_ok=True)` defensively before `np.savetxt`
+- Spurious init-time `_source_changed(Measurement)` call (caused by the Qt signal firing before `setCurrentIndex(calibration)`) eliminated by blocking signals during the default-mode setup
+
+## Firmware Updater Path Fix
+
+`mainWindow._run_firmware_updater()` resolved its target path with `os.path.dirname(__file__)`, which points inside `_MEIPASS` in frozen builds and could never find `firmware_update/TyUploader.exe`. Switched to `get_data_path("firmware_update")` so the path resolves to the executable's directory in production and to `OPENQCM/` in dev mode.
+
+## Release Bundle Workflow
+
+New `tools/build_release.bat` (Windows one-shot build) and `tools/package_release.py` (post-build assembler):
+
+```
+tools\build_release.bat
+```
+
+builds `dist/openQCM_Q-1_release/`:
+
+```
+openQCM_Q-1.exe                          (the application)
+openQCM/PeakFrequencies.txt              (factory-default calibration)
+openQCM/Calibration_5MHz.txt
+openQCM/Calibration_10MHz.txt
+firmware_update/TyUploader.exe           (Teensy firmware tool)
+firmware_update/openQCM_Q-1_FW_*.hex     (firmware binary)
+logged_data/                             (empty — fills with CSV runs)
+README.txt                               (first-run instructions)
+```
+
+This folder can be zipped and distributed directly. The release was validated on Windows: full Peak Detection + Measurement cycle works on a clean machine without a Python install.
+
+---
+
+*Development assisted by Claude Code — February 2026 onwards*
