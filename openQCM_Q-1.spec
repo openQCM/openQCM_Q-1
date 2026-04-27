@@ -25,7 +25,6 @@ writable across runs):
 to the executable when running frozen, and next to OPENQCM/ in dev mode.
 """
 import os
-import shutil
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 # ---------- Build options ----------
@@ -36,14 +35,11 @@ ONEFILE = True          # Single-file executable (False → onedir)
 
 spec_dir = os.path.dirname(os.path.abspath(SPEC))
 
-# ---------- Clean previous build artifacts ----------
-# Removed `build/` and `dist/` from any previous run before starting a fresh
-# build. Avoids stale binaries / hooks contaminating the new bundle.
-for d in ('build', 'dist'):
-    p = os.path.join(spec_dir, d)
-    if os.path.isdir(p):
-        print('[spec] Removing previous {}'.format(p))
-        shutil.rmtree(p, ignore_errors=True)
+# Note: cleanup of previous `build/` and `dist/` folders cannot be done here.
+# PyInstaller creates its working directory `build/<APP_NAME>/` BEFORE parsing
+# the spec, so any rmtree at this point would race with PyInstaller and break
+# the build. Use the wrapper `tools/build_release.bat` (Windows) or pass
+# `pyinstaller --clean openQCM_Q-1.spec` to clear the PyInstaller cache.
 
 
 # ---------- Analysis: dependency discovery ----------
