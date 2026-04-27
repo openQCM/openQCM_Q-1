@@ -112,9 +112,19 @@ def main():
     (RELEASE_DIR / "logged_data").mkdir()
     (RELEASE_DIR / "firmware_update").mkdir()
 
-    # Copy the executable
-    shutil.copy2(exe_src, RELEASE_DIR / EXE_NAME)
-    print("Copied:", EXE_NAME)
+    # Move the executable into the release bundle (rather than copy) so we
+    # don't leave a duplicate 305 MB binary in `dist/`. To rebuild, the user
+    # must rerun PyInstaller — which is the normal workflow.
+    shutil.move(str(exe_src), str(RELEASE_DIR / EXE_NAME))
+    print("Moved: ", EXE_NAME)
+
+    # Tidy up any runtime directories the dev .exe may have created in `dist/`
+    # if it was launched manually for testing (the app auto-creates these).
+    for stray in ("logged_data", "openQCM"):
+        stray_path = DIST_DIR / stray
+        if stray_path.is_dir():
+            shutil.rmtree(stray_path, ignore_errors=True)
+            print("Cleaned:", stray_path)
 
     # Copy the factory-default runtime files
     missing = []
