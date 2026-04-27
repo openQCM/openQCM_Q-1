@@ -1,70 +1,92 @@
+"""
+MainWindow — top-level controller of the openQCM Q-1 GUI.
 
-from openQCM.ui.mainWindow_ui import Ui_Main
+Responsibilities:
+    - Build and show the main window (delegated to `Ui_Main` for layout).
+    - Spin up the Worker / acquisition processes on START, tear them down on STOP.
+    - Drive the plot refresh QTimer that drains the Worker queues and updates
+      the persistent pyqtgraph curves (frequency, dissipation, temperature,
+      amplitude, phase).
+    - Manage the serial port lock, the CSV log handle, dialog windows
+      (Data View, Raw Data View, Peak Data View, Measurement Parameters)
+      and the various menu actions (theme, cursors, firmware check, updates).
+    - Implement the minimum Y-axis scale enforcement and the auto-tracking
+      safety GUI feedback (Tracking Stopped / Tracking Resumed).
 
-from pyqtgraph import AxisItem
-import pyqtgraph as pg
-from PyQt5 import QtCore, QtGui, QtWidgets
-from openQCM.core.worker import Worker
-from openQCM.core.constants import Constants, SourceType, DateAxis, NonScientificAxis, OneDecimalAxis, ElapsedTimeAxis
-from openQCM.ui.popUp import PopUp
-from openQCM.ui.calibrationPlot import CalibrationPlotWindow
-from openQCM.common.logger import Logger as Log
-from openQCM.common.architecture import Architecture, OSType
-import numpy as np
-import sys
+The heavy lifting (signal processing, peak detection, sweep acquisition)
+lives in the child processes (`SerialProcess`, `CalibrationProcess`).
+This file is mostly UI plumbing and event handling.
+"""
 import os
+import sys
 from datetime import datetime
 
-TAG = ""#"[MainWindow]"
+import numpy as np
+from PyQt5 import QtCore, QtGui, QtWidgets
+from pyqtgraph import AxisItem
+import pyqtgraph as pg
 
-# Minimum Y-axis display ranges (prevents autoscale "noise explosion" on stable signals)
+from openQCM.ui.mainWindow_ui import Ui_Main
+from openQCM.ui.popUp import PopUp
+from openQCM.ui.calibrationPlot import CalibrationPlotWindow
+from openQCM.core.worker import Worker
+from openQCM.core.constants import (
+    Constants, SourceType,
+    DateAxis, NonScientificAxis, OneDecimalAxis, ElapsedTimeAxis,
+)
+from openQCM.common.logger import Logger as Log
+from openQCM.common.architecture import Architecture, OSType
+
+
+TAG = ""  # set to "[MainWindow]" for verbose tagged prints
+
+# Minimum Y-axis display ranges, used to prevent the autoscale from "exploding"
+# stable noise across the whole plot when the signal is essentially flat.
+# (Override at runtime via the easter-egg right-click on the brand logo.)
 MIN_FREQ_RANGE = 100        # Hz
-MIN_DISS_RANGE = 0.000001   # 1e-6 (TODO: optimize based on real-world measurements)
+MIN_DISS_RANGE = 0.000001   # 1e-6 (provisional — see TODO.md, needs real-data tuning)
 MIN_TEMP_RANGE = 2.0        # °C
 
-##########################################################################################
-# Stream redirector class to capture print output and send to QTextEdit
-##########################################################################################
+
 class LogStream:
-    """Redirects stdout/stderr to a QTextEdit widget while preserving original output"""
+    """
+    Stream-like adapter that mirrors stdout / stderr into a QTextEdit while
+    still forwarding to the original terminal stream. Used to surface child
+    process prints in the System Log tab of the GUI.
+    """
     def __init__(self, text_widget, original_stream):
         self.text_widget = text_widget
         self.original_stream = original_stream
 
     def write(self, text):
-        # Write to original stream (terminal)
         if self.original_stream:
             self.original_stream.write(text)
-        # Write to QTextEdit (skip empty strings and carriage returns)
+        # Skip carriage-return-only lines (used for in-place progress prints)
         if text and text.strip() and text != '\r':
             timestamp = datetime.now().strftime("[%H:%M:%S] ")
-            # Use invokeMethod for thread safety
+            # Cross-thread safe append via Qt's queued meta call
             QtCore.QMetaObject.invokeMethod(
                 self.text_widget, "append",
                 QtCore.Qt.QueuedConnection,
-                QtCore.Q_ARG(str, timestamp + text.rstrip())
+                QtCore.Q_ARG(str, timestamp + text.rstrip()),
             )
 
     def flush(self):
         if self.original_stream:
             self.original_stream.flush()
 
-##########################################################################################
-# Package that handles the UIs elements and connects to worker service to execute processes
-# UNIFIED SINGLE WINDOW VERSION - Minimal Scientific Interface
-##########################################################################################
 
 def _set_data_value(widget, value):
-    """Helper to set value on data row widgets (QWidget with valueLabel attribute)"""
+    """Set a value on a sidebar data row (works with both compound and plain widgets)."""
     if hasattr(widget, 'valueLabel'):
         widget.valueLabel.setText(str(value))
     elif hasattr(widget, 'setText'):
         widget.setText(str(value))
 
+
 def _extract_value(html_text):
-    """Extract the value part from HTML formatted text like '<font color=...>Label</font> Value'"""
+    """Strip the leading HTML label (e.g. '<font color=...>Frequency</font> 1234')."""
     if '>' in html_text and '</font>' in html_text:
-        # Find text after last </font>
         parts = html_text.split('</font>')
         if len(parts) > 1:
             return parts[-1].strip()
@@ -73,24 +95,18 @@ def _extract_value(html_text):
 
 class MainWindow(QtGui.QMainWindow):
 
-    ###########################################################################
-    # Initializes methods, values and sets the UI
-    ###########################################################################
     def __init__(self, samples=Constants.argument_default_samples):
-
-        #:param samples: Default samples shown in the plot :type samples: int.
-        # to be always placed at the beginning, initializes some important methods
+        """
+        :param samples: default samples per sweep used for the initial sidebar value
+        """
         QtGui.QMainWindow.__init__(self)
 
-        # Sets up the unified user interface
         self.ui = Ui_Main()
         self.ui.setupUi(self)
         self.show()
 
-        # =============================================================================
-        # SYSTEM LOG: Redirect stdout/stderr to System Log tab
-        # This captures all print() statements and displays them in the GUI
-        # =============================================================================
+        # Mirror stdout / stderr into the System Log tab so child-process prints
+        # surface in the GUI alongside terminal output.
         self._original_stdout = sys.stdout
         self._original_stderr = sys.stderr
         sys.stdout = LogStream(self.ui.systemLog, self._original_stdout)
@@ -111,45 +127,35 @@ class MainWindow(QtGui.QMainWindow):
         self._ser_error2 = 0
         self._ser_err_usb= 0
 
-        # =============================================================================
-        # CPU OPTIMIZATION: Persistent curve objects for efficient plot updates
-        # Development note: Instead of calling clear() + plot() on each timer tick,
-        # we create curve objects once and reuse them with setData(). This avoids
-        # continuous memory allocation/deallocation and significantly reduces CPU usage.
-        # See _configure_plot() for initialization and _update_plot() for usage.
-        # =============================================================================
-        self._curve_amplitude = None      # Amplitude curve (plt0)
-        self._curve_phase = None          # Phase curve (plt1)
-        self._curve_frequency = None      # Resonance frequency curve (plt2)
-        self._curve_dissipation = None    # Dissipation curve (plt3)
-        self._curve_temperature = None    # Temperature curve (plt4)
+        # Persistent pyqtgraph curve handles. Created once in `_configure_plot()`
+        # and updated via setData() in `_update_plot()` to avoid the overhead of
+        # rebuilding the plot scene on every timer tick.
+        self._curve_amplitude = None      # plt0 — Amplitude vs frequency
+        self._curve_phase = None          # plt1 — Phase vs frequency (twin Y)
+        self._curve_frequency = None      # plt2 — Resonance frequency vs time
+        self._curve_dissipation = None    # plt3 — Dissipation vs time (twin Y)
+        self._curve_temperature = None    # plt4 — Temperature vs time
 
-        # Theme-specific curve colors (amplitude and temperature change with theme)
-        self._theme_amp_color = '#ffffff'   # Default: white for dark mode
+        # Theme-dependent curve colors (amplitude / temperature flip with theme)
+        self._theme_amp_color = '#ffffff'   # white in dark mode (default)
         self._theme_temp_color = None
 
-        # =============================================================================
-        # RESIZE OPTIMIZATION: Pause plot updates during window resize
-        # This prevents GUI lag by temporarily stopping expensive redraw operations
-        # =============================================================================
+        # Resize debouncing: pause plot updates while the user drags the window
+        # edge, then re-enable them after a short timeout (smoother resize).
         self._is_resizing = False
         self._resize_timer = QtCore.QTimer()
         self._resize_timer.setSingleShot(True)
         self._resize_timer.timeout.connect(self._on_resize_finished)
 
-        # internet connection variable
         self._internet_connected = False
 
-        # =============================================================================
-        # SERIAL CONNECTION: State management for Connect/Disconnect button
-        # The serial port is now explicitly connected/disconnected by user action,
-        # independent of the measurement mode selection.
-        # The serial port is kept open (locked) until Disconnect is pressed.
-        # =============================================================================
+        # Serial connection state. The Connect / Disconnect button explicitly
+        # opens and closes the port; the port is kept locked until Disconnect
+        # is pressed, independent of the measurement mode.
         self._serial_connected = False
         self._connected_port = None
-        self._serial_lock = None  # Serial object to keep port open
-        self._lock_file = None    # File lock for exclusive access
+        self._serial_lock = None
+        self._lock_file = None
 
         # Minimum Y-axis scale enforcement (prevents noise explosion on stable signals)
         self._min_scale_enabled = True
@@ -259,20 +265,17 @@ class MainWindow(QtGui.QMainWindow):
             #####
 
             if self._get_source() == SourceType.serial:
-                overtones_number = len(self.worker.get_source_speeds(SourceType.serial))
-                # TODO set the quartz sensor 
-                '''
-                if overtones_number==5:
-                   label_quartz = "5 MHz QCM"
-                elif overtones_number==3:
-                   label_quartz = "10 MHz QCM"
-                '''
-                if ( float(self.worker.get_source_speeds(SourceType.serial)[overtones_number-1])>4e+06 and float(self.worker.get_source_speeds(SourceType.serial)[overtones_number-1])<6e+06):
-                   label_quartz = "5 MHz QCM"
-                elif (float(self.worker.get_source_speeds(SourceType.serial)[overtones_number-1])>9e+06 and float(self.worker.get_source_speeds(SourceType.serial)[overtones_number-1])<11e+06):
-                   label_quartz = "10 MHz QCM"
-                
-                
+                # Infer the QCM sensor type from the highest peak frequency listed
+                # in PeakFrequencies.txt (last item, since the list is sorted desc).
+                speeds = self.worker.get_source_speeds(SourceType.serial)
+                overtones_number = len(speeds)
+                top_freq = float(speeds[overtones_number - 1])
+                if 4e6 < top_freq < 6e6:
+                    label_quartz = "5 MHz QCM"
+                elif 9e6 < top_freq < 11e6:
+                    label_quartz = "10 MHz QCM"
+
+
                 _set_data_value(self.ui.info1a, label_quartz)
                 label11= "Measurement openQCM Q-1"
                 _set_data_value(self.ui.info11, label11)
@@ -390,9 +393,8 @@ class MainWindow(QtGui.QMainWindow):
     # Overrides the QTCloseEvent,is connected to the close button of the window
     ###########################################################################
     def closeEvent(self, evnt):
-        #:param evnt: QT evnt.
-
-        # Prevent double close dialog - check if already closing
+        """Override Qt's close handler to confirm shutdown and tear down resources."""
+        # Prevent the dialog from popping up twice if Qt fires closeEvent again
         if hasattr(self, '_is_closing') and self._is_closing:
             evnt.accept()
             return
@@ -431,10 +433,13 @@ class MainWindow(QtGui.QMainWindow):
     # Enables or disables the UI elements of the window.
     ###########################################################################
     def _enable_ui(self, enabled):
+        """
+        Enable / disable the configuration widgets while acquisition runs.
 
-        #:param enabled: The value to be set for the UI elements :type enabled: bool
-        # Port and Refresh are controlled by Connect button state
-        # Only enable if not connected AND ui is enabled
+        :param enabled: target enabled state (True before START, False during acquisition)
+        """
+        # Port and Refresh widgets are gated by the Connect button: they
+        # remain disabled while the port is locked, regardless of `enabled`.
         if not self._serial_connected:
             self.ui.cBox_Port.setEnabled(enabled)
             self.ui.pButton_Refresh.setEnabled(enabled)
@@ -884,8 +889,6 @@ class MainWindow(QtGui.QMainWindow):
             vectortemp = self.worker.get_d3_buffer()
             self._ser_error1,self._ser_error2, self._ser_control,self._ser_err_usb = self.worker.get_ser_error()
             _sampling_time_s = self.worker.get_sampling_time()
-            #print(self._ser_err_usb, end='\r')
-            #if self._ser_err_usb <=1:
             if vector1.any:
                # progressbar
                if self._ser_control<=Constants.environment:
@@ -967,15 +970,9 @@ class MainWindow(QtGui.QMainWindow):
                self.ui.infobar.setText(labelbar)
                if color_err == '#ff0000':
                    self.ui.infobar.setStyleSheet('background-color: #ffebee; color: #c62828; padding: 8px; border-radius: 4px;')
-               # progressbar 
                self.ui.progressBar.setValue(self._completed+2)
-            
-            #elif self._ser_err_usb >1:
-                # PopUp.warning(self, Constants.app_title, "Warning: USB cable device disconnected!")  
-                # self.stop() 
-        
-        # CALIBRATION: dynamic info in infobar at run-time
-        ##################################################
+
+        # ---- Calibration mode: dynamic info in the status bar ----
         elif self._get_source() == SourceType.calibration:
             # Check for user cancellation (highest priority)
             if self.worker.is_calibration_cancelled():
@@ -1002,49 +999,40 @@ class MainWindow(QtGui.QMainWindow):
             labelbar = 'please wait...'
             self.ui.infostatus.setStyleSheet('background: #ffff00; padding: 1px; border: 1px solid #cccccc')
 
-            # progressbar
-            error1,error2,error3,self._ser_control = self.worker.get_ser_error()
-            if self._ser_control< (Constants.calib_sections):
-                      self._completed = (self._ser_control/(Constants.calib_sections))*100
-            # calibration buffer empty
-            #if vector1[0]== 0 and vector3[0]==1:
-            if error1== 1 and vector3[0]==1:
-              label1 = 'not available'
-              label2 = 'not available'
-              label3 = 'not available'
-              color_err = '#ff0000'
-              labelstatus = 'Peak Detection Warning'
-              self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
-              labelbar = 'empty buffer — Reconnect device and retry.'
-              stop_flag=1
-            # calibration buffer empty and ValueError from the serial port
-            #elif vector1[0]== 0 and vector2[0]==1:
-            elif error1== 1 and vector2[0]==1:
-              label1 = 'not available'
-              label2 = 'not available'
-              label3 = 'not available'
-              color_err = '#ff0000'
-              labelstatus = 'Peak Detection Warning'
-              self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
-              labelbar = 'empty buffer / value error — Reconnect device and retry.'
-              stop_flag=1
-            # calibration buffer not empty
-            #elif vector1[0]!= 0:
-            elif error1==0:
-              label1 = 'not available'
-              label2 = 'not available'
-              label3 = 'not available'
-              labelstatus = 'Peak Detection Processing'
-              color_err = '#000000'
-              labelbar = 'please wait...'
-              if vector2[0]== 0 and vector3[0]== 0:
-                 labelstatus = 'Peak Detection Success'
-                 self.ui.infostatus.setStyleSheet('background: #00ff72; padding: 1px; border: 1px solid #cccccc')
-                 color_err = '#000000'
-                 labelbar = 'peak detection completed — ready for baseline correction'
-                 stop_flag=1
-                 #print(self._k) #progressbar value 143
-              elif vector2[0]== 1 or vector3[0]== 1:
+            # Progress bar tracks the current calibration section
+            error1, error2, error3, self._ser_control = self.worker.get_ser_error()
+            if self._ser_control < Constants.calib_sections:
+                self._completed = (self._ser_control / Constants.calib_sections) * 100
+
+            # Calibration buffer empty (no acquisition flowing)
+            if error1 == 1 and vector3[0] == 1:
+                label1 = label2 = label3 = 'not available'
+                color_err = '#ff0000'
+                labelstatus = 'Peak Detection Warning'
+                self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
+                labelbar = 'empty buffer — Reconnect device and retry.'
+                stop_flag = 1
+            # Calibration buffer empty + ValueError from the serial port
+            elif error1 == 1 and vector2[0] == 1:
+                label1 = label2 = label3 = 'not available'
+                color_err = '#ff0000'
+                labelstatus = 'Peak Detection Warning'
+                self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
+                labelbar = 'empty buffer / value error — Reconnect device and retry.'
+                stop_flag = 1
+            # Calibration buffer is being filled normally
+            elif error1 == 0:
+                label1 = label2 = label3 = 'not available'
+                labelstatus = 'Peak Detection Processing'
+                color_err = '#000000'
+                labelbar = 'please wait...'
+                if vector2[0] == 0 and vector3[0] == 0:
+                    labelstatus = 'Peak Detection Success'
+                    self.ui.infostatus.setStyleSheet('background: #00ff72; padding: 1px; border: 1px solid #cccccc')
+                    color_err = '#000000'
+                    labelbar = 'peak detection completed — ready for baseline correction'
+                    stop_flag = 1
+                elif vector2[0] == 1 or vector3[0] == 1:
                  color_err = '#ff0000'
                  labelstatus = 'Peak Detection Warning'
                  self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
@@ -1108,24 +1096,9 @@ class MainWindow(QtGui.QMainWindow):
                    self.ui.infobar.setStyleSheet('background-color: #ffebee; color: #c62828; padding: 8px; border-radius: 4px;')
                else:
                    self.ui.infobar.setStyleSheet('background-color: #e3f2fd; color: #1565c0; padding: 8px; border-radius: 4px;')                    
-        '''
-        # Amplitude plot
-        self._plt0.clear()
-        #self._plt0.plot(list(self._xdict.keys()),self.worker.get_value1_buffer(),pen=Constants.plot_colors[0])
-        self._plt0.plot(self.worker.get_value1_buffer(),pen=Constants.plot_colors[0])
-        
-        # Phase plot
-        self._plt1.clear()
-        self._plt1.plot(self.worker.get_value2_buffer(),pen=Constants.plot_colors[1])
-        '''
-        ############################################################################################################################
-        # REFERENCE SET
-        # =============================================================================
-        # CPU OPTIMIZATION: Using setData() on persistent curve objects instead of
-        # clear() + plot(). This reuses existing curve objects, avoiding continuous
-        # memory allocation/deallocation on each timer tick (every 200ms).
-        # =============================================================================
-        ############################################################################################################################
+        # Plot updates use `setData()` on persistent curve objects rather than
+        # clear() + plot(): the latter would allocate / free pyqtgraph items on
+        # every timer tick, which is measurably more expensive in long runs.
         if self._reference_flag:
             _set_data_value(self.ui.inforef1, self._labelref1)
             _set_data_value(self.ui.inforef2, self._labelref2)
@@ -1176,14 +1149,7 @@ class MainWindow(QtGui.QMainWindow):
             temp_color = self._theme_temp_color if self._theme_temp_color else '#ffffff'
             self._curve_temperature.setPen(temp_color)
 
-        ###########################################################################################################################
-        # REFERENCE NOT SET
-        # =============================================================================
-        # CPU OPTIMIZATION: Using setData() on persistent curve objects instead of
-        # clear() + plot(). This reuses existing curve objects, avoiding continuous
-        # memory allocation/deallocation on each timer tick (every 200ms).
-        # =============================================================================
-        ###########################################################################################################################
+        # ---- Reference not set: plot raw values via setData on persistent curves ----
         else:
             _set_data_value(self.ui.inforef1, self._labelref1)
             _set_data_value(self.ui.inforef2, self._labelref2)
@@ -1746,24 +1712,21 @@ class MainWindow(QtGui.QMainWindow):
     
     
     ###########################################################################
-    # Cleans history plot
-    # CPU OPTIMIZATION: Clear curves by setting empty data instead of
-    # recreating the entire plot structure with clear()
+    # Clear history plot data (frequency / dissipation / temperature traces).
+    # Uses setData([], []) on the persistent curve objects so the plot scene
+    # is preserved (cheaper than clear() + replot at every cycle).
     ###########################################################################
     def clear(self):
-        support=self.worker.get_d1_buffer()
-        if support.any:
-            if str(support[0])!='nan':
-                print(TAG, "All Plots Cleared!", end='\r')
-                self._update_sample_size()
-                # CPU OPTIMIZATION: Reset curve data instead of clearing entire plots
-                # This preserves the persistent curve objects for reuse
-                if self._curve_frequency is not None:
-                    self._curve_frequency.setData(x=[], y=[])
-                if self._curve_dissipation is not None:
-                    self._curve_dissipation.setData(x=[], y=[])
-                if self._curve_temperature is not None:
-                    self._curve_temperature.setData(x=[], y=[])
+        support = self.worker.get_d1_buffer()
+        if support.any and str(support[0]) != 'nan':
+            print(TAG, "All Plots Cleared!", end='\r')
+            self._update_sample_size()
+            if self._curve_frequency is not None:
+                self._curve_frequency.setData(x=[], y=[])
+            if self._curve_dissipation is not None:
+                self._curve_dissipation.setData(x=[], y=[])
+            if self._curve_temperature is not None:
+                self._curve_temperature.setData(x=[], y=[])
         
         
     ###########################################################################
