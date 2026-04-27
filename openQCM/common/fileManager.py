@@ -1,58 +1,47 @@
+"""Lightweight filesystem helpers used by the logger and CSV writers."""
 import os
-from openQCM.common.architecture import Architecture,OSType
 
-###############################################################################
-# File operations: create directory, full path and check if the existing file
-###############################################################################
+from openQCM.common.architecture import Architecture, OSType
+
+
 class FileManager:
+    """Static helpers for directory creation and path composition."""
 
-    ###########################################################################
-    # Creates a directory if the specified path doesn't exist.
-    ###########################################################################
     @staticmethod
     def create_dir(path=None):
         """
-        :param path: Directory name or full path        :type path: str.
-        :return: True if the specified directory exists :rtype: bool.
+        Ensure `path` exists (mkdir -p style).
+
+        :return: True if the directory exists after the call.
         """
         if path is not None:
             if not os.path.isdir(path):
                 os.makedirs(path)
         return os.path.isdir(path)
 
-    
-    ###########################################################################
-    # Creates a file full path based on parameters
-    ###########################################################################    
     @staticmethod
     def create_full_path(filename, extension="txt", path=None):
         """
-        :param filename: Name for the file        :type filename: str.
-        :param extension: Extension for the file  :type extension: str.
-        :param path: Path for the file, if needed :type path: str.
-        :return: Full path for the specified file :rtype: str.
+        Compose a full file path with the appropriate platform separator.
+
+        :param filename:  base name (no extension)
+        :param extension: extension without the leading dot
+        :param path:      optional directory (None → file in CWD)
+        :return:          composed full path as a string
         """
-        # sets the slash depending on the OS types
-        if Architecture.get_os() is (OSType.macosx or OSType.linux):
-            slash="/"
+        # On POSIX systems use '/'; on Windows use '\'.
+        if Architecture.get_os() in (OSType.macosx, OSType.linux):
+            slash = "/"
         else:
-            slash="\\"
-            
+            slash = "\\"
+
         if path is None:
-            full_path = str("{}.{}".format(filename, extension))
-        else:
-            full_path = str("{}{}{}.{}".format(path,slash, filename, extension))
-        return full_path
+            return "{}.{}".format(filename, extension)
+        return "{}{}{}.{}".format(path, slash, filename, extension)
 
-
-    ###########################################################################
-    #Checks if a file exists (True if file exists)
-    ###########################################################################
     @staticmethod
     def file_exists(filename):
-        """
-        :param filename: Name of the file, including path :type filename: str.
-        :return: True if file exists :rtype: bool.
-        """
+        """Return True if `filename` points to an existing file."""
         if filename is not None:
             return os.path.isfile(filename)
+        return False

@@ -1,83 +1,54 @@
+"""
+Cross-platform helpers used to branch on the host OS and Python version.
+"""
 import platform
 import sys
-
 from enum import Enum
 
-###############################################################################
-# Architecture specific methods: OS types, Python version
-###############################################################################
-class Architecture:
 
-
-    ###########################################################################
-    # Gets the current OS
-    ###########################################################################    
-    staticmethod
-    def get_os():
-        #:return: OS type by OSType enum.
-        tmp = str(Architecture.get_os_name())
-        if "Linux" in tmp:
-            return OSType.linux
-        elif "Windows" in tmp:
-            return OSType.windows
-        elif "Darwin" in tmp:
-            return OSType.macosx
-       
-        # macOS 12 compatibility SOLVED 
-        elif "macOS" in tmp :
-            return OSType.macosx
-        
-        else:
-            return OSType.unknown
-        
-    ###########################################################################
-    # Gets the current OS name string (as reported by platform)
-    ###########################################################################
-    @staticmethod
-    def get_os_name():
-        #:return: OS name :rtype: str.
-        return platform.platform()
-
-    ###########################################################################
-    # Gets the PWD or CWD of the currently running application
-    # (Print Working Directory, Change Working Directory)
-    ###########################################################################    
-    @staticmethod
-    def get_path():
-        #:return: Path of the PWD or CWD :rtype: str.
-        return sys.path[0]
-
-    ###########################################################################
-    # Gets the running Python version
-    ###########################################################################
-    @staticmethod
-    def get_python_version():
-        #:return: Python version formatted as major.minor.release :rtype: str.
-        version = sys.version_info
-        return str("{}.{}.{}".format(version[0], version[1], version[2]))
-
-    
-    ###########################################################################
-    # Checks if the running Python version is >= than the specified version
-    ###########################################################################    
-    @staticmethod
-    def is_python_version(major, minor=0):
-        """
-        :param major: Major value of the version :type major: int.
-        :param minor: Minor value of the version :type minor: int.
-        :return: True if the version specified is >= than the current version.
-        :rtype: bool.
-        """
-        version = sys.version_info
-        if version[0] >= major and version[1] >= minor:
-            return True
-        return False
-
-###############################################################################
-# Enum for OS types
-###############################################################################            
 class OSType(Enum):
     unknown = 0
     linux = 1
     macosx = 2
     windows = 3
+
+
+class Architecture:
+    """Static utility methods to query OS / Python information."""
+
+    @staticmethod
+    def get_os():
+        """Return the current `OSType` based on `platform.platform()`."""
+        name = str(Architecture.get_os_name())
+        if "Linux" in name:
+            return OSType.linux
+        if "Windows" in name:
+            return OSType.windows
+        # 'Darwin' on most macOS releases; 'macOS' on macOS 12+ in some toolchains
+        if "Darwin" in name or "macOS" in name:
+            return OSType.macosx
+        return OSType.unknown
+
+    @staticmethod
+    def get_os_name():
+        """Return the platform string as reported by `platform.platform()`."""
+        return platform.platform()
+
+    @staticmethod
+    def get_path():
+        """Return the directory the script is running from (sys.path[0])."""
+        return sys.path[0]
+
+    @staticmethod
+    def get_python_version():
+        """Return the running Python version formatted as 'major.minor.release'."""
+        v = sys.version_info
+        return "{}.{}.{}".format(v[0], v[1], v[2])
+
+    @staticmethod
+    def is_python_version(major, minor=0):
+        """
+        :return: True if the running interpreter is at least `major.minor`.
+        """
+        v = sys.version_info
+        return v[0] >= major and v[1] >= minor
