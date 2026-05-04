@@ -109,14 +109,30 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 
+# ---------- Splash screen ----------
+# Shown by the PyInstaller bootloader while the onefile bundle is
+# extracting and the Python interpreter / Qt are warming up. The image
+# disappears as soon as MainWindow calls `pyi_splash.close()` (in app.py).
+splash = Splash(
+    'icons/splash.png',
+    binaries=a.binaries,
+    datas=a.datas,
+    text_pos=None,            # image only — no overlaid status text
+    text_size=12,
+    minify_script=True,
+    always_on_top=False,      # do not steal focus from other windows
+)
+
 
 # ---------- EXE / COLLECT ----------
 if ONEFILE:
-    # Single-file executable: pass binaries + zipfiles + datas to EXE,
-    # do not use COLLECT.
+    # Single-file executable: splash, binaries + zipfiles + datas in EXE,
+    # no COLLECT.
     exe = EXE(
         pyz,
         a.scripts,
+        splash,
+        splash.binaries,
         a.binaries,
         a.zipfiles,
         a.datas,
@@ -140,6 +156,7 @@ else:
     exe = EXE(
         pyz,
         a.scripts,
+        splash,
         [],
         exclude_binaries=True,
         name=APP_NAME,
@@ -156,6 +173,7 @@ else:
     )
     coll = COLLECT(
         exe,
+        splash.binaries,
         a.binaries,
         a.zipfiles,
         a.datas,

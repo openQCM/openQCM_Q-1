@@ -75,6 +75,16 @@ class OPENQCM:
         Log.i(TAG, "Application started")
 
         win = mainWindow.MainWindow(samples=self._args.get_user_samples())
+
+        # Close the PyInstaller splash screen now that MainWindow is ready.
+        # `pyi_splash` is only available in frozen onefile builds; harmless
+        # ImportError otherwise (development run from source).
+        try:
+            import pyi_splash
+            pyi_splash.close()
+        except ImportError:
+            pass
+
         self._app.exec()
         print(TAG, "Finishing Application...")
         print(TAG, "Application closed")
