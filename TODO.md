@@ -43,6 +43,13 @@ Development checklist. Each item can become a GitHub Issue.
 ## Optimization
 - [ ] Windows: sampling time oscillations — busy-wait loop in `Serial.py` + 15.6 ms timer resolution. Test on native Windows (not VM)
 - [ ] Replace `inWaiting()` polling with timeout-based `read()` (pyserial best practice)
+- [ ] Splash screen: dynamic text (currently image-only). If beta testers
+  report slow startup on some machines (5+ s), enable `text_pos` in
+  `openQCM_Q-1.spec` and use `pyi_splash.update_text(...)` from
+  `app.py` / `mainWindow.__init__` to display progress messages
+  ("Loading PyQt5…", "Initializing serial…", "Building main window…").
+  Skipped for now because typical startup is 1-3 s — text would
+  flicker too fast to be readable.
 - [x] Minimum Y-axis display range for Frequency (100 Hz), Dissipation (1e-6), Temperature (2°C)
 - [x] Easter egg: right-click on logo → Unlock/Lock Axes
 - [ ] Fine-tune `MIN_DISS_RANGE` value based on real-world measurement data (currently 1e-6, needs validation)
