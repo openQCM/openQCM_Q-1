@@ -74,12 +74,6 @@ class OPENQCM:
         print(TAG, "Application started")
         Log.i(TAG, "Application started")
 
-        # Refresh the splash text just before the slow MainWindow construction.
-        # By the time we reach this line the Python interpreter is up, the
-        # heavy imports (PyQt5, pyqtgraph, numpy, scipy) are already loaded,
-        # and we are about to build the GUI tree.
-        self._splash_update("Initializing application...")
-
         win = mainWindow.MainWindow(samples=self._args.get_user_samples())
 
         # Close the PyInstaller splash screen now that MainWindow is ready.
@@ -125,17 +119,6 @@ class OPENQCM:
                     print(TAG, "Created runtime directory:", path)
                 except OSError as e:
                     print(TAG, "WARNING: cannot create {}: {}".format(path, e))
-
-    @staticmethod
-    def _splash_update(text):
-        """Update the PyInstaller splash text. No-op when running from source."""
-        try:
-            import pyi_splash
-            pyi_splash.update_text(text)
-        except (ImportError, RuntimeError):
-            # ImportError: not a frozen build (development run).
-            # RuntimeError: splash already closed; safe to ignore.
-            pass
 
     @staticmethod
     def _splash_close():
