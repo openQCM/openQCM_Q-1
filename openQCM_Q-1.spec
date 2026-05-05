@@ -114,18 +114,19 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 # and the Python interpreter / Qt are warming up. The image disappears as
 # soon as MainWindow calls `pyi_splash.close()` from app.py.
 #
-# Text overlay disabled on purpose: with `text_pos` set, the PyInstaller
-# bootloader (5.x) writes the name of every DLL it extracts on the splash
-# label, which is visually noisy. Setting `text_pos=None` removes the
-# label widget, so the bootloader has nowhere to write and the user sees
-# the bare image — clean and professional.
-# Side effect: `pyi_splash.update_text(...)` from app.py becomes a no-op
-# (raises RuntimeError, swallowed by the helper).
+# Text overlay:
+#   - `text_default`  is shown during the bootloader / extraction phases
+#     (Python is not yet running, so no update is possible).
+#   - Once the Python script starts, `pyi_splash.update_text(...)` can be
+#     called from app.py to refresh the message before MainWindow is built.
 splash = Splash(
     'icons/splash.png',
     binaries=a.binaries,
     datas=a.datas,
-    text_pos=None,
+    text_pos=(40, 470),                 # x, y from top-left (800x500 image)
+    text_size=12,
+    text_color='black',
+    text_default='Loading openQCM Q-1...',
     minify_script=True,
     always_on_top=False,                # do not steal focus from other windows
 )
