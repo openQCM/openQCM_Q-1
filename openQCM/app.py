@@ -25,6 +25,33 @@ from openQCM.ui import mainWindow
 TAG = ""  # set to "[Application]" for verbose tagged prints
 
 
+# -----------------------------------------------------------------------------
+# Windows console-flash workaround for PyInstaller windowed builds
+# -----------------------------------------------------------------------------
+# When the GUI spawns a child process via `multiprocessing.Process` (e.g.
+# SerialProcess or CalibrationProcess on START), Windows briefly opens a
+# console window before the child's bootloader closes it again. This is
+# because `multiprocessing.popen_spawn_win32.Popen.__init__` calls
+# `_winapi.CreateProcess()` with `creationFlags=0`, omitting the
+# CREATE_NO_WINDOW (0x08000000) flag. The parent's `console=False` in the
+# spec does not propagate to children. We patch `_winapi.CreateProcess`
+# at module import time to inject the flag — applies only to the frozen
+# build on Windows; dev runs from source are untouched.
+if sys.platform == 'win32' and getattr(sys, 'frozen', False):
+    import _winapi
+    _CREATE_NO_WINDOW = 0x08000000
+    _original_CreateProcess = _winapi.CreateProcess
+
+    def _create_process_no_window(*args, **kwargs):
+        # 6th positional argument (index 5) is dwCreationFlags
+        args = list(args)
+        if len(args) > 5:
+            args[5] = (args[5] or 0) | _CREATE_NO_WINDOW
+        return _original_CreateProcess(*args, **kwargs)
+
+    _winapi.CreateProcess = _create_process_no_window
+
+
 class OPENQCM:
     """Top-level coordinator: builds the QApplication and runs the event loop."""
 
