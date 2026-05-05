@@ -23,7 +23,10 @@ if exist "dist"  rmdir /s /q "dist"
 
 echo.
 echo === [2/3] Running PyInstaller ===
-pyinstaller --clean openQCM_Q-1.spec
+rem --log-level WARN suppresses the "Including X.dll" routine info noise.
+rem For full diagnostic output, rerun manually as:
+rem     pyinstaller --clean --log-level INFO openQCM_Q-1.spec
+pyinstaller --clean --log-level WARN --noconfirm openQCM_Q-1.spec
 if errorlevel 1 (
     echo.
     echo BUILD FAILED. See the PyInstaller output above.
