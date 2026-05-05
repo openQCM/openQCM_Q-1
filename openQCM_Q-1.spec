@@ -30,7 +30,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 # ---------- Build options ----------
 APP_NAME = 'openQCM_Q-1'
 MAIN_SCRIPT = 'run.py'
-CONSOLE = True          # Show the console window — flip to False for release
+CONSOLE = False         # Hide the Windows console window (release mode)
 ONEFILE = True          # Single-file executable (False → onedir)
 
 spec_dir = os.path.dirname(os.path.abspath(SPEC))
@@ -110,17 +110,25 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 
 # ---------- Splash screen ----------
-# Shown by the PyInstaller bootloader while the onefile bundle is
-# extracting and the Python interpreter / Qt are warming up. The image
-# disappears as soon as MainWindow calls `pyi_splash.close()` (in app.py).
+# Shown by the PyInstaller bootloader while the onefile bundle is extracting
+# and the Python interpreter / Qt are warming up. The image disappears as
+# soon as MainWindow calls `pyi_splash.close()` from app.py.
+#
+# Text overlay:
+#   - `text_default`  is shown during the bootloader / extraction phases
+#     (Python is not yet running, so no update is possible).
+#   - Once the Python script starts, `pyi_splash.update_text(...)` can be
+#     called from app.py to refresh the message before MainWindow is built.
 splash = Splash(
     'icons/splash.png',
     binaries=a.binaries,
     datas=a.datas,
-    text_pos=None,            # image only — no overlaid status text
+    text_pos=(40, 470),                 # x, y from top-left (800x500 image)
     text_size=12,
+    text_color='black',
+    text_default='Loading openQCM Q-1...',
     minify_script=True,
-    always_on_top=False,      # do not steal focus from other windows
+    always_on_top=False,                # do not steal focus from other windows
 )
 
 
