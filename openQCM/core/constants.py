@@ -204,10 +204,15 @@ class Constants:
     # When the measured resonance frequency drifts more than this threshold
     # from the current reference, the sweep window is recentred automatically.
     auto_tracking_threshold = 100        # Hz
-    # If both -3dB frequencies are missing for this many consecutive
-    # sweeps, auto-tracking is disabled. It re-enables automatically as soon
-    # as the peak returns with at least one -3dB frequency identifiable.
+    # Hysteresis on the tracking-safety state machine:
+    # - if both -3dB frequencies are missing for `auto_tracking_max_edge_errors`
+    #   consecutive sweeps, auto-tracking is disabled;
+    # - it re-enables automatically only after `auto_tracking_consecutive_good_to_resume`
+    #   consecutive sweeps where the peak is back AND has at least one identifiable
+    #   -3dB frequency. The sustained-recovery requirement avoids flapping caused
+    #   by lucky single sweeps in the noise of a still-disconnected sensor.
     auto_tracking_max_edge_errors = 10
+    auto_tracking_consecutive_good_to_resume = 5
     # Minimum Q-factor below which the resonance is considered invalid.
     # Used to detect "sensor disconnected" (board sends amplifier noise).
     # Real QCM resonances have Q ≫ 100; pure noise gives a tiny Q.

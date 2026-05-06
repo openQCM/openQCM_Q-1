@@ -365,13 +365,16 @@ class SerialProcess(multiprocessing.Process):
          index_f1_fit, index_f2_fit, Qfac_fit) = self.parameters_finder(
             freq_range, mag_result_fit, percent=0.707)
 
-        # Tracking safety: track how many consecutive sweeps fail to find
-        # *both* -3dB frequencies. After enough failures the auto-tracking
-        # is disabled to avoid chasing a ghost. As soon as the peak is back
-        # with at least one -3dB frequency, tracking re-enables itself.
+        # Tracking safety with hysteresis. Two consecutive-sweep counters drive
+        # the disable / re-enable transitions:
+        #   - both -3dB missing for N1 sweeps → DISABLE
+        #   - at least one -3dB found for N2 sweeps in a row → RE-ENABLE
+        # The asymmetric thresholds prevent flapping caused by stray "lucky"
+        # sweeps in the random noise of a still-disconnected sensor.
         both_edges_missing = (self._err1 == 1 and self._err2 == 1)
         if both_edges_missing:
             self._consecutive_edge_errors += 1
+            self._consecutive_good_sweeps = 0
             if (self._consecutive_edge_errors >= Constants.auto_tracking_max_edge_errors
                     and not self._tracking_disabled_by_errors):
                 self._tracking_disabled_by_errors = True
@@ -384,21 +387,31 @@ class SerialProcess(multiprocessing.Process):
                 print(" AUTO-TRACKING DISABLED")
                 print(" Reason: both -3dB frequencies missing for {} consecutive sweeps"
                       .format(self._consecutive_edge_errors))
-                print(" Will auto-resume when peak and at least one -3dB frequency reappear")
+                print(" Will auto-resume after {} consecutive recovered sweeps"
+                      .format(Constants.auto_tracking_consecutive_good_to_resume))
                 print("=" * 60 + "\n")
         else:
             self._consecutive_edge_errors = 0
             if self._tracking_disabled_by_errors:
-                self._tracking_disabled_by_errors = False
-                self._parser_tracking.add_tracking([
-                    False, None, None, None,
-                    self._auto_tracking_count,
-                    False,  # disabled_by_errors → re-enabled
-                ])
-                print("\n" + "=" * 60)
-                print(" AUTO-TRACKING RE-ENABLED")
-                print(" Peak recovered — resuming resonance tracking")
-                print("=" * 60 + "\n")
+                # In ARMED state: count consecutive good sweeps before re-enabling.
+                self._consecutive_good_sweeps += 1
+                if (self._consecutive_good_sweeps
+                        >= Constants.auto_tracking_consecutive_good_to_resume):
+                    self._tracking_disabled_by_errors = False
+                    self._consecutive_good_sweeps = 0
+                    self._parser_tracking.add_tracking([
+                        False, None, None, None,
+                        self._auto_tracking_count,
+                        False,  # disabled_by_errors → re-enabled
+                    ])
+                    print("\n" + "=" * 60)
+                    print(" AUTO-TRACKING RE-ENABLED")
+                    print(" Peak sustained for {} sweeps — resuming resonance tracking"
+                          .format(Constants.auto_tracking_consecutive_good_to_resume))
+                    print("=" * 60 + "\n")
+            else:
+                # Tracking is already active; keep the good-sweep counter at 0.
+                self._consecutive_good_sweeps = 0
 
         # 5. Append per-sweep values to the circular buffers
         self._frequency_buffer.append(freq_range[int(index_peak_fit)])
@@ -488,8 +501,12 @@ class SerialProcess(multiprocessing.Process):
         self._flag_error_usb = 0
         self._err1 = 0
         self._err2 = 0
-        # Tracking-safety state (per-process, reset by spawning a new process)
+        # Tracking-safety state (per-process, reset by spawning a new process):
+        #   _consecutive_edge_errors  — count up while both -3dB freqs missing
+        #   _consecutive_good_sweeps  — count up while disabled & sweep is OK,
+        #                               drives the hysteresis re-enable threshold
         self._consecutive_edge_errors = 0
+        self._consecutive_good_sweeps = 0
         self._tracking_disabled_by_errors = False
 
         # Build the baseline polynomial from the calibration file
