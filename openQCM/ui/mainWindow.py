@@ -692,16 +692,19 @@ class MainWindow(QtGui.QMainWindow):
         self._plt4.setMenuEnabled(False)
         self._plt4.getViewBox().setMenuEnabled(False)
 
-        # Connect right-click signals to custom handler
+        # Connect right-click signals to a single dispatcher per scene.
+        # NOTE: _plt0 (Amplitude/Phase) and _plt4 (Temperature) share the
+        # same GraphicsLayoutWidget (self.ui.plt) and therefore the same
+        # QGraphicsScene. Connecting sigMouseClicked separately on each
+        # plot would fire BOTH handlers for any click in either area
+        # (a duplicate-menu / wrong-target bug). _plt2 lives in self.ui.pltB,
+        # a different widget with its own scene.
+        # Solution: one connection per scene, hit-test the cursor position
+        # at handler time to identify the actual plot.
         self._plt0.scene().sigMouseClicked.connect(
-            lambda ev: self._on_plot_right_click(self._plt0, ev)
-        )
+            lambda ev: self._dispatch_right_click(ev, [self._plt0, self._plt4]))
         self._plt2.scene().sigMouseClicked.connect(
-            lambda ev: self._on_plot_right_click(self._plt2, ev)
-        )
-        self._plt4.scene().sigMouseClicked.connect(
-            lambda ev: self._on_plot_right_click(self._plt4, ev)
-        )
+            lambda ev: self._dispatch_right_click(ev, [self._plt2]))
 
         # =============================================================================
         # CURSORS: Double vertical cursors for Frequency/Dissipation plot
@@ -812,6 +815,22 @@ class MainWindow(QtGui.QMainWindow):
     ###########################################################################
     # Custom right-click context menu handler for plots
     ###########################################################################
+    def _dispatch_right_click(self, event, candidate_plots):
+        """
+        Hit-test the cursor position against the given list of plots and
+        forward to `_on_plot_right_click` with the matched plot. Used when
+        several PlotItems share the same QGraphicsScene (e.g. Amplitude/Phase
+        and Temperature in `self.ui.plt`) so each click fires exactly one
+        handler on the correct target.
+        """
+        if event.button() != QtCore.Qt.RightButton:
+            return
+        scene_pos = event.scenePos()
+        for plot in candidate_plots:
+            if plot.sceneBoundingRect().contains(scene_pos):
+                self._on_plot_right_click(plot, event)
+                return
+
     def _on_plot_right_click(self, plot, event):
         """
         Handle right-click on plot to show custom context menu.
