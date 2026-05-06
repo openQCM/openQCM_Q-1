@@ -221,38 +221,58 @@ class CalibrationPlotWindow(QtGui.QDialog):
 
             # Theme-dependent colors
             if self._theme == 'dark':
-                amp_color = (255, 255, 255)     # white  (matches main GUI Amplitude in dark)
-                label_color = '#ffffff'         # white  (peak labels — high contrast on dark bg)
+                amp_color     = (255, 255, 255)   # corrected (white in dark)
+                amp_color_raw = (150, 150, 150)   # lighter / muted grey for raw
+                label_color = '#ffffff'
             else:
-                amp_color = (0, 0, 0)           # black  (matches main GUI Amplitude in light)
-                label_color = '#000000'         # black  (visible on light bg)
-            phase_color = pg.mkColor(COLOR_PHASE).getRgb()[:3]
-            baseline_pen = pg.mkPen(color=COLOR_BASELINE, width=1,
-                                    style=QtCore.Qt.DashLine)
+                amp_color     = (0, 0, 0)         # corrected (black in light)
+                amp_color_raw = (140, 140, 140)   # lighter grey for raw
+                label_color = '#000000'
+            phase_color     = pg.mkColor(COLOR_PHASE).getRgb()[:3]   # (0, 142, 192)
+            phase_color_raw = (127, 199, 224)                        # ~50% lighter blue
+            # Baseline now drawn as a continuous (non-dashed) line
+            baseline_pen = pg.mkPen(color=COLOR_BASELINE, width=1)
             peak_brush = pg.mkBrush(*PEAK_FILL)
-            peak_pen = pg.mkPen(PEAK_BORDER, width=2)
+            peak_pen   = pg.mkPen(PEAK_BORDER, width=2)
+
+            # Layered z-values: raw (back) → baseline → corrected → peaks (front)
+            Z_RAW, Z_BASE, Z_CORR, Z_PEAK = 0, 5, 10, 20
 
             # ---------------------- AMPLITUDE PLOT ----------------------
-            # Raw signal: scatter (small dots), same color as Corrected
-            self._plt_amp.addItem(pg.ScatterPlotItem(
+            # Raw signal: scatter (small dots), muted shade so the corrected
+            # curve stays visually dominant.
+            scatter_raw_amp = pg.ScatterPlotItem(
                 x=freq, y=raw_mag,
                 symbol='o', size=2,
-                brush=pg.mkBrush(*amp_color, 200),
+                brush=pg.mkBrush(*amp_color_raw, 200),
                 pen=pg.mkPen(None),
-                name='Raw signal'))
-            # Baseline (brown dashed line)
-            self._plt_amp.plot(freq, baseline_mag, pen=baseline_pen,
-                               name='Baseline (poly 8)', skipFiniteCheck=True)
-            # Corrected (solid line, theme color — white in dark / black in light)
-            self._plt_amp.plot(freq, corrected_mag,
-                               pen=pg.mkPen(color=amp_color, width=2),
-                               name='Corrected', skipFiniteCheck=True)
-            # Amplitude peak markers (red dot, white border)
-            self._plt_amp.addItem(pg.ScatterPlotItem(
+                name='Raw signal')
+            scatter_raw_amp.setZValue(Z_RAW)
+            self._plt_amp.addItem(scatter_raw_amp)
+            # Pyqtgraph's auto-legend doesn't always pick up ScatterPlotItem
+            # → register it explicitly so "Raw signal" appears in the legend.
+            if self._plt_amp.legend is not None:
+                self._plt_amp.legend.addItem(scatter_raw_amp, 'Raw signal')
+
+            # Baseline: continuous brown line, drawn ON TOP of the raw scatter
+            curve_baseline_amp = self._plt_amp.plot(
+                freq, baseline_mag, pen=baseline_pen,
+                name='Baseline (poly 8)', skipFiniteCheck=True)
+            curve_baseline_amp.setZValue(Z_BASE)
+            # Corrected: solid theme-coloured line on top of everything below
+            curve_corrected_amp = self._plt_amp.plot(
+                freq, corrected_mag,
+                pen=pg.mkPen(color=amp_color, width=2),
+                name='Corrected', skipFiniteCheck=True)
+            curve_corrected_amp.setZValue(Z_CORR)
+            # Amplitude peak markers (red dot, white border) — frontmost layer
+            scatter_amp_peaks = pg.ScatterPlotItem(
                 x=valid_peak_freqs, y=valid_peak_mag,
                 symbol='o', size=12,
                 brush=peak_brush, pen=peak_pen,
-                name='Amplitude peak'))
+                name='Amplitude peak')
+            scatter_amp_peaks.setZValue(Z_PEAK)
+            self._plt_amp.addItem(scatter_amp_peaks)
             # Peak labels (white in dark / black in light)
             for vi, (pf, pv) in zip(valid_indices,
                                     zip(valid_peak_freqs, valid_peak_mag)):
@@ -263,32 +283,45 @@ class CalibrationPlotWindow(QtGui.QDialog):
                 self._plt_amp.addItem(text)
 
             # ---------------------- PHASE PLOT ----------------------
-            # Raw signal: blue scatter dots
-            self._plt_phase.addItem(pg.ScatterPlotItem(
+            # Raw signal: lighter-blue scatter dots (background layer)
+            scatter_raw_phase = pg.ScatterPlotItem(
                 x=freq, y=raw_phase,
                 symbol='o', size=2,
-                brush=pg.mkBrush(*phase_color, 200),
+                brush=pg.mkBrush(*phase_color_raw, 200),
                 pen=pg.mkPen(None),
-                name='Raw signal'))
-            # Baseline (brown dashed)
-            self._plt_phase.plot(freq, baseline_phase, pen=baseline_pen,
-                                 name='Baseline (poly 8)', skipFiniteCheck=True)
-            # Corrected (blue solid line)
-            self._plt_phase.plot(freq, corrected_phase,
-                                 pen=pg.mkPen(color=COLOR_PHASE, width=2),
-                                 name='Corrected', skipFiniteCheck=True)
-            # Reference marker on phase plot at AMPLITUDE peak position (circle)
-            self._plt_phase.addItem(pg.ScatterPlotItem(
+                name='Raw signal')
+            scatter_raw_phase.setZValue(Z_RAW)
+            self._plt_phase.addItem(scatter_raw_phase)
+            if self._plt_phase.legend is not None:
+                self._plt_phase.legend.addItem(scatter_raw_phase, 'Raw signal')
+
+            # Baseline: continuous brown line on top of raw scatter
+            curve_baseline_phase = self._plt_phase.plot(
+                freq, baseline_phase, pen=baseline_pen,
+                name='Baseline (poly 8)', skipFiniteCheck=True)
+            curve_baseline_phase.setZValue(Z_BASE)
+            # Corrected: solid blue line
+            curve_corrected_phase = self._plt_phase.plot(
+                freq, corrected_phase,
+                pen=pg.mkPen(color=COLOR_PHASE, width=2),
+                name='Corrected', skipFiniteCheck=True)
+            curve_corrected_phase.setZValue(Z_CORR)
+            # Reference marker at the AMPLITUDE-peak frequency (circle, no label)
+            scatter_amp_on_phase = pg.ScatterPlotItem(
                 x=valid_peak_freqs, y=valid_peak_phase_at_amp,
                 symbol='o', size=12,
                 brush=peak_brush, pen=peak_pen,
-                name='Amplitude peak (ref)'))
-            # Phase peak marker (star) at the actual phase maximum
-            self._plt_phase.addItem(pg.ScatterPlotItem(
+                name='Amplitude peak (ref)')
+            scatter_amp_on_phase.setZValue(Z_PEAK)
+            self._plt_phase.addItem(scatter_amp_on_phase)
+            # Phase-peak marker (star) at the actual phase maximum, with label
+            scatter_phase_peaks = pg.ScatterPlotItem(
                 x=phase_peak_freqs, y=phase_peak_values,
                 symbol='star', size=18,
                 brush=peak_brush, pen=peak_pen,
-                name='Phase peak'))
+                name='Phase peak')
+            scatter_phase_peaks.setZValue(Z_PEAK)
+            self._plt_phase.addItem(scatter_phase_peaks)
             # Phase peak labels — frequency of the PHASE peak (for amp-vs-phase comparison)
             for vi, (pf, pv) in zip(valid_indices,
                                     zip(phase_peak_freqs, phase_peak_values)):
