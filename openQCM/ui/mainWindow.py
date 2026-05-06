@@ -85,6 +85,15 @@ def _set_data_value(widget, value):
         widget.setText(str(value))
 
 
+def _is_grid_on(plot):
+    """True if the pyqtgraph PlotItem currently has the X or Y grid visible."""
+    try:
+        return (plot.ctrl.xGridCheck.isChecked()
+                or plot.ctrl.yGridCheck.isChecked())
+    except AttributeError:
+        return False
+
+
 def _extract_value(html_text):
     """Strip the leading HTML label (e.g. '<font color=...>Frequency</font> 1234')."""
     if '>' in html_text and '</font>' in html_text:
@@ -806,52 +815,49 @@ class MainWindow(QtGui.QMainWindow):
     def _on_plot_right_click(self, plot, event):
         """
         Handle right-click on plot to show custom context menu.
-        Menu options: Auto-scale, Reset Zoom, Pan Mode, Select Mode
-        For Frequency/Dissipation plot: also Show/Hide Cursors
+        Menu options: Auto-scale, Reset Zoom, Pan Mode, Select Mode,
+        Show/Hide Grid. For Frequency/Dissipation plot: also Show/Hide Cursors.
         """
-        if event.button() == QtCore.Qt.RightButton:
-            # Create context menu
-            menu = QtWidgets.QMenu()
+        if event.button() != QtCore.Qt.RightButton:
+            return
 
-            # Add menu actions
-            auto_scale_action = menu.addAction("Auto-scale")
-            reset_zoom_action = menu.addAction("Reset Zoom")
+        menu = QtWidgets.QMenu()
+        auto_scale_action  = menu.addAction("Auto-scale")
+        reset_zoom_action  = menu.addAction("Reset Zoom")
+        menu.addSeparator()
+        pan_mode_action    = menu.addAction("Pan Mode")
+        select_mode_action = menu.addAction("Select Mode")
+        menu.addSeparator()
+        # Grid toggle — wording reflects current state
+        grid_on = _is_grid_on(plot)
+        grid_action = menu.addAction("Hide Grid" if grid_on else "Show Grid")
+
+        # Add Cursors option only for the Frequency/Dissipation plot (_plt2)
+        cursor_action = None
+        if plot == self._plt2:
             menu.addSeparator()
-            pan_mode_action = menu.addAction("Pan Mode")
-            select_mode_action = menu.addAction("Select Mode")
+            cursor_action = menu.addAction(
+                "Hide Cursors" if self._cursors_visible else "Show Cursors")
 
-            # Add Cursors option only for Frequency/Dissipation plot (_plt2)
-            cursor_action = None
-            if plot == self._plt2:
-                menu.addSeparator()
-                if self._cursors_visible:
-                    cursor_action = menu.addAction("Hide Cursors")
-                else:
-                    cursor_action = menu.addAction("Show Cursors")
+        # Show menu at mouse position
+        pos = event.screenPos()
+        qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
+        action = menu.exec_(qpos)
 
-            # Show menu at mouse position
-            pos = event.screenPos()
-            qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
-            action = menu.exec_(qpos)
+        if action == auto_scale_action:
+            plot.enableAutoRange()
+        elif action == reset_zoom_action:
+            plot.getViewBox().autoRange()
+        elif action == pan_mode_action:
+            plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
+        elif action == select_mode_action:
+            plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+        elif action == grid_action:
+            plot.showGrid(x=not grid_on, y=not grid_on, alpha=0.3)
+        elif cursor_action is not None and action == cursor_action:
+            self._toggle_cursors(not self._cursors_visible)
 
-            # Handle selected action
-            if action == auto_scale_action:
-                # Enable auto-range on both axes
-                plot.enableAutoRange()
-            elif action == reset_zoom_action:
-                # Reset to show all data
-                plot.getViewBox().autoRange()
-            elif action == pan_mode_action:
-                # Set mouse to pan mode (drag to move)
-                plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
-            elif action == select_mode_action:
-                # Set mouse to rect/select mode (drag to zoom)
-                plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
-            elif cursor_action is not None and action == cursor_action:
-                # Toggle cursors
-                self._toggle_cursors(not self._cursors_visible)
-
-            event.accept()
+        event.accept()
 
     ###########################################################################
     # Updates the sample size of the plot (now not used)

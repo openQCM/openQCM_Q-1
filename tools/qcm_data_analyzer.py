@@ -170,7 +170,7 @@ class QCMAnalyzer(QtWidgets.QMainWindow):
         plot.setTitle(title, color=TEXT_COLOR)
         plot.setLabel('left', left_name, units=left_unit, color=TEXT_COLOR)
         plot.setLabel('bottom', bottom_label, color=TEXT_COLOR)
-        plot.showGrid(x=True, y=True, alpha=0.3)
+        plot.showGrid(x=False, y=False)   # off by default; toggled from the right-click menu
         plot.getAxis('left').setPen(AXIS_COLOR)
         plot.getAxis('left').setTextPen(AXIS_COLOR)
         plot.getAxis('bottom').setPen(AXIS_COLOR)

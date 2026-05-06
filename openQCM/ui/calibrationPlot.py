@@ -13,6 +13,15 @@ PEAK_BORDER    = 'w'            # white outline around the red peak markers
 PHASE_PEAK_HALF_WINDOW = 200_000
 
 
+def _is_grid_on(plot):
+    """True if the pyqtgraph PlotItem currently has the X or Y grid visible."""
+    try:
+        return (plot.ctrl.xGridCheck.isChecked()
+                or plot.ctrl.yGridCheck.isChecked())
+    except AttributeError:
+        return False
+
+
 ###############################################################################
 # Diagnostic plot window for Peak Detection results
 # Shows amplitude and phase with baseline correction and detected peaks
@@ -54,7 +63,7 @@ class CalibrationPlotWindow(QtGui.QDialog):
         self._plt_amp = self._graphics.addPlot(row=0, col=0, title="Amplitude (Magnitude)")
         self._plt_amp.setLabel('left', 'Amplitude', units='dB', color=fg_color)
         self._plt_amp.setLabel('bottom', 'Frequency', units='Hz', color=fg_color)
-        self._plt_amp.showGrid(x=True, y=True, alpha=self._grid_alpha)
+        self._plt_amp.showGrid(x=False, y=False)
         self._plt_amp.addLegend(offset=(10, 10))
         self._plt_amp.setClipToView(True)
         self._plt_amp.setDownsampling(mode='peak')
@@ -63,7 +72,7 @@ class CalibrationPlotWindow(QtGui.QDialog):
         self._plt_phase = self._graphics.addPlot(row=1, col=0, title="Phase")
         self._plt_phase.setLabel('left', 'Phase', units='deg', color=fg_color)
         self._plt_phase.setLabel('bottom', 'Frequency', units='Hz', color=fg_color)
-        self._plt_phase.showGrid(x=True, y=True, alpha=self._grid_alpha)
+        self._plt_phase.showGrid(x=False, y=False)
         self._plt_phase.addLegend(offset=(10, 10))
         self._plt_phase.setClipToView(True)
         self._plt_phase.setDownsampling(mode='peak')
@@ -108,7 +117,7 @@ class CalibrationPlotWindow(QtGui.QDialog):
     # Custom right-click context menu (matches the main GUI plots)
     # ------------------------------------------------------------------
     def _on_scene_right_click(self, event):
-        """Show the standard Auto-scale / Reset Zoom / Pan / Select menu."""
+        """Show the standard Auto-scale / Reset Zoom / Pan / Select / Grid menu."""
         if event.button() != QtCore.Qt.RightButton:
             return
         scene_pos = event.scenePos()
@@ -121,11 +130,14 @@ class CalibrationPlotWindow(QtGui.QDialog):
             return
 
         menu = QtWidgets.QMenu()
-        auto_scale_action = menu.addAction("Auto-scale")
-        reset_zoom_action = menu.addAction("Reset Zoom")
+        auto_scale_action  = menu.addAction("Auto-scale")
+        reset_zoom_action  = menu.addAction("Reset Zoom")
         menu.addSeparator()
-        pan_mode_action = menu.addAction("Pan Mode")
+        pan_mode_action    = menu.addAction("Pan Mode")
         select_mode_action = menu.addAction("Select Mode")
+        menu.addSeparator()
+        grid_on = _is_grid_on(plot)
+        grid_action = menu.addAction("Hide Grid" if grid_on else "Show Grid")
 
         pos = event.screenPos()
         qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
@@ -139,6 +151,8 @@ class CalibrationPlotWindow(QtGui.QDialog):
             plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
         elif action == select_mode_action:
             plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+        elif action == grid_action:
+            plot.showGrid(x=not grid_on, y=not grid_on, alpha=0.3)
         event.accept()
 
 

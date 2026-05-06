@@ -43,6 +43,16 @@ ACCENT_ORANGE = "#ff9800"
 ACCENT_GREEN = "#4caf50"
 ACCENT_RED = "#f44336"
 
+
+def _is_grid_on(plot):
+    """True if the pyqtgraph PlotItem currently has the X or Y grid visible."""
+    try:
+        return (plot.ctrl.xGridCheck.isChecked()
+                or plot.ctrl.yGridCheck.isChecked())
+    except AttributeError:
+        return False
+
+
 class _SecondsTimeAxis(_AxisItem):
     """Format seconds as hh:mm:ss, matching the main GUI time axis style."""
     def tickStrings(self, values, scale, spacing):
@@ -183,7 +193,7 @@ class DataViewerDialog(QtWidgets.QDialog):
             row=0, col=0, axisItems={'bottom': self._xaxis_freq})
         self._plt_freq.setLabel('left', 'Resonance Frequency', units='Hz', color=text_color)
         self._plt_freq.setLabel('bottom', 'Time (hh:mm:ss)', units='', color=text_color)
-        self._plt_freq.showGrid(x=True, y=True, alpha=0.3)
+        self._plt_freq.showGrid(x=False, y=False)
         self._plt_freq.getAxis('left').setPen(axis_color)
         self._plt_freq.getAxis('left').setTextPen(axis_color)
         legend_freq = self._plt_freq.addLegend(offset=(10, 10))
@@ -199,7 +209,7 @@ class DataViewerDialog(QtWidgets.QDialog):
             row=1, col=0, axisItems={'bottom': self._xaxis_diss})
         self._plt_diss.setLabel('left', 'Dissipation', color=text_color)
         self._plt_diss.setLabel('bottom', 'Time (hh:mm:ss)', units='', color=text_color)
-        self._plt_diss.showGrid(x=True, y=True, alpha=0.3)
+        self._plt_diss.showGrid(x=False, y=False)
         self._plt_diss.getAxis('left').setPen(axis_color)
         self._plt_diss.getAxis('left').setTextPen(axis_color)
         legend_diss = self._plt_diss.addLegend(offset=(10, 10))
@@ -283,11 +293,14 @@ class DataViewerDialog(QtWidgets.QDialog):
             return
 
         menu = QtWidgets.QMenu()
-        auto_scale_action = menu.addAction("Auto-scale")
-        reset_zoom_action = menu.addAction("Reset Zoom")
+        auto_scale_action  = menu.addAction("Auto-scale")
+        reset_zoom_action  = menu.addAction("Reset Zoom")
         menu.addSeparator()
-        pan_mode_action = menu.addAction("Pan Mode")
+        pan_mode_action    = menu.addAction("Pan Mode")
         select_mode_action = menu.addAction("Select Mode")
+        menu.addSeparator()
+        grid_on = _is_grid_on(plot)
+        grid_action = menu.addAction("Hide Grid" if grid_on else "Show Grid")
 
         pos = event.screenPos()
         qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
@@ -301,6 +314,8 @@ class DataViewerDialog(QtWidgets.QDialog):
             plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
         elif action == select_mode_action:
             plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+        elif action == grid_action:
+            plot.showGrid(x=not grid_on, y=not grid_on, alpha=0.3)
 
         event.accept()
 
@@ -356,7 +371,7 @@ class RawDataViewDialog(QtWidgets.QDialog):
         self._plt_amp = self._plot_widget.addPlot(row=0, col=0)
         self._plt_amp.setLabel('left', 'Amplitude', units='dB', color=text_color)
         self._plt_amp.setLabel('bottom', 'Frequency', units='Hz', color=text_color)
-        self._plt_amp.showGrid(x=True, y=True, alpha=0.3)
+        self._plt_amp.showGrid(x=False, y=False)
         self._plt_amp.setTitle("Amplitude Sweep", color=text_color)
         for ax_name in ['left', 'bottom']:
             self._plt_amp.getAxis(ax_name).setPen(axis_color)
@@ -410,7 +425,7 @@ class RawDataViewDialog(QtWidgets.QDialog):
         self._plt_phase = self._plot_widget.addPlot(row=1, col=0)
         self._plt_phase.setLabel('left', 'Phase', units='deg', color=text_color)
         self._plt_phase.setLabel('bottom', 'Frequency', units='Hz', color=text_color)
-        self._plt_phase.showGrid(x=True, y=True, alpha=0.3)
+        self._plt_phase.showGrid(x=False, y=False)
         self._plt_phase.setTitle("Phase Sweep", color=text_color)
         for ax_name in ['left', 'bottom']:
             self._plt_phase.getAxis(ax_name).setPen(axis_color)
@@ -583,11 +598,15 @@ class RawDataViewDialog(QtWidgets.QDialog):
         if plot is None:
             return
         menu = QtWidgets.QMenu()
-        auto_scale_action = menu.addAction("Auto-scale")
-        reset_zoom_action = menu.addAction("Reset Zoom")
+        auto_scale_action  = menu.addAction("Auto-scale")
+        reset_zoom_action  = menu.addAction("Reset Zoom")
         menu.addSeparator()
-        pan_mode_action = menu.addAction("Pan Mode")
+        pan_mode_action    = menu.addAction("Pan Mode")
         select_mode_action = menu.addAction("Select Mode")
+        menu.addSeparator()
+        grid_on = _is_grid_on(plot)
+        grid_action = menu.addAction("Hide Grid" if grid_on else "Show Grid")
+
         pos = event.screenPos()
         qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
         action = menu.exec_(qpos)
@@ -599,6 +618,8 @@ class RawDataViewDialog(QtWidgets.QDialog):
             plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
         elif action == select_mode_action:
             plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+        elif action == grid_action:
+            plot.showGrid(x=not grid_on, y=not grid_on, alpha=0.3)
         event.accept()
 
     def closeEvent(self, event):
