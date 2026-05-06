@@ -212,11 +212,12 @@ class MainWindow(QtGui.QMainWindow):
     # Starts the acquisition of the selected serial port
     ###########################################################################
     def start(self):
-
-        import os
-        os.system('cls' if os.name == 'nt' else 'clear')
-
-        # This function is connected to the clicked signal of the Start button.
+        # NOTE: previously called `os.system('cls' if os.name=='nt' else 'clear')`
+        # to wipe the dev console at the start of each run. Removed because in
+        # frozen Windows builds (console=False) it spawned cmd.exe in a CONSOLE
+        # subsystem, which (a) flashed a black window each time the user
+        # pressed START and (b) blocked the GUI for ~100-300 ms while cmd.exe
+        # ran. The console clear had no value in production.
         print(TAG, 'Clicked START')
         Log.i(TAG, "Clicked START")
 
