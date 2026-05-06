@@ -204,9 +204,9 @@ class Constants:
     # When the measured resonance frequency drifts more than this threshold
     # from the current reference, the sweep window is recentred automatically.
     auto_tracking_threshold = 100        # Hz
-    # If both -3dB cut-off frequencies are missing for this many consecutive
+    # If both -3dB frequencies are missing for this many consecutive
     # sweeps, auto-tracking is disabled. It re-enables automatically as soon
-    # as the peak returns with at least one cut-off identifiable.
+    # as the peak returns with at least one -3dB frequency identifiable.
     auto_tracking_max_edge_errors = 10
     # Minimum Q-factor below which the resonance is considered invalid.
     # Used to detect "sensor disconnected" (board sends amplifier noise).

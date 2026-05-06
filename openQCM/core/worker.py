@@ -399,7 +399,7 @@ class Worker:
         return self._t3_buffer.get_all()
 
     def get_ser_error(self):
-        """Latest cut-off / status flags from SerialProcess."""
+        """Latest -3dB / status flags from SerialProcess."""
         return self._ser_error1, self._ser_error2, self._control_k, self._ser_err_usb
 
     def get_sampling_time(self):

@@ -944,11 +944,11 @@ class MainWindow(QtGui.QMainWindow):
                       color_err = '#ff0000'
                       self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
                       if self._ser_error1 and self._ser_error2:
-                        labelbar = 'Warning: lower and upper cut-off not found'
+                        labelbar = 'Warning: -3dB frequencies not found'
                       elif self._ser_error1:
-                        labelbar = 'Warning: lower cut-off not found'
+                        labelbar = 'Warning: lower -3dB frequency not found'
                       elif self._ser_error2:
-                        labelbar = 'Warning: upper cut-off not found'
+                        labelbar = 'Warning: upper -3dB frequency not found'
                       if self._tracking_stopped_active:
                           labelstatus = 'Tracking Stopped'
                           labelbar += ' — Auto-tracking stopped'
@@ -983,11 +983,11 @@ class MainWindow(QtGui.QMainWindow):
                       color_err = '#ff0000'
                       self.ui.infostatus.setStyleSheet('background: #ff0000; padding: 1px; border: 1px solid #cccccc')
                       if self._ser_error1 and self._ser_error2:
-                        labelbar = 'Warning: lower and upper cut-off not found'
+                        labelbar = 'Warning: -3dB frequencies not found'
                       elif self._ser_error1:
-                        labelbar = 'Warning: lower cut-off not found'
+                        labelbar = 'Warning: lower -3dB frequency not found'
                       elif self._ser_error2:
-                        labelbar = 'Warning: upper cut-off not found'
+                        labelbar = 'Warning: upper -3dB frequency not found'
                       if self._tracking_stopped_active:
                           labelstatus = 'Tracking Stopped'
                           labelbar += ' — Auto-tracking stopped'
@@ -1245,7 +1245,7 @@ class MainWindow(QtGui.QMainWindow):
         """
         # Check tracking safety state (disable/re-enable by edge errors)
         # Only update the persistent flag here — the message is composed later
-        # in _update_plot together with the cut-off warning (which otherwise
+        # in _update_plot together with the -3dB frequency warning (which otherwise
         # overwrites it on every sweep).
         (disabled, first_disabled, reenabled) = self.worker.get_tracking_disabled()
         if disabled:

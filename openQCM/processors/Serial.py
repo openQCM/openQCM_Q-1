@@ -366,9 +366,9 @@ class SerialProcess(multiprocessing.Process):
             freq_range, mag_result_fit, percent=0.707)
 
         # Tracking safety: track how many consecutive sweeps fail to find
-        # *both* -3dB cut-off frequencies. After enough failures the
-        # auto-tracking is disabled to avoid chasing a ghost. As soon as the
-        # peak is back with at least one cut-off, tracking re-enables itself.
+        # *both* -3dB frequencies. After enough failures the auto-tracking
+        # is disabled to avoid chasing a ghost. As soon as the peak is back
+        # with at least one -3dB frequency, tracking re-enables itself.
         both_edges_missing = (self._err1 == 1 and self._err2 == 1)
         if both_edges_missing:
             self._consecutive_edge_errors += 1
@@ -382,9 +382,9 @@ class SerialProcess(multiprocessing.Process):
                 ])
                 print("\n" + "=" * 60)
                 print(" AUTO-TRACKING DISABLED")
-                print(" Reason: both cut-off frequencies missing for {} consecutive sweeps"
+                print(" Reason: both -3dB frequencies missing for {} consecutive sweeps"
                       .format(self._consecutive_edge_errors))
-                print(" Will auto-resume when peak and at least one cut-off reappear")
+                print(" Will auto-resume when peak and at least one -3dB frequency reappear")
                 print("=" * 60 + "\n")
         else:
             self._consecutive_edge_errors = 0

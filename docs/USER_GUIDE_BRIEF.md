@@ -232,14 +232,14 @@ Replay a saved CSV log:
 
 - **Green "Monitoring"** — acquisition running, signal healthy
 - **Yellow "Processing"** — early data being computed (first ~50 sweeps)
-- **Red "Warning"** — cut-off frequency not found (peak weak or damaged)
+- **Red "Warning"** — -3dB frequency not found (peak weak or damaged)
 - **Red "Tracking Stopped"** — peak lost for 10 consecutive sweeps, auto-tracking disabled
 - **Yellow "Auto-Tracking #N"** — drift detected, sweep window recalculated
 - **Green "Tracking Resumed"** — peak recovered, tracking re-enabled automatically
 
 ### 8.3 Info Bar Messages
 
-Contextual text: "Please wait, processing early data...", "Warning: lower cut-off not found — Auto-tracking stopped", "Monitoring!", "Auto-tracking activated: new sweep window...", etc.
+Contextual text: "Please wait, processing early data...", "Warning: lower -3dB frequency not found — Auto-tracking stopped", "Monitoring!", "Auto-tracking activated: new sweep window...", etc.
 
 ---
 
@@ -254,16 +254,16 @@ During Measurement mode, the system monitors the resonance frequency and automat
 ### 9.1 Tracking Safety — Auto-Disable and Auto-Resume
 
 If the peak disappears (e.g., sensor detached, heavy damping):
-- After **10 consecutive sweeps** with both -3dB cut-off frequencies missing, auto-tracking is **disabled**
-- Status shows **"Tracking Stopped"** (red) with message appended to the cut-off warning
-- When the peak returns and at least one cut-off can be identified again, tracking **re-enables automatically** ("Tracking Resumed", green)
+- After **10 consecutive sweeps** with both -3dB frequencies missing, auto-tracking is **disabled**
+- Status shows **"Tracking Stopped"** (red) with message appended to the -3dB frequency warning
+- When the peak returns and at least one -3dB frequency can be identified again, tracking **re-enables automatically** ("Tracking Resumed", green)
 - Alternatively, **STOP + START** fully resets state
 
 ### 9.2 Sensor Disconnection Detection
 
 When the quartz crystal is physically disconnected (USB still plugged):
 - The board keeps sending amplifier noise
-- A minimum Q-factor check (Q ≥ 100) triggers the "cut-off not found" warning pipeline
+- A minimum Q-factor check (Q ≥ 100) triggers the "-3dB frequency not found" warning pipeline
 - After 10 sweeps, tracking is disabled as described above
 
 ---
@@ -358,7 +358,7 @@ Every interactive widget has a tooltip (hover for a short description).
 
 - The peak was lost for 10 consecutive sweeps
 - Possible causes: sensor detached, heavy loading, extreme viscosity, cable issue
-- Tracking auto-resumes as soon as the peak returns with at least one identifiable -3dB cut-off
+- Tracking auto-resumes as soon as the peak returns with at least one identifiable -3dB frequency
 - If the signal is permanently lost, STOP and restart the calibration
 
 ### 14.4 Sampling time spikes (Windows only)
