@@ -4,6 +4,15 @@ import numpy as np
 
 TAG = "[CalibrationPlot]"
 
+# Project-wide colors aligned with the main GUI
+COLOR_BASELINE = '#DD8E6B'      # brown — same as Dissipation in main GUI
+COLOR_PHASE    = '#008EC0'      # blue  — same as Phase / Frequency in main GUI
+PEAK_FILL      = (255, 0, 0, 220)
+PEAK_BORDER    = 'w'            # white outline around the red peak markers
+# Window (in Hz) used to search for the phase peak around each amplitude peak
+PHASE_PEAK_HALF_WINDOW = 200_000
+
+
 ###############################################################################
 # Diagnostic plot window for Peak Detection results
 # Shows amplitude and phase with baseline correction and detected peaks
@@ -47,7 +56,6 @@ class CalibrationPlotWindow(QtGui.QDialog):
         self._plt_amp.setLabel('bottom', 'Frequency', units='Hz', color=fg_color)
         self._plt_amp.showGrid(x=True, y=True, alpha=self._grid_alpha)
         self._plt_amp.addLegend(offset=(10, 10))
-        # Performance: clip data to visible range
         self._plt_amp.setClipToView(True)
         self._plt_amp.setDownsampling(mode='peak')
 
@@ -57,7 +65,6 @@ class CalibrationPlotWindow(QtGui.QDialog):
         self._plt_phase.setLabel('bottom', 'Frequency', units='Hz', color=fg_color)
         self._plt_phase.showGrid(x=True, y=True, alpha=self._grid_alpha)
         self._plt_phase.addLegend(offset=(10, 10))
-        # Performance: clip data to visible range
         self._plt_phase.setClipToView(True)
         self._plt_phase.setDownsampling(mode='peak')
 
@@ -71,6 +78,16 @@ class CalibrationPlotWindow(QtGui.QDialog):
                 axis.setPen(pg.mkPen(color=fg_color, width=1))
                 axis.setTextPen(pg.mkPen(color=fg_color))
             plt.titleLabel.item.setDefaultTextColor(pg.mkColor(fg_color))
+
+        # Disable pyqtgraph's default right-click menu and route right-clicks
+        # through our custom context handler (Auto-scale / Reset Zoom / Pan /
+        # Select Mode), matching the convention used by the main GUI plots.
+        for p in (self._plt_amp, self._plt_phase):
+            p.setMenuEnabled(False)
+            p.getViewBox().setMenuEnabled(False)
+        # Both plots share the same scene, so we connect the click signal
+        # once and dispatch by hit-testing the mouse position.
+        self._graphics.scene().sigMouseClicked.connect(self._on_scene_right_click)
 
 
     def _get_theme_colors(self):
@@ -87,14 +104,54 @@ class CalibrationPlotWindow(QtGui.QDialog):
         else:
             self.setStyleSheet("background-color: #f0f0f0; color: #000000;")
 
+    # ------------------------------------------------------------------
+    # Custom right-click context menu (matches the main GUI plots)
+    # ------------------------------------------------------------------
+    def _on_scene_right_click(self, event):
+        """Show the standard Auto-scale / Reset Zoom / Pan / Select menu."""
+        if event.button() != QtCore.Qt.RightButton:
+            return
+        scene_pos = event.scenePos()
+        plot = None
+        for p in (self._plt_amp, self._plt_phase):
+            if p.sceneBoundingRect().contains(scene_pos):
+                plot = p
+                break
+        if plot is None:
+            return
 
+        menu = QtWidgets.QMenu()
+        auto_scale_action = menu.addAction("Auto-scale")
+        reset_zoom_action = menu.addAction("Reset Zoom")
+        menu.addSeparator()
+        pan_mode_action = menu.addAction("Pan Mode")
+        select_mode_action = menu.addAction("Select Mode")
+
+        pos = event.screenPos()
+        qpos = QtCore.QPoint(int(pos.x()), int(pos.y()))
+        action = menu.exec_(qpos)
+
+        if action == auto_scale_action:
+            plot.enableAutoRange()
+        elif action == reset_zoom_action:
+            plot.getViewBox().autoRange()
+        elif action == pan_mode_action:
+            plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
+        elif action == select_mode_action:
+            plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+        event.accept()
+
+
+    # ------------------------------------------------------------------
+    # Main entry point — load files and render the diagnostic plots
+    # ------------------------------------------------------------------
     def show_results(self, calib_file_path, peaks_file_path):
         """
         Load calibration data and peak frequencies, compute baseline correction,
         and display diagnostic plots.
 
-        :param calib_file_path: Path to Calibration_XMHz.txt (3 columns: freq, mag, phase)
-        :param peaks_file_path: Path to PeakFrequencies.txt (2 columns: freq, freq)
+        :param calib_file_path: path to Calibration_XMHz.txt (3 cols: freq, mag, phase)
+        :param peaks_file_path: path to PeakFrequencies.txt (2 cols: freq, freq)
         """
         try:
             # Load calibration raw data
@@ -107,9 +164,10 @@ class CalibrationPlotWindow(QtGui.QDialog):
             # Load peak frequencies (atleast_2d handles single-peak case)
             peak_data = np.atleast_2d(np.loadtxt(peaks_file_path))
             peak_freqs = peak_data[:, 0]
-            print(TAG, "Loaded {} peak frequencies from: {}".format(len(peak_freqs), peaks_file_path))
+            print(TAG, "Loaded {} peak frequencies from: {}".format(
+                len(peak_freqs), peaks_file_path))
 
-            # Compute baseline correction (polynomial order 8, same as Calibration.baseline_estimation)
+            # Baseline correction (8th-order polynomial — same as Calibration.py)
             coeffs_mag = np.polyfit(freq, raw_mag, 8)
             baseline_mag = np.polyval(coeffs_mag, freq)
             corrected_mag = raw_mag - baseline_mag
@@ -118,26 +176,37 @@ class CalibrationPlotWindow(QtGui.QDialog):
             baseline_phase = np.polyval(coeffs_phase, freq)
             corrected_phase = raw_phase - baseline_phase
 
-            # Find amplitude and phase values at peak frequencies
+            # Sample mag / phase at each amplitude-peak frequency
             peak_mag_values = np.zeros(len(peak_freqs))
-            peak_phase_values = np.zeros(len(peak_freqs))
+            peak_phase_at_amp = np.zeros(len(peak_freqs))
             for i, pf in enumerate(peak_freqs):
                 if pf > 0:
                     idx = np.abs(freq - pf).argmin()
                     peak_mag_values[i] = corrected_mag[idx]
-                    peak_phase_values[i] = corrected_phase[idx]
+                    peak_phase_at_amp[i] = corrected_phase[idx]
 
-            # Filter out peaks with frequency == 0
+            # Filter out empty (zero) peak slots
             valid_mask = peak_freqs > 0
             valid_peak_freqs = peak_freqs[valid_mask]
             valid_peak_mag = peak_mag_values[valid_mask]
-            valid_peak_phase = peak_phase_values[valid_mask]
+            valid_peak_phase_at_amp = peak_phase_at_amp[valid_mask]
+            valid_indices = [i for i, m in enumerate(valid_mask) if m]
 
-            # Build valid overtone indices (matching the valid_mask)
-            all_indices = list(range(len(peak_freqs)))
-            valid_indices = [idx for idx, m in zip(all_indices, valid_mask) if m]
+            # Phase peak: the maximum of the corrected phase signal in a
+            # ±PHASE_PEAK_HALF_WINDOW (Hz) window around each amplitude peak.
+            phase_peak_freqs = np.zeros(len(valid_peak_freqs))
+            phase_peak_values = np.zeros(len(valid_peak_freqs))
+            for i, amp_pf in enumerate(valid_peak_freqs):
+                window = (freq >= amp_pf - PHASE_PEAK_HALF_WINDOW) & \
+                         (freq <= amp_pf + PHASE_PEAK_HALF_WINDOW)
+                if np.any(window):
+                    sub_freq = freq[window]
+                    sub_phase = corrected_phase[window]
+                    j = int(np.argmax(sub_phase))
+                    phase_peak_freqs[i] = sub_freq[j]
+                    phase_peak_values[i] = sub_phase[j]
 
-            # Update title
+            # Title
             if len(valid_peak_freqs) > 0:
                 fund_freq = valid_peak_freqs[0]
                 if 4e6 < fund_freq < 6e6:
@@ -150,71 +219,82 @@ class CalibrationPlotWindow(QtGui.QDialog):
                     "Peak Detection Diagnostic -- {} -- {} peaks detected".format(
                         qcm_type, len(valid_peak_freqs)))
 
-            # Theme-aware colors for raw signal
+            # Theme-dependent colors
             if self._theme == 'dark':
-                raw_color = (150, 150, 150)
+                amp_color = (255, 255, 255)     # white  (matches main GUI Amplitude in dark)
+                label_color = '#ffffff'         # white  (peak labels — high contrast on dark bg)
             else:
-                raw_color = (160, 160, 160)
+                amp_color = (0, 0, 0)           # black  (matches main GUI Amplitude in light)
+                label_color = '#000000'         # black  (visible on light bg)
+            phase_color = pg.mkColor(COLOR_PHASE).getRgb()[:3]
+            baseline_pen = pg.mkPen(color=COLOR_BASELINE, width=1,
+                                    style=QtCore.Qt.DashLine)
+            peak_brush = pg.mkBrush(*PEAK_FILL)
+            peak_pen = pg.mkPen(PEAK_BORDER, width=2)
 
-            # ---- AMPLITUDE PLOT ----
-            # Raw signal (gray, thin) — performance: skipFiniteCheck
-            self._plt_amp.plot(freq, raw_mag,
-                               pen=pg.mkPen(color=raw_color, width=1),
-                               name='Raw signal', skipFiniteCheck=True)
-            # Baseline fit (orange, dashed)
-            self._plt_amp.plot(freq, baseline_mag,
-                               pen=pg.mkPen(color=(255, 165, 0), width=1,
-                                            style=QtCore.Qt.DashLine),
+            # ---------------------- AMPLITUDE PLOT ----------------------
+            # Raw signal: scatter (small dots), same color as Corrected
+            self._plt_amp.addItem(pg.ScatterPlotItem(
+                x=freq, y=raw_mag,
+                symbol='o', size=2,
+                brush=pg.mkBrush(*amp_color, 200),
+                pen=pg.mkPen(None),
+                name='Raw signal'))
+            # Baseline (brown dashed line)
+            self._plt_amp.plot(freq, baseline_mag, pen=baseline_pen,
                                name='Baseline (poly 8)', skipFiniteCheck=True)
-            # Baseline-corrected (red, bold)
+            # Corrected (solid line, theme color — white in dark / black in light)
             self._plt_amp.plot(freq, corrected_mag,
-                               pen=pg.mkPen(color='#ff0000', width=2),
+                               pen=pg.mkPen(color=amp_color, width=2),
                                name='Corrected', skipFiniteCheck=True)
-            # Peak markers (green circles)
-            scatter_amp = pg.ScatterPlotItem(
+            # Amplitude peak markers (red dot, white border)
+            self._plt_amp.addItem(pg.ScatterPlotItem(
                 x=valid_peak_freqs, y=valid_peak_mag,
                 symbol='o', size=12,
-                brush=pg.mkBrush(0, 255, 100, 200),
-                pen=pg.mkPen('w', width=1),
-                name='Peaks')
-            self._plt_amp.addItem(scatter_amp)
-
-            # Add text labels for each peak: F1, F3, F5, F7, F9
-            for vi, (pf, pv) in zip(valid_indices, zip(valid_peak_freqs, valid_peak_mag)):
+                brush=peak_brush, pen=peak_pen,
+                name='Amplitude peak'))
+            # Peak labels (white in dark / black in light)
+            for vi, (pf, pv) in zip(valid_indices,
+                                    zip(valid_peak_freqs, valid_peak_mag)):
                 n = self.OVERTONE_LABELS[vi] if vi < len(self.OVERTONE_LABELS) else '?'
-                label = "F{}: {:.0f} Hz".format(n, pf)
-                text = pg.TextItem(text=label, color='#00ff64', anchor=(0.5, 1.2))
+                text = pg.TextItem(text="F{}: {:.0f} Hz".format(n, pf),
+                                   color=label_color, anchor=(0.5, 1.2))
                 text.setPos(pf, pv)
                 self._plt_amp.addItem(text)
 
-            # ---- PHASE PLOT ----
-            # Raw signal (gray, thin)
-            self._plt_phase.plot(freq, raw_phase,
-                                 pen=pg.mkPen(color=raw_color, width=1),
-                                 name='Raw signal', skipFiniteCheck=True)
-            # Baseline fit (orange, dashed)
-            self._plt_phase.plot(freq, baseline_phase,
-                                 pen=pg.mkPen(color=(255, 165, 0), width=1,
-                                              style=QtCore.Qt.DashLine),
+            # ---------------------- PHASE PLOT ----------------------
+            # Raw signal: blue scatter dots
+            self._plt_phase.addItem(pg.ScatterPlotItem(
+                x=freq, y=raw_phase,
+                symbol='o', size=2,
+                brush=pg.mkBrush(*phase_color, 200),
+                pen=pg.mkPen(None),
+                name='Raw signal'))
+            # Baseline (brown dashed)
+            self._plt_phase.plot(freq, baseline_phase, pen=baseline_pen,
                                  name='Baseline (poly 8)', skipFiniteCheck=True)
-            # Baseline-corrected (blue, bold)
+            # Corrected (blue solid line)
             self._plt_phase.plot(freq, corrected_phase,
-                                 pen=pg.mkPen(color='#0072bd', width=2),
+                                 pen=pg.mkPen(color=COLOR_PHASE, width=2),
                                  name='Corrected', skipFiniteCheck=True)
-            # Peak markers (green circles)
-            scatter_phase = pg.ScatterPlotItem(
-                x=valid_peak_freqs, y=valid_peak_phase,
+            # Reference marker on phase plot at AMPLITUDE peak position (circle)
+            self._plt_phase.addItem(pg.ScatterPlotItem(
+                x=valid_peak_freqs, y=valid_peak_phase_at_amp,
                 symbol='o', size=12,
-                brush=pg.mkBrush(0, 255, 100, 200),
-                pen=pg.mkPen('w', width=1),
-                name='Peaks')
-            self._plt_phase.addItem(scatter_phase)
-
-            # Add text labels for each peak: F1, F3, F5, F7, F9
-            for vi, (pf, pv) in zip(valid_indices, zip(valid_peak_freqs, valid_peak_phase)):
+                brush=peak_brush, pen=peak_pen,
+                name='Amplitude peak (ref)'))
+            # Phase peak marker (star) at the actual phase maximum
+            self._plt_phase.addItem(pg.ScatterPlotItem(
+                x=phase_peak_freqs, y=phase_peak_values,
+                symbol='star', size=18,
+                brush=peak_brush, pen=peak_pen,
+                name='Phase peak'))
+            # Phase peak labels — frequency of the PHASE peak (for amp-vs-phase comparison)
+            for vi, (pf, pv) in zip(valid_indices,
+                                    zip(phase_peak_freqs, phase_peak_values)):
                 n = self.OVERTONE_LABELS[vi] if vi < len(self.OVERTONE_LABELS) else '?'
-                label = "F{}: {:.0f} Hz".format(n, pf)
-                text = pg.TextItem(text=label, color='#00ff64', anchor=(0.5, 1.2))
+                text = pg.TextItem(text="F{}: {:.0f} Hz".format(n, pf),
+                                   color=label_color, anchor=(0.5, 1.2))
                 text.setPos(pf, pv)
                 self._plt_phase.addItem(text)
 
