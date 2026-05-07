@@ -3,10 +3,35 @@
 **Real-time GUI software for the openQCM Q-1 quartz crystal microbalance**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Python 3.6+](https://img.shields.io/badge/Python-3.6%2B-blue.svg)](https://www.python.org/)
+[![Python 3.9](https://img.shields.io/badge/Python-3.9-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
+![openQCM Q-1 v3.0 main window during a live acquisition, dark theme — sweep amplitude/phase plot at the top, frequency/dissipation time series at the bottom, left sidebar controls](docs/images/screenshot.png)
+
 An open-source Python application to display, process, and store data in real-time from the [openQCM Q-1](https://openqcm.com/about-openqcm-q-1) device. The software monitors resonance frequency and dissipation variations of a quartz crystal microbalance through real-time analysis of the resonance curve.
+
+---
+
+## Table of Contents
+
+- [About QCM Technology](#about-qcm-technology)
+- [Quick Start](#quick-start)
+- [Features](#features)
+  - [Acquisition and Operating Modes](#acquisition-and-operating-modes)
+  - [Visualization and Analysis](#visualization-and-analysis)
+  - [Hardware Integration](#hardware-integration)
+  - [User Interface](#user-interface)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Architecture](#architecture)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [Citation](#citation)
+- [Version History](#version-history)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+- [Links](#links)
 
 ---
 
@@ -20,58 +45,96 @@ The **[openQCM Q-1](https://openqcm.com/about-openqcm-q-1)** is a community-driv
 
 ---
 
+## Quick Start
+
+1. Connect the openQCM Q-1 device via USB.
+2. Set up the conda environment (one-time):
+
+   ```bash
+   cd openQCM_Q-1
+   chmod +x setup_env.sh
+   ./setup_env.sh
+   ```
+
+3. Launch the application:
+
+   ```bash
+   conda activate openqcm
+   python run.py
+   ```
+
+4. In the GUI, select the serial port from the dropdown and click **Connect**.
+5. Run **Peak Detection** — the QCM type (5/10 MHz) is auto-detected.
+6. Select the desired overtone (F0, F3, F5, F7, or F9) and click **START** to begin acquisition.
+
+For platform-specific notes (Apple Silicon, Linux serial permissions, pip alternative) see [Installation](#installation).
+
+---
+
 ## Features
 
-### Real-Time Data Acquisition
+### Acquisition and Operating Modes
+
+**Real-time data acquisition**
+
 - Serial port connection to the openQCM Q-1 device with automatic port detection
 - Multiprocessing architecture for non-blocking acquisition and UI rendering
 - Support for **5 MHz** and **10 MHz** quartz crystal sensors
 - Configurable sampling with multiple overtones (Fundamental, 3rd, 5th, 7th, 9th)
 
-### Dual Operating Modes
-- **Measurement Mode** — Continuous frequency sweep acquisition with real-time resonance frequency and dissipation tracking
-- **Peak Detection Mode** — Automatic identification of resonance peaks across the full frequency spectrum with QCM type auto-detection and phase cross-validation
+**Dual operating modes**
 
-### Real-Time Plotting
+- **Measurement Mode** — Continuous frequency sweep acquisition with real-time resonance frequency and dissipation tracking.
+- **Peak Detection Mode** — Automatic identification of resonance peaks across the full frequency spectrum with QCM type auto-detection and phase cross-validation.
+
+**Data logging**
+
+- Automatic CSV export with millisecond-precision timestamps
+- Columns: `Date`, `Time`, `Relative_time`, `Temperature`, `Resonance_Frequency`, `Dissipation`
+- Timestamped filenames for organized data management
+- Live filename indicator in the sidebar and window title bar during acquisition
+
+### Visualization and Analysis
+
+**Real-time plotting**
+
 - **Amplitude / Phase** sweep (dual Y-axis)
 - **Resonance Frequency / Dissipation** time series (dual Y-axis)
 - **Temperature** monitoring
 - Interactive zoom, pan, auto-scale, and measurement cursors
 
-### Data Analysis Tools
-- **Raw Data View** — Live visualization of the current frequency sweep with:
-  - SG-filtered data points (scatter)
-  - Spline interpolation fit (smooth curve)
-  - Peak maximum marker
-  - -3 dB bandwidth region highlighting (dissipation measurement)
-  - Real-time Q-factor and dissipation readout
-- **Log Data View** — Load and visualize previously recorded CSV data files
-- **Peak Data View** — Post-calibration diagnostic plots showing amplitude and phase with baseline correction and detected peak markers
-- **Measurement Cursors** — Dual draggable cursors with delta readout for frequency and dissipation
+**Data analysis tools**
 
-### Peak Detection Algorithm
+- **Raw Data View** — Live visualization of the current frequency sweep with SG-filtered data points (scatter), spline interpolation fit (smooth curve), peak maximum marker, -3 dB bandwidth region highlighting, and real-time Q-factor and dissipation readout.
+- **Log Data View** — Load and visualize previously recorded CSV data files.
+- **Peak Data View** — Post-calibration diagnostic plots showing amplitude and phase with baseline correction and detected peak markers.
+- **Measurement Cursors** — Dual draggable cursors with delta readout for frequency and dissipation.
+
+**Peak detection algorithm**
+
 The peak detection operates in two phases:
-1. **Fundamental detection** — Scans the full 1–12 MHz range to locate the fundamental resonance peak using `scipy.signal.argrelextrema`, then auto-detects the QCM type (5 or 10 MHz)
-2. **Overtone detection** — Searches for odd harmonics (3rd, 5th, 7th, 9th) in ±400 kHz windows around expected positions, with **phase cross-validation**: overtones are discarded if the magnitude/phase peak frequency difference exceeds a threshold or the phase amplitude is below 10°
+
+1. **Fundamental detection** — Scans the full 1–12 MHz range to locate the fundamental resonance peak using `scipy.signal.argrelextrema`, then auto-detects the QCM type (5 or 10 MHz).
+2. **Overtone detection** — Searches for odd harmonics (3rd, 5th, 7th, 9th) in ±400 kHz windows around expected positions, with **phase cross-validation**: overtones are discarded if the magnitude/phase peak frequency difference exceeds a threshold or the phase amplitude is below 10°.
 
 A legacy fallback (`FindPeak`) activates automatically if the new algorithm fails.
 
-### Overtone Quick-Select
+### Hardware Integration
+
+**Overtone Quick-Select**
+
 Dedicated buttons (F0, F3, F5, F7, F9) for fast overtone switching with visual feedback — the selected overtone stays highlighted even when buttons are disabled during acquisition.
 
-### Auto-Tracking
-Automatically recalculates the sweep frequency window when the resonance frequency drifts beyond a configurable threshold, ensuring the peak remains centered in the measurement range.
+**Auto-Tracking**
 
-### Firmware Version Check
-Automatic firmware verification on device connection and manual check via **Help → Check Firmware Version**. Compares the device firmware version (queried via serial command `F`) against the expected version. If a mismatch is detected, guides the user through a firmware update workflow with integrated launcher for platform-specific updater tools (Teensy.app on macOS, TyUploader.exe on Windows).
+Automatically recalculates the sweep frequency window when the resonance frequency drifts beyond a configurable threshold, ensuring the peak remains centered in the measurement range. A safety hysteresis disables tracking after 10 consecutive sweeps with a missing peak and re-enables it as soon as the signal is recovered.
 
-### Data Logging
-- Automatic CSV export with millisecond-precision timestamps
-- Columns: Date, Time, Relative Time, Temperature, Resonance Frequency, Dissipation
-- Timestamped filenames for organized data management
-- **Live filename indicator** in the sidebar and window title bar during acquisition
+**Firmware Version Check**
+
+Automatic firmware verification on device connection and manual check via **Help → Check Firmware Version**. Compares the device firmware version (queried via serial command `F`) against the expected version (currently `2.2`). If a mismatch is detected, the application guides the user through a firmware update workflow with integrated launcher for platform-specific updater tools (Teensy.app on macOS, TyUploader.exe on Windows).
 
 ### User Interface
+
 - Unified single-window layout with left sidebar (controls), center (plots), and right sidebar (readings)
 - **Dark / Light theme** switching optimized for lab environments
 - Integrated **System Log** tab with timestamped console messages
@@ -87,7 +150,7 @@ Automatic firmware verification on device connection and manual check via **Help
 - Anaconda or Miniconda
 - openQCM Q-1 device connected via USB
 
-### Recommended: Automated Environment Setup
+### Recommended: automated environment setup
 
 The project includes an automated setup script that creates a conda environment with the exact tested dependency versions. This is the recommended method as it ensures full compatibility across platforms.
 
@@ -98,6 +161,7 @@ chmod +x setup_env.sh
 ```
 
 The script automatically:
+
 - Detects your platform (macOS, Linux, Windows) and CPU architecture
 - Handles Apple Silicon Macs via Rosetta 2 (x86_64 packages)
 - Creates a `openqcm` conda environment with pinned dependency versions
@@ -138,7 +202,7 @@ pip install PyQt5 pyserial pyqtgraph numpy scipy
 
 > **Note**: pip install uses the latest available versions, which may cause compatibility issues. The conda environment method above is recommended.
 
-### Linux — Serial Port Permissions
+### Linux — serial port permissions
 
 On Linux, grant access to the serial port:
 
@@ -153,7 +217,7 @@ Log out and log back in for changes to take effect.
 
 ## Usage
 
-### Run the Application
+### Run the application
 
 ```bash
 cd openQCM_Q-1
@@ -167,15 +231,7 @@ cd openQCM_Q-1
 python -m openQCM
 ```
 
-### Quick Start
-
-1. Connect the openQCM Q-1 device via USB
-2. Launch the application
-3. Select the serial port from the dropdown and click **Connect**
-4. Run **Peak Detection** — the QCM type (5/10 MHz) is auto-detected
-5. Select the desired overtone and click **START** to begin acquisition
-
-### Build Standalone Executable
+### Build a standalone executable
 
 ```bash
 pip install pyinstaller
@@ -189,7 +245,7 @@ The executable will be generated in `dist/openQCM_Q-1/`.
 
 ## Project Structure
 
-```
+```text
 openQCM_Q-1/
 ├── run.py                  # Application entry point
 ├── setup_env.sh            # Automated conda environment setup
@@ -216,6 +272,8 @@ openQCM_Q-1/
 │   ├── common/             # Utilities (logging, file I/O, OS detection)
 │   ├── Calibration_5MHz.txt
 │   └── Calibration_10MHz.txt
+├── tools/                  # Diagnostic CLI scripts (peak detection,
+│                           #   overtone analysis, sampling-time monitor)
 ├── icons/                  # Application icons
 ├── logged_data/            # CSV data output directory
 └── docs/                   # Documentation and reference data
@@ -227,19 +285,70 @@ openQCM_Q-1/
 
 The application uses a **multiprocessing pipeline** to separate data acquisition from the UI:
 
-```
-┌──────────────┐    Queue 1-6    ┌────────────┐    Buffers    ┌──────────────┐
-│ SerialProcess │ ─────────────> │   Worker    │ ──────────> │  MainWindow  │
-│ (child proc.) │                │ (consumer)  │              │ (Qt UI loop) │
-└──────────────┘                └────────────┘              └──────────────┘
-      │                                                            │
-   Serial Port                                              PyQtGraph Plots
-   (openQCM Q-1)                                            CSV Export
+```text
++----------------+   Queue 1-6    +----------+    Buffers    +----------------+
+| SerialProcess  |--------------->|  Worker  |-------------->|   MainWindow   |
+| (child proc.)  |                |          |               | (Qt event loop)|
++----------------+                +----------+               +----------------+
+       |                                                              |
+       v                                                              v
+  Serial Port                                                  PyQtGraph plots
+ (openQCM Q-1)                                                   CSV export
 ```
 
-- **SerialProcess** — Runs in a separate OS process; reads raw ADC data, applies baseline correction, Savitzky-Golay filtering, spline interpolation, and peak/bandwidth computation
-- **Worker** — Consumes multiprocessing queues and stores data in ring buffers
-- **MainWindow** — Qt timer (50 ms) reads buffers and updates plots using efficient `setData()` calls
+- **SerialProcess** — Runs in a separate OS process; reads raw ADC data, applies baseline correction, Savitzky-Golay filtering, spline interpolation, and peak/bandwidth computation.
+- **Worker** — Consumes multiprocessing queues and stores data in ring buffers.
+- **MainWindow** — Qt timer (50 ms) reads buffers and updates plots using efficient `setData()` calls.
+
+---
+
+## Documentation
+
+- [User Guide](docs/USER_GUIDE.md) — *coming soon*: end-user manual covering every feature, dialog, and workflow.
+- [CHANGELOG.md](CHANGELOG.md) — Detailed development history of all releases.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — How to set up a development environment and submit changes.
+- [docs/](docs/) — Reference data, calibration files, and supporting documentation.
+
+---
+
+## Contributing
+
+Contributions are welcome — bug reports, feature requests, and pull requests alike.
+
+For setup instructions, code conventions, and the submission workflow, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Reporting issues
+
+Found a bug or have a feature request? Please open an issue on [GitHub Issues](https://github.com/openQCM/openQCM_Q-1/issues), including:
+
+- Your operating system and Python version
+- Steps to reproduce the problem
+- Console output or screenshots if applicable
+- The firmware version reported by **Help → Check Firmware Version**
+
+---
+
+## Citation
+
+If you use openQCM Q-1 in your research, please cite the software. Citation metadata is also available in machine-readable form in [CITATION.cff](CITATION.cff) and is automatically picked up by GitHub's *"Cite this repository"* feature.
+
+**BibTeX:**
+
+```bibtex
+@software{openqcm_q1_2026,
+  author    = {Mauro, Marco and {openQCM Team}},
+  title     = {{openQCM Q-1}},
+  version   = {3.0},
+  date      = {2026-05-07},
+  url       = {https://github.com/openQCM/openQCM_Q-1},
+  publisher = {Novaetech S.r.l.},
+  license   = {GPL-3.0}
+}
+```
+
+**APA:**
+
+> Mauro, M., & openQCM Team / Novaetech S.r.l. (2026). *openQCM Q-1* (Version 3.0) [Computer software]. https://github.com/openQCM/openQCM_Q-1
 
 ---
 
@@ -247,7 +356,7 @@ The application uses a **multiprocessing pipeline** to separate data acquisition
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| **3.0** | May 2026 | Unified single-window UI, dark/light themes, auto-tracking, Raw Data View, Peak Data View, measurement cursors, peak detection with auto-detect and phase cross-validation, overtone quick-select buttons, firmware version check and updater integration, live log filename indicator, performance optimizations |
+| **3.0** | May 2026 | • Unified single-window UI with dark/light themes<br>• Two-phase peak detection with QCM auto-detect and phase cross-validation<br>• Auto-tracking with safety hysteresis and sensor-disconnect detection<br>• Raw Data, Peak Data, and Log Data views with measurement cursors<br>• Firmware version check and updater integration |
 | 2.1 | 2024 | Calibration optimization, 200 ms plot refresh, macOS/Linux fixes |
 | 2.0 | 2020 | Initial Python implementation |
 
@@ -261,13 +370,18 @@ This project is distributed under the [GNU General Public License v3.0](LICENSE)
 
 ---
 
+## Acknowledgements
+
+Developed by the [openQCM Team](https://openqcm.com/) at [Novaetech S.r.l.](https://openqcm.com/), with contributions from the open-hardware community.
+
+*Version 3.0 development assisted by [Claude Code](https://claude.ai/).*
+
+---
+
 ## Links
 
 - **Website**: [openqcm.com](https://openqcm.com/)
-- **openQCM Q-1**: [openqcm.com/about-openqcm-q-1](https://openqcm.com/about-openqcm-q-1)
-- **GitHub**: [github.com/openQCM](https://github.com/openQCM)
-- **Contact**: info@openqcm.com
-
-**Developed by** [openQCM Team](https://openqcm.com/) / [Novaetech S.r.l](https://openqcm.com/)
-
-*Version 3.0 development assisted by [Claude Code](https://claude.ai/)*
+- **Product page**: [openqcm.com/about-openqcm-q-1](https://openqcm.com/about-openqcm-q-1)
+- **Repository**: [github.com/openQCM/openQCM_Q-1](https://github.com/openQCM/openQCM_Q-1)
+- **Issues**: [github.com/openQCM/openQCM_Q-1/issues](https://github.com/openQCM/openQCM_Q-1/issues)
+- **Contact**: [info@openqcm.com](mailto:info@openqcm.com)
