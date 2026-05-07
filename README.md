@@ -1,6 +1,6 @@
 # openQCM Q-1
 
-**Real-time GUI software for the openQCM Q-1 quartz crystal microbalance**
+**Real-time GUI software for the openQCM Q-1 Quartz Crystal Microbalance with Dissipation monitoring**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python 3.9](https://img.shields.io/badge/Python-3.9-blue.svg)](https://www.python.org/)
@@ -8,7 +8,7 @@
 
 ![openQCM Q-1 v3.0 main window during a live acquisition, dark theme — sweep amplitude/phase plot at the top, frequency/dissipation time series at the bottom, left sidebar controls](docs/images/screenshot.png)
 
-An open-source Python application to display, process, and store data in real-time from the [openQCM Q-1](https://openqcm.com/about-openqcm-q-1) device. The software monitors resonance frequency and dissipation variations of a quartz crystal microbalance through real-time analysis of the resonance curve.
+An open-source Python application to display, process, and store data in real-time from the [openQCM Q-1](https://openqcm.com/about-openqcm-q-1) Quartz Crystal Microbalance with Dissipation monitoring. The software monitors resonance frequency and dissipation variations through real-time analysis of the resonance curve.
 
 ---
 
