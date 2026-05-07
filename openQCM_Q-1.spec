@@ -96,9 +96,8 @@ a = Analysis(
         'IPython',
         'jupyter',
         'notebook',
-        # `pandas` is heavy (~150 MB) and only used by `get_web_info()` for
-        # parsing the openQCM news HTML table. The function gracefully
-        # disables itself if pandas is unavailable (see mainWindow.py).
+        # `pandas` is heavy (~150 MB) and no longer used at runtime.
+        # `get_web_info()` was rewritten to use stdlib html.parser instead.
         'pandas',
     ],
     win_no_prefer_redirects=False,

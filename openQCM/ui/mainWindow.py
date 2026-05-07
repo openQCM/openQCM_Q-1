@@ -2088,53 +2088,74 @@ class MainWindow(QtGui.QMainWindow):
     # Gets information from openQCM webpage and enables download button if new version software is available
     ########################################################################################################
     def get_web_info(self):
-        # `pandas` is only needed here to parse the openQCM news/version HTML
-        # table. It is excluded from the PyInstaller bundle to keep the
-        # standalone executable small (~150 MB saved). When the dependency
-        # is missing, the update check is gracefully disabled.
-        try:
-            import pandas as pd
-        except ImportError:
-            print(TAG, "pandas not available — update check disabled")
-            self._internet_connected = False
-            return
-        # check if an Internet connection is active
+        """Fetch version and news from the openQCM website.
+
+        Parses the HTML table at openqcm.com/shared/news.html using only
+        stdlib (urllib + html.parser) so the update check works in the
+        PyInstaller frozen build where pandas is excluded.
+        """
+        from html.parser import HTMLParser
+        from urllib.request import urlopen
+
+        # Check internet connectivity first
         self._internet_connected = self.internet_on()
-        # Get latest info from openQCM webpage
-        c_types = {
-                   '1': '1',
-                   '2': '2',
-                   '3': '3',}
-        r_types = {
-                   '1': 'A',
-                   '2': 'B',
-                   '3': 'C',}
+
         if self._internet_connected:
-           color = '#00c600'
            labelweb2 = 'ONLINE'
-           print (TAG,'Checking your internet connection {} '.format(labelweb2))
-           tables = pd.read_html('https://openqcm.com/shared/news.html', index_col=0, header=0, match='1')
-           df = tables[0]
-           # create empty list of string  
-           self._webinfo = ["" for x in range(len(df.columns)*len(df.index))] #len(df.columns)*len(df.index)=9
-           # row acess mode to Pandas dataframe
-           k=0
-           for j in [1,2,3]:
-              for i in [1,2,3]:
-                  self._webinfo[k]= str(df.loc[r_types[str(j)], c_types[str(i)]])
-                  k+=1
-            # check for update
-           if self._webinfo[0] == Constants.app_version:
-              labelweb3 = 'last version installed!' 
-           else:
-              labelweb3 = 'version {} available!'.format(self._webinfo[0]) 
-              self.ui.pButton_Download.setEnabled(True)
+           print(TAG, 'Checking your internet connection {}'.format(labelweb2))
+           try:
+               html = urlopen('https://openqcm.com/shared/news.html', timeout=10).read().decode()
+
+               # Lightweight HTML table parser — extracts all <td> cell texts
+               # into a flat list, then reshapes into the 3×3 grid (rows A/B/C,
+               # columns 1/2/3) that the rest of the code expects.
+               class _TableParser(HTMLParser):
+                   def __init__(self):
+                       super().__init__()
+                       self._in_td = False
+                       self.cells = []
+                   def handle_starttag(self, tag, attrs):
+                       if tag == 'td':
+                           self._in_td = True
+                           self.cells.append('')
+                   def handle_endtag(self, tag):
+                       if tag == 'td':
+                           self._in_td = False
+                   def handle_data(self, data):
+                       if self._in_td:
+                           self.cells[-1] += data.strip()
+
+               parser = _TableParser()
+               parser.feed(html)
+               cells = parser.cells
+
+               # The table has a header row (0,1,2,3) followed by three data
+               # rows (A,…), (B,…), (C,…) — each with 4 columns.
+               # Skip the header row (first 4 cells), then pick columns 1-3
+               # from each data row (skip column 0 which is the row label).
+               self._webinfo = []
+               for row in range(3):
+                   row_start = (row + 1) * 4  # skip header row
+                   for col in range(1, 4):
+                       idx = row_start + col
+                       self._webinfo.append(cells[idx] if idx < len(cells) else '')
+
+               if self._webinfo[0] == Constants.app_version:
+                  labelweb3 = 'last version installed!'
+               else:
+                  labelweb3 = 'version {} available!'.format(self._webinfo[0])
+                  self.ui.pButton_Download.setEnabled(True)
+           except Exception as e:
+               print(TAG, "Failed to parse news page: {}".format(e))
+               Log.e(TAG, "Failed to parse news page: {}".format(e))
+               self._internet_connected = False
+               labelweb2 = 'OFFLINE'
+               labelweb3 = 'Offline, unable to check'
         else:
-           color = '#ff0000'
            labelweb2 = 'OFFLINE'
            labelweb3 = 'Offline, unable to check'
-           print (TAG,'Checking your internet connection {} '.format(labelweb2)) 
-           
+           print(TAG, 'Checking your internet connection {}'.format(labelweb2))
+
         _set_data_value(self.ui.lweb2, labelweb2)
         if self._internet_connected:
             if hasattr(self.ui.lweb2, 'valueLabel'):
