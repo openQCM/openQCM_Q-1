@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+title: "openQCM Q-1"
+message: >-
+  If you use this software in your research, please cite it
+  using the metadata from this file.
+type: software
+authors:
+  - name: "openQCM Team / Novaetech S.r.l."
+    website: "https://openqcm.com/"
+  - family-names: Mauro
+    given-names: Marco
+    email: info@openqcm.com
+repository-code: "https://github.com/openQCM/openQCM_Q-1"
+url: "https://openqcm.com/about-openqcm-q-1"
+license: GPL-3.0
+version: "3.0"
+date-released: "2026-05-07"
+keywords:
+  - quartz-crystal-microbalance
+  - QCM
+  - frequency-dissipation
+  - resonance
+  - biosensing
+  - open-hardware
+  - PyQt5
+  - real-time-acquisition
+abstract: >-
+  Open-source Python GUI software for the openQCM Q-1 Quartz Crystal
+  Microbalance. Displays, processes, and stores resonance frequency and
+  dissipation data in real-time through analysis of the resonance curve,
+  with support for multiple overtones, auto-tracking, and peak detection
+  with phase cross-validation.
