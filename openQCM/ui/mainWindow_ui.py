@@ -2149,5 +2149,5 @@ class Ui_Main(object):
         return self._current_theme
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle("openQCM Q-1 - version 3.0 (dev)")
+        MainWindow.setWindowTitle("openQCM Q-1 - version 3.0")
         MainWindow.setWindowIcon(QtGui.QIcon(get_resource_path('icons/favicon.ico')))

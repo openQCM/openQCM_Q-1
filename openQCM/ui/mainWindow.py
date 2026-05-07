@@ -359,7 +359,7 @@ class MainWindow(QtGui.QMainWindow):
                 elided = metrics.elidedText(csv_name, QtCore.Qt.ElideMiddle, avail)
                 lbl.setText(elided)
                 lbl.setToolTip(csv_name)
-                self.setWindowTitle("openQCM Q-1 v3.0 \u2014 {}".format(csv_name))
+                self.setWindowTitle("openQCM Q-1 - version 3.0 \u2014 {}".format(csv_name))
 
             if self._get_source() == SourceType.calibration:
                self.ui.pButton_Clear.setEnabled(False) #insert
@@ -390,7 +390,7 @@ class MainWindow(QtGui.QMainWindow):
         # Clear log filename
         self.ui.lblLogFile.setText("")
         self.ui.lblLogFile.setToolTip("")
-        self.setWindowTitle("openQCM Q-1 - version 3.0 (dev)")
+        self.setWindowTitle("openQCM Q-1 - version 3.0")
         # Reset reference button label
         self.ui.pButton_Reference.setText("Set Reference")
         print("")
