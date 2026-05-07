@@ -1,6 +1,6 @@
 # openQCM Q-1 - Changelog v3.0
 
-## Version 3.0 - February 2026
+## Version 3.0 - May 2026
 
 ---
 
@@ -528,8 +528,8 @@ Reduced from 900px to 850px height — fits MacBook Air 13" with dock visible.
 
 Auto-tracking now disables itself when the resonance peak is lost for too many consecutive sweeps and re-enables itself automatically when the peak returns. New constants in `constants.py`:
 
-- `auto_tracking_max_edge_errors = 10` — disable after 10 consecutive sweeps with both -3dB cut-off frequencies missing
-- Re-enable trigger: a single sweep with the peak back and at least one cut-off identifiable
+- `auto_tracking_max_edge_errors = 10` — disable after 10 consecutive sweeps with both -3dB frequencies missing
+- Re-enable trigger: a single sweep with the peak back and at least one -3dB frequency identifiable
 
 The Serial process maintains a `_consecutive_edge_errors` counter and emits dedicated tracking events (`disabled_by_errors=True/False`) on the `parser_tracking` queue. The Worker turns these into one-shot GUI notifications: the status bar shows **"Tracking Stopped"** (red) on the disable transition and **"Tracking Resumed"** (green) on auto re-enable.
 
@@ -539,7 +539,7 @@ When the quartz sensor is physically disconnected, the openQCM board keeps strea
 
 - New `Constants.min_valid_q_factor = 100`
 - `parameters_finder()` now sets `_err1 = _err2 = 1` if the computed Q-factor is below this threshold
-- This reuses the existing "cut-off not found" warning pipeline AND the tracking-safety counter, so a disconnected sensor triggers the same recovery flow as a lost peak
+- This reuses the existing "-3dB frequency not found" warning pipeline AND the tracking-safety counter, so a disconnected sensor triggers the same recovery flow as a lost peak
 
 ## Trimmed Mean Buffer Statistics
 
@@ -669,6 +669,67 @@ README.txt                               (first-run instructions)
 ```
 
 This folder can be zipped and distributed directly. The release was validated on Windows: full Peak Detection + Measurement cycle works on a clean machine without a Python install.
+
+---
+
+# PART 12: SPLASH, HYSTERESIS, PLOTS & BUILD POLISH — May 2026
+
+## Splash Screen
+
+Added a PyInstaller splash screen that displays during the one-file `.exe` extraction phase. The splash uses an opaque PNG (`icons/splash.png`) with `text_pos=(40, 470)` enabled so users get visual feedback while the bootloader unpacks DLLs.
+
+PyInstaller 5.x overwrites our default text with extracted-DLL filenames. This was initially disabled (image-only), then re-enabled after user preference — verbose extraction messages are preferred over a silent splash. A custom Tcl script to filter bootloader chatter while keeping application progress messages is tracked as a future enhancement.
+
+## Console Window Removed
+
+Two changes to eliminate the DOS console flash on Windows:
+
+- **`os.system('cls')` removed** from `MainWindow.start()` — it was spawning a `CONSOLE`-subsystem `cmd.exe` on every START, causing a visible flash and a 100-300 ms delay in the windowed `.exe`.
+- **`_winapi.CreateProcess` monkey-patch** in `app.py` — injects `CREATE_NO_WINDOW` into the creation flags for `multiprocessing` child processes, preventing console windows from spawning.
+- **`CONSOLE = False`** in the spec file — the `.exe` now runs as a pure Windows application with no attached console.
+
+## Tracking-Safety Hysteresis
+
+Refined the auto-tracking disable/re-enable thresholds to prevent "monitoring flicker" when the sensor is being detached or reconnected:
+
+| Transition | Threshold | Before |
+|---|---|---|
+| Disable (peak lost) | **10** consecutive bad sweeps | 10 (unchanged) |
+| Re-enable (peak back) | **5** consecutive good sweeps | 1 (too sensitive) |
+
+New constant: `auto_tracking_consecutive_good_to_resume = 5` in `constants.py`. The asymmetric hysteresis (5 vs 10) eliminates rapid enable/disable cycling during gradual sensor detachment while still recovering promptly when the peak stabilises.
+
+## Calibration Plot Redesign
+
+Full visual overhaul of the Peak Detection Diagnostic dialog (`calibrationPlot.py`):
+
+- **Colour alignment**: plot colours now match the main GUI palette instead of using independent colours
+- **Layering**: solid baseline drawn above the raw signal for clarity; raw signal uses a lighter shade
+- **Raw signal in legend**: previously unlabeled, now visible with its own legend entry
+- **Phase peak markers**: star markers on the phase plot show detected phase peaks; circle markers show the corresponding amplitude-peak reference frequency for cross-validation
+- **Custom right-click menu**: Auto-scale, Reset Zoom, Pan Mode, Show/Hide Grid — consistent with all other plot dialogs
+
+## Grid Toggle
+
+Grid is now **OFF by default** in all plots (main window, Data Viewer, Raw Data View, Calibration Plot). A **Show/Hide Grid** toggle has been added to every custom right-click context menu. The `_is_grid_on(plot)` helper is duplicated in each module to avoid circular imports.
+
+## Right-Click on Temperature Plot Fix
+
+Right-click on the Temperature plot was incorrectly dispatching to the Amplitude/Phase context menu. Root cause: the hit-test logic only checked `_plt0`/`_plt2` but not `_plt4` (Temperature). Fixed with a unified `_dispatch_right_click` helper that tests all plot viewboxes against the click position.
+
+## Terminology: "cut-off" → "-3dB frequency"
+
+Renamed every occurrence of "cut-off frequency" to "-3dB frequency" across 5 files (GUI labels, console prints, comments, docs). The term "-3dB frequency" is technically precise for the amplitude crossings used in bandwidth / Q-factor computation, while "cut-off" implies a filter characteristic that does not apply here.
+
+## Build Pipeline Polish
+
+- `tools/build_release.bat`: added `--log-level WARN` to suppress per-DLL extraction noise during PyInstaller builds
+- `tools/package_release.py`: switched from `shutil.copy` to `shutil.move` for the `.exe`; cleans stray `dist/logged_data` directory left by PyInstaller
+
+## Repository Cleanup
+
+- Removed `docs/LICENSE.txt` and `docs/gpl.txt` — redundant copies of the GPLv3 license already present in the root `LICENSE` file
+- Rewrote `TODO.md`: translated to English, removed completed items, updated file/line references, added Monitoring section for known behaviours to watch
 
 ---
 
