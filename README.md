@@ -6,7 +6,17 @@
 [![Python 3.6+](https://img.shields.io/badge/Python-3.6%2B-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
-An open-source Python application to display, process, and store data in real-time from the [openQCM Q-1](https://openqcm.com/) device. The software monitors resonance frequency and dissipation variations of a quartz crystal microbalance through real-time analysis of the resonance curve.
+An open-source Python application to display, process, and store data in real-time from the [openQCM Q-1](https://openqcm.com/about-openqcm-q-1) device. The software monitors resonance frequency and dissipation variations of a quartz crystal microbalance through real-time analysis of the resonance curve.
+
+---
+
+## About QCM Technology
+
+A **Quartz Crystal Microbalance (QCM)** measures mass changes and material properties at the nanoscale by monitoring oscillations in a quartz crystal. When mass is deposited on the crystal surface, the resonance frequency shifts; by tracking frequency and dissipation simultaneously, the technique reveals both the amount of adsorbed material and its viscoelastic properties at molecular scale.
+
+**[openQCM](https://openqcm.com/)** is an open-hardware initiative — powered by Novaetech S.r.l. — built on the principle that high-quality research does not require expensive proprietary instruments. The technology is used in over 50 countries and cited in nearly 300 scientific papers.
+
+The **[openQCM Q-1](https://openqcm.com/about-openqcm-q-1)** is a community-driven QCM instrument for frequency and dissipation monitoring with multiple overtone support (n = 3, 5, 7, 9). It uses an AD8302 RF/IF Gain and Phase Detector with DDS (Direct Digital Synthesis) frequency sweep, pogo-pin sensor contacts, and a plug-and-play USB connection. Applications include protein biosensing, bacteria detection, drug discovery, material science, environmental monitoring, and electrochemistry.
 
 ---
 
@@ -208,7 +218,7 @@ openQCM_Q-1/
 │   └── Calibration_10MHz.txt
 ├── icons/                  # Application icons
 ├── logged_data/            # CSV data output directory
-└── docs/                   # License files
+└── docs/                   # Documentation and reference data
 ```
 
 ---
@@ -237,7 +247,7 @@ The application uses a **multiprocessing pipeline** to separate data acquisition
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| **3.0** | March 2026 | Unified single-window UI, dark/light themes, auto-tracking, Raw Data View, Peak Data View, measurement cursors, peak detection with auto-detect and phase cross-validation, overtone quick-select buttons, firmware version check and updater integration, live log filename indicator, performance optimizations |
+| **3.0** | May 2026 | Unified single-window UI, dark/light themes, auto-tracking, Raw Data View, Peak Data View, measurement cursors, peak detection with auto-detect and phase cross-validation, overtone quick-select buttons, firmware version check and updater integration, live log filename indicator, performance optimizations |
 | 2.1 | 2024 | Calibration optimization, 200 ms plot refresh, macOS/Linux fixes |
 | 2.0 | 2020 | Initial Python implementation |
 
@@ -254,6 +264,7 @@ This project is distributed under the [GNU General Public License v3.0](LICENSE)
 ## Links
 
 - **Website**: [openqcm.com](https://openqcm.com/)
+- **openQCM Q-1**: [openqcm.com/about-openqcm-q-1](https://openqcm.com/about-openqcm-q-1)
 - **GitHub**: [github.com/openQCM](https://github.com/openQCM)
 - **Contact**: info@openqcm.com
 
