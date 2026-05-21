@@ -66,9 +66,19 @@
 #include<Wire.h>
 // libraries included in /src folder
 # include "src/Adafruit_MCP9808.h"
-// V2.1_T40 using ADC library by pedvide 
+// V2.1_T40 using ADC library by pedvide
 # include "src/ADC/ADC.h"
 # include "src/ADC/ADC_util.h"
+#include <EEPROM.h>
+
+/*************************** EEPROM SERIAL NUMBER ***************************/
+// EEPROM layout: [0]=MAGIC(0xA5) [1]=SERIES [2]=SERIAL_H [3]=SERIAL_L
+// Written once by the SerialNumber programmer sketch, read here on command 'S'
+#define ADDR_MAGIC        0
+#define ADDR_SERIES       1
+#define ADDR_SERIAL_HIGH  2
+#define ADDR_SERIAL_LOW   3
+#define MAGIC_BYTE        0xA5
 
 /*************************** DEFINE ***************************/
 // firmware version (queried by Python software with 'F' command)
@@ -293,6 +303,21 @@ void loop()
     // Firmware version query: respond and skip sweep parsing
     if (buf[0] == 'F') {
       Serial.println(FW_VERSION);
+      return;
+    }
+    // Serial number query: read from EEPROM and respond
+    if (buf[0] == 'S') {
+      byte magic = EEPROM.read(ADDR_MAGIC);
+      if (magic == MAGIC_BYTE) {
+        byte series = EEPROM.read(ADDR_SERIES);
+        uint16_t sn = ((uint16_t)EEPROM.read(ADDR_SERIAL_HIGH) << 8)
+                    | EEPROM.read(ADDR_SERIAL_LOW);
+        char snBuf[16];
+        sprintf(snBuf, "%d-%04u", series, sn);
+        Serial.println(snBuf);
+      } else {
+        Serial.println("NO_SERIAL");
+      }
       return;
     }
 
