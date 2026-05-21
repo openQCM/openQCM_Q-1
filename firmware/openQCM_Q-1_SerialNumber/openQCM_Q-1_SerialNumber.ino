@@ -55,7 +55,7 @@
 
 /*************** CONFIGURE THESE BEFORE EACH BOARD *******************/
 #define OPENQCM_SERIES   19      // Production batch (0–255)
-#define OPENQCM_SERIAL   55      // Board serial number (0–65535)
+#define OPENQCM_SERIAL   1      // Board serial number (0–65535)
 /*********************************************************************/
 
 bool waitingConfirmation = false;
