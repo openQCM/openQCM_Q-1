@@ -147,8 +147,8 @@ class MainWindow(QtGui.QMainWindow):
         self._curve_temperature = None    # plt4 — Temperature vs time
 
         # Theme-dependent curve colors (amplitude / temperature flip with theme)
-        self._theme_amp_color = '#ffffff'   # white in dark mode (default)
-        self._theme_temp_color = None
+        self._theme_amp_color = '#000000'   # black in light mode (default)
+        self._theme_temp_color = '#000000'  # black in light mode (default)
 
         # Resize debouncing: pause plot updates while the user drags the window
         # edge, then re-enable them after a short timeout (smoother resize).
@@ -518,13 +518,13 @@ class MainWindow(QtGui.QMainWindow):
     def _configure_plot(self):
 
         #----------------------------------------------------------------------
-        # set background color (dark theme)
-        self.ui.plt.setBackground(background='#2b2b2b')
-        self.ui.pltB.setBackground(background='#2b2b2b')
+        # set background color (light theme default)
+        self.ui.plt.setBackground(background='#ffffff')
+        self.ui.pltB.setBackground(background='#ffffff')
 
         #----------------------------------------------------------------------
-        # Standardized axis styling - white color for dark theme (default)
-        axis_color = '#ffffff'  # White for axes in dark mode
+        # Standardized axis styling - dark color for light theme (default)
+        axis_color = '#666666'  # Dark gray for axes in light mode
         axis_pen = pg.mkPen(color=axis_color, width=1)
 
         #----------------------------------------------------------------------
@@ -550,8 +550,8 @@ class MainWindow(QtGui.QMainWindow):
         # Standardize axis appearance
         self._plt0.getAxis('left').setPen(axis_pen)
         self._plt0.getAxis('left').setTextPen(axis_color)
-        # Set title color to white for dark mode
-        self._plt0.setTitle(title1, color='#ffffff')
+        # Set title color for light mode (default)
+        self._plt0.setTitle(title1, color='#333333')
 
         #--------------------------------------------------------------------------------------------------------------
         # Configures elements of the PyQtGraph plots: Multiple Plot amplitude and phase
@@ -566,10 +566,10 @@ class MainWindow(QtGui.QMainWindow):
         self._plt0.getAxis('right').setPen(axis_pen)
         self._plt0.getAxis('right').setTextPen(axis_color)
 
-        # Add legend for Amplitude/Phase plot
+        # Add legend for Amplitude/Phase plot (light theme default)
         self._legend0 = self._plt0.addLegend(offset=(10, 10))
-        self._legend0.setBrush(pg.mkBrush('#3c3c3c80'))
-        self._legend0.setPen(pg.mkPen('#555555'))
+        self._legend0.setBrush(pg.mkBrush('#f0f0f0e0'))
+        self._legend0.setPen(pg.mkPen('#cccccc'))
 
         #--------------------------------------------------------------------------------------------------------------
         # Configures elements of the PyQtGraph plots: resonance
@@ -587,8 +587,8 @@ class MainWindow(QtGui.QMainWindow):
         self._plt2.showGrid(x=False, y=False)
         self._plt2.setLabel('bottom', 'Time (hh:mm:ss)', units='', color=axis_color)
         self._plt2.setLabel('left', 'Resonance Frequency', units='Hz', color=axis_color)
-        # Set title color to white for dark mode
-        self._plt2.setTitle(title2, color='#ffffff')
+        # Set title color for light mode (default)
+        self._plt2.setTitle(title2, color='#333333')
 
         #--------------------------------------------------------------------------------------------------------------
         # Configures elements of the PyQtGraph plots: Multiple Plot resonance frequency and dissipation
@@ -604,10 +604,10 @@ class MainWindow(QtGui.QMainWindow):
         self._plt2.getAxis('right').setPen(axis_pen)
         self._plt2.getAxis('right').setTextPen(axis_color)
 
-        # Add legend for Frequency/Dissipation plot
+        # Add legend for Frequency/Dissipation plot (light theme default)
         self._legend2 = self._plt2.addLegend(offset=(10, 10))
-        self._legend2.setBrush(pg.mkBrush('#3c3c3c80'))
-        self._legend2.setPen(pg.mkPen('#555555'))
+        self._legend2.setBrush(pg.mkBrush('#f0f0f0e0'))
+        self._legend2.setPen(pg.mkPen('#cccccc'))
 
         #-----------------------------------------------------------------------------------------------------------------
         # Configures elements of the PyQtGraph plots: temperature
@@ -624,21 +624,21 @@ class MainWindow(QtGui.QMainWindow):
         self._plt4.showGrid(x=False, y=False)
         self._plt4.setLabel('bottom', 'Time (hh:mm:ss)', units='', color=axis_color)
         self._plt4.setLabel('left', 'Temperature', units='°C', color=axis_color)
-        # Set title color to white for dark mode
-        self._plt4.setTitle(title3, color='#ffffff')
+        # Set title color for light mode (default)
+        self._plt4.setTitle(title3, color='#333333')
 
-        # Add legend for Temperature plot
+        # Add legend for Temperature plot (light theme default)
         self._legend4 = self._plt4.addLegend(offset=(10, 10))
-        self._legend4.setBrush(pg.mkBrush('#3c3c3c80'))
-        self._legend4.setPen(pg.mkPen('#555555'))
+        self._legend4.setBrush(pg.mkBrush('#f0f0f0e0'))
+        self._legend4.setPen(pg.mkPen('#cccccc'))
 
         # =============================================================================
         # CPU OPTIMIZATION: Create persistent curve objects once at initialization
         # These curves are reused with setData() in _update_plot() instead of being
         # recreated on every timer tick, which dramatically reduces CPU overhead.
         # =============================================================================
-        # Amplitude curve — white (dark mode) / black (light mode)
-        self._curve_amplitude = self._plt0.plot(pen='#ffffff', name='Amplitude')
+        # Amplitude curve — black (light mode default) / white (dark mode)
+        self._curve_amplitude = self._plt0.plot(pen='#000000', name='Amplitude')
         # Phase curve — same blue as Frequency (#008EC0)
         self._curve_phase = pg.PlotCurveItem(pen='#008EC0', name='Phase')
         self._plt1.addItem(self._curve_phase)
@@ -649,8 +649,8 @@ class MainWindow(QtGui.QMainWindow):
         self._curve_dissipation = pg.PlotCurveItem(pen=Constants.plot_colors[3], name='Dissipation')
         self._legend2.addItem(self._curve_dissipation, 'Dissipation')
         self._plt3.addItem(self._curve_dissipation)
-        # Temperature curve - white for dark mode (default)
-        self._curve_temperature = self._plt4.plot(pen='#ffffff', name='Temperature')
+        # Temperature curve - black for light mode (default)
+        self._curve_temperature = self._plt4.plot(pen='#000000', name='Temperature')
 
         # =============================================================================
         # CPU OPTIMIZATION: Connect ViewBox resize signals ONCE at initialization
@@ -781,6 +781,11 @@ class MainWindow(QtGui.QMainWindow):
         # Theme switching
         self.ui.actionDarkTheme.triggered.connect(lambda: self._switch_theme('dark'))
         self.ui.actionLightTheme.triggered.connect(lambda: self._switch_theme('light'))
+        # Restore saved theme preference (default is 'light' if no setting saved)
+        saved_theme = QtCore.QSettings('openQCM', 'Q-1').value('theme', 'light')
+        if saved_theme == 'dark':
+            self.ui.actionDarkTheme.setChecked(True)
+            self._switch_theme('dark')
         #--------
         # Help menu actions (Firmware Check, Check for Updates, Download Update)
         self.ui.actionFirmwareCheck.triggered.connect(lambda: self._check_firmware_version(auto_mode=False))
@@ -1746,6 +1751,9 @@ class MainWindow(QtGui.QMainWindow):
 
         self._curve_amplitude.setPen(self._theme_amp_color)
         self._curve_temperature.setPen(self._theme_temp_color)
+
+        # Persist theme choice so the app remembers it across sessions
+        QtCore.QSettings('openQCM', 'Q-1').setValue('theme', theme)
 
         print(TAG, f"Theme switched to: {theme}", end='\r')
     

@@ -1237,13 +1237,13 @@ class Ui_Main(object):
         self.actionDarkTheme = QtWidgets.QAction(MainWindow)
         self.actionDarkTheme.setText("Dark Theme")
         self.actionDarkTheme.setCheckable(True)
-        self.actionDarkTheme.setChecked(True)
+        self.actionDarkTheme.setChecked(False)
         self.menuTheme.addAction(self.actionDarkTheme)
 
         self.actionLightTheme = QtWidgets.QAction(MainWindow)
         self.actionLightTheme.setText("Light Theme")
         self.actionLightTheme.setCheckable(True)
-        self.actionLightTheme.setChecked(False)
+        self.actionLightTheme.setChecked(True)
         self.menuTheme.addAction(self.actionLightTheme)
 
         # Mutually exclusive theme selection
@@ -1328,11 +1328,11 @@ class Ui_Main(object):
         self.actionAbout.triggered.connect(self._show_about)
         self.menuHelp.addAction(self.actionAbout)
 
-        # Store current theme
-        self._current_theme = 'dark'
+        # Store current theme (light is the default)
+        self._current_theme = 'light'
 
-        # Apply dark stylesheet (default)
-        MainWindow.setStyleSheet(self._get_dark_stylesheet())
+        # Apply light stylesheet (default)
+        MainWindow.setStyleSheet(self._get_light_stylesheet())
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
