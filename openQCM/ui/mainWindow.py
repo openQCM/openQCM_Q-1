@@ -158,6 +158,7 @@ class MainWindow(QtGui.QMainWindow):
         self._resize_timer.timeout.connect(self._on_resize_finished)
 
         self._internet_connected = False
+        self._board_serial = None       # Board serial number from EEPROM (e.g. "19-0055")
 
         # Serial connection state. The Connect / Disconnect button explicitly
         # opens and closes the port; the port is kept locked until Disconnect
@@ -359,7 +360,8 @@ class MainWindow(QtGui.QMainWindow):
                 elided = metrics.elidedText(csv_name, QtCore.Qt.ElideMiddle, avail)
                 lbl.setText(elided)
                 lbl.setToolTip(csv_name)
-                self.setWindowTitle("openQCM Q-1 - version 3.0 \u2014 {}".format(csv_name))
+                sn_suffix = " [{}]".format(self._board_serial) if self._board_serial else ""
+                self.setWindowTitle("openQCM Q-1 - version 3.0{} \u2014 {}".format(sn_suffix, csv_name))
 
             if self._get_source() == SourceType.calibration:
                self.ui.pButton_Clear.setEnabled(False) #insert
@@ -390,7 +392,8 @@ class MainWindow(QtGui.QMainWindow):
         # Clear log filename
         self.ui.lblLogFile.setText("")
         self.ui.lblLogFile.setToolTip("")
-        self.setWindowTitle("openQCM Q-1 - version 3.0")
+        sn_suffix = " [{}]".format(self._board_serial) if self._board_serial else ""
+        self.setWindowTitle("openQCM Q-1 - version 3.0{}".format(sn_suffix))
         # Reset reference button label
         self.ui.pButton_Reference.setText("Set Reference")
         print("")
@@ -789,6 +792,7 @@ class MainWindow(QtGui.QMainWindow):
         #--------
         # Help menu actions (Firmware Check, Check for Updates, Download Update)
         self.ui.actionFirmwareCheck.triggered.connect(lambda: self._check_firmware_version(auto_mode=False))
+        self.ui.actionSerialNumber.triggered.connect(lambda: self._query_serial_number(auto_mode=False))
         self.ui.actionCheckUpdates.triggered.connect(self._check_for_updates)
         self.ui.actionDownloadUpdate.triggered.connect(self.start_download)
         #--------
@@ -1567,6 +1571,8 @@ class MainWindow(QtGui.QMainWindow):
 
                 # Auto-check firmware version after connection
                 self._check_firmware_version(auto_mode=True)
+                # Auto-query board serial number from EEPROM
+                self._query_serial_number(auto_mode=True)
 
             except serial.SerialException as e:
                 # Connection failed - release the lock file
@@ -1615,6 +1621,9 @@ class MainWindow(QtGui.QMainWindow):
 
             self._serial_connected = False
             self._connected_port = None
+            self._board_serial = None
+            self.ui.lblSerialNumber.setText("")
+            self.setWindowTitle("openQCM Q-1 - version 3.0")
             self.ui.pButton_Connect.setText("Connect")
             self._set_button_role(self.ui.pButton_Connect, "btnConnect")
             self.ui.cBox_Port.setEnabled(True)
@@ -2256,6 +2265,96 @@ class MainWindow(QtGui.QMainWindow):
             if not auto_mode:
                 PopUp.info(self, Constants.app_title,
                     "Firmware is up to date.\n\nInstalled version: {}".format(response))
+
+    ###########################################################################
+    # Query board serial number from EEPROM via serial command 'S'
+    ###########################################################################
+    def _query_serial_number(self, auto_mode=False):
+        """
+        Query the board serial number via serial command 'S'.
+        The firmware reads the EEPROM and responds with SERIES-NNNN
+        (e.g. "19-0055") or "NO_SERIAL" if unprogrammed.
+        :param auto_mode: If True, runs silently (no popup on success).
+        """
+        import time
+
+        # Block if acquisition is running
+        if self._is_running:
+            if not auto_mode:
+                PopUp.warning(self, Constants.app_title,
+                    "Cannot query serial number during an active measurement.\n"
+                    "Please stop the acquisition first.")
+            return
+
+        # Block if serial not connected
+        if not self._serial_connected or self._serial_lock is None:
+            if not auto_mode:
+                PopUp.warning(self, Constants.app_title,
+                    "Serial port not connected.\n"
+                    "Please connect to the device first.")
+            return
+
+        # Send serial number request
+        try:
+            self._serial_lock.reset_input_buffer()
+            self._serial_lock.write(b'S\n')
+            time.sleep(0.4)
+            bytes_waiting = self._serial_lock.inWaiting()
+            response = ""
+            if bytes_waiting > 0:
+                response = self._serial_lock.read(bytes_waiting).decode(
+                    Constants.app_encoding).strip()
+            print(TAG, "Board serial number response: '{}'".format(response))
+            Log.i(TAG, "Board serial number response: '{}'".format(response))
+        except Exception as e:
+            print(TAG, "Serial number query failed: {}".format(e))
+            Log.e(TAG, "Serial number query failed: {}".format(e))
+            if not auto_mode:
+                PopUp.warning(self, Constants.app_title,
+                    "Failed to communicate with device.\n\nError: {}".format(e))
+            return
+
+        if response == "":
+            # No response — firmware does not support the 'S' command
+            self._board_serial = None
+            self.ui.lblSerialNumber.setText("")
+            if not auto_mode:
+                PopUp.warning(self, Constants.app_title,
+                    "The device firmware did not respond to the serial number request.\n\n"
+                    "This feature requires firmware version 2.2 or later.\n"
+                    "Please update the firmware via Tools → Check Firmware Version.")
+            else:
+                print(TAG, "Firmware does not support serial number query (no response)")
+                Log.w(TAG, "Firmware does not support serial number query (no response)")
+
+        elif response == "NO_SERIAL":
+            # EEPROM not programmed
+            self._board_serial = None
+            self.ui.lblSerialNumber.setText("S/N: not programmed")
+            if not auto_mode:
+                PopUp.warning(self, Constants.app_title,
+                    "This board does not have a serial number programmed.\n\n"
+                    "The EEPROM has not been initialized with the SerialNumber\n"
+                    "programmer sketch. Contact openQCM support for assistance.")
+            else:
+                print(TAG, "Board EEPROM not programmed (NO_SERIAL)")
+                Log.w(TAG, "Board EEPROM not programmed (NO_SERIAL)")
+
+        else:
+            # Valid serial number received
+            self._board_serial = response
+            self.ui.lblSerialNumber.setText("S/N: {}".format(response))
+            # Update window title with serial number
+            base_title = self.windowTitle()
+            # Strip any previous serial number suffix before appending
+            if " [" in base_title:
+                base_title = base_title[:base_title.index(" [")]
+            self.setWindowTitle("{} [{}]".format(base_title, response))
+            print(TAG, "Board serial number: {}".format(response))
+            Log.i(TAG, "Board serial number: {}".format(response))
+            if not auto_mode:
+                PopUp.info(self, Constants.app_title,
+                    "Board serial number: {}".format(response))
 
     def _run_firmware_updater(self):
         """Launch the platform-specific firmware updater tool.

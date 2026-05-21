@@ -743,8 +743,14 @@ class Ui_Main(object):
         self.lblBrandSubtitle.setStyleSheet("font-size: 10pt; color: #888888;")
         self.lblBrandSubtitle.setAlignment(QtCore.Qt.AlignLeft)
 
+        self.lblSerialNumber = QtWidgets.QLabel("")
+        self.lblSerialNumber.setObjectName("lblSerialNumber")
+        self.lblSerialNumber.setStyleSheet("font-size: 8pt; color: #999999;")
+        self.lblSerialNumber.setAlignment(QtCore.Qt.AlignLeft)
+
         titleTextLayout.addWidget(self.lblBrandTitle)
         titleTextLayout.addWidget(self.lblBrandSubtitle)
+        titleTextLayout.addWidget(self.lblSerialNumber)
         brandLayout.addLayout(titleTextLayout)
         brandLayout.addStretch()
 
@@ -1281,6 +1287,11 @@ class Ui_Main(object):
         self.actionFirmwareCheck = QtWidgets.QAction(MainWindow)
         self.actionFirmwareCheck.setText("Check Firmware Version")
         self.menuTools.addAction(self.actionFirmwareCheck)
+
+        # Board serial number query (reads EEPROM via 'S' command)
+        self.actionSerialNumber = QtWidgets.QAction(MainWindow)
+        self.actionSerialNumber.setText("Check Board Serial Number")
+        self.menuTools.addAction(self.actionSerialNumber)
 
         # -----------------------------------------------------------------
         # Help menu — documentation, software updates, about
