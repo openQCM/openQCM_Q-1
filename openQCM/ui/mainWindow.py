@@ -171,6 +171,12 @@ class MainWindow(QtGui.QMainWindow):
         # Minimum Y-axis scale enforcement (prevents noise explosion on stable signals)
         self._min_scale_enabled = True
 
+        # Manual zoom flag: when True, the user has zoomed/panned the
+        # Frequency/Dissipation plot manually (rect select or scroll).
+        # Prevents _apply_min_scale from overriding the zoom and enables
+        # active Y-range sync on the secondary Dissipation ViewBox.
+        self._user_zoomed_freq_diss = False
+
         # Reference variables
         self._reference_flag = False
         self._vector_reference_frequency = None
@@ -677,6 +683,10 @@ class MainWindow(QtGui.QMainWindow):
         updateViews1()
         updateViews2()
 
+        # Detect manual zoom/pan on the Frequency/Dissipation plot so we can
+        # sync the Dissipation Y-axis to show only visible data (see _on_freq_diss_manual_zoom)
+        self._plt2.vb.sigRangeChangedManually.connect(self._on_freq_diss_manual_zoom)
+
         # =============================================================================
         # CUSTOM RIGHT-CLICK CONTEXT MENU
         # Disable default pyqtgraph menu and implement custom context menu with:
@@ -874,8 +884,21 @@ class MainWindow(QtGui.QMainWindow):
 
         if action == auto_scale_action:
             plot.enableAutoRange()
+            # Reset manual zoom and re-enable autoRange on secondary ViewBox
+            if plot == self._plt2:
+                self._user_zoomed_freq_diss = False
+                self._plt3.enableAutoRange()
+            elif plot == self._plt0:
+                self._plt1.enableAutoRange()
         elif action == reset_zoom_action:
             plot.getViewBox().autoRange()
+            if plot == self._plt2:
+                self._user_zoomed_freq_diss = False
+                self._plt3.enableAutoRange()
+                self._plt3.autoRange()
+            elif plot == self._plt0:
+                self._plt1.enableAutoRange()
+                self._plt1.autoRange()
         elif action == pan_mode_action:
             plot.getViewBox().setMouseMode(pg.ViewBox.PanMode)
         elif action == select_mode_action:
@@ -1167,9 +1190,12 @@ class MainWindow(QtGui.QMainWindow):
             self._vector_2 = np.array(self.worker.get_d2_buffer())-self._reference_value_dissipation
             self._curve_dissipation.setData(x=self.worker.get_t2_buffer(), y=self._vector_2)
 
-            # Enforce minimum Y-axis scale (reference mode)
-            self._apply_min_scale(self._plt2, self._vector_1, MIN_FREQ_RANGE)
-            self._apply_min_scale(self._plt3, self._vector_2, MIN_DISS_RANGE)
+            # Enforce minimum Y-axis scale (reference mode) — skip if user zoomed
+            if not self._user_zoomed_freq_diss:
+                self._apply_min_scale(self._plt2, self._vector_1, MIN_FREQ_RANGE)
+                self._apply_min_scale(self._plt3, self._vector_2, MIN_DISS_RANGE)
+            else:
+                self._sync_dissipation_y_range()
 
             ###################################################################
             # Temperature plot - using setData() for efficiency
@@ -1222,9 +1248,12 @@ class MainWindow(QtGui.QMainWindow):
             diss_data = self.worker.get_d2_buffer()
             self._curve_dissipation.setData(x=self.worker.get_t2_buffer(), y=diss_data)
 
-            # Enforce minimum Y-axis scale
-            self._apply_min_scale(self._plt2, self.worker.get_d1_buffer(), MIN_FREQ_RANGE)
-            self._apply_min_scale(self._plt3, diss_data, MIN_DISS_RANGE)
+            # Enforce minimum Y-axis scale — skip if user zoomed
+            if not self._user_zoomed_freq_diss:
+                self._apply_min_scale(self._plt2, self.worker.get_d1_buffer(), MIN_FREQ_RANGE)
+                self._apply_min_scale(self._plt3, diss_data, MIN_DISS_RANGE)
+            else:
+                self._sync_dissipation_y_range()
 
             ###################################################################
             # Temperature plot - using setData() for efficiency
@@ -1827,6 +1856,68 @@ class MainWindow(QtGui.QMainWindow):
                     self._plt3.enableAutoRange(axis='y', enable=True)
 
     ###########################################################################
+    # Dual-axis Y-range sync for manual zoom on Frequency/Dissipation plot
+    ###########################################################################
+    def _on_freq_diss_manual_zoom(self, mask):
+        """
+        Triggered by sigRangeChangedManually on _plt2 (frequency ViewBox).
+        Fires only on user interaction (drag, wheel, rect select) — not on
+        programmatic range changes. Sets the manual zoom flag and syncs the
+        Dissipation Y-axis to show only data visible in the current X window.
+        """
+        self._user_zoomed_freq_diss = True
+        self._sync_dissipation_y_range()
+
+    def _sync_dissipation_y_range(self):
+        """
+        Recalculate the Dissipation Y-axis range to match only the data
+        points visible in the current X (time) window.
+
+        pyqtgraph's built-in autoRange uses the full bounding box of all
+        curve data, ignoring the current X zoom. For a secondary ViewBox
+        (like _plt3) this means the Y-axis always shows the full data
+        extent even when the user has zoomed into a small time window.
+        This method fixes that by filtering to visible data only.
+        """
+        if self._plt3 is None or self._curve_dissipation is None:
+            return
+
+        # Get current X range from the frequency plot
+        x_range = self._plt2.vb.viewRange()[0]
+        x_min, x_max = x_range[0], x_range[1]
+
+        # Get dissipation curve data
+        data = self._curve_dissipation.getData()
+        if data[0] is None or data[1] is None or len(data[0]) == 0:
+            return
+
+        x_data, y_data = data[0], data[1]
+
+        # Filter to visible X range
+        mask = (x_data >= x_min) & (x_data <= x_max)
+        visible_y = y_data[mask]
+
+        if len(visible_y) == 0:
+            return
+
+        # Remove NaN values
+        valid = visible_y[~np.isnan(visible_y)]
+        if len(valid) == 0:
+            return
+
+        y_min, y_max = float(np.min(valid)), float(np.max(valid))
+
+        # Add 5% padding (or fixed minimum for flat signals)
+        data_range = y_max - y_min
+        if data_range < 1e-12:
+            padding = 0.5e-6  # minimum padding for dissipation scale
+        else:
+            padding = data_range * 0.05
+
+        self._plt3.disableAutoRange(axis='y')
+        self._plt3.setRange(yRange=(y_min - padding, y_max + padding), padding=0)
+
+    ###########################################################################
     # Minimum Y-axis scale enforcement
     ###########################################################################
     def _apply_min_scale(self, plot_or_vb, y_data, min_range):
@@ -1873,6 +1964,8 @@ class MainWindow(QtGui.QMainWindow):
     # Autoscale all plots (X and Y axes)
     ###########################################################################
     def autoscale(self):
+        # Reset manual zoom flag so _apply_min_scale works normally again
+        self._user_zoomed_freq_diss = False
         # Enable auto range on all plots (both X and Y axes)
         # Plot 0: Amplitude/Phase
         if self._plt0 is not None:
