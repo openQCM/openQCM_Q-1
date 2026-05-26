@@ -18,6 +18,7 @@ lives in the child processes (`SerialProcess`, `CalibrationProcess`).
 This file is mostly UI plumbing and event handling.
 """
 import os
+import re
 import sys
 from datetime import datetime
 
@@ -2433,8 +2434,23 @@ class MainWindow(QtGui.QMainWindow):
                 print(TAG, "Board EEPROM not programmed (NO_SERIAL)")
                 Log.w(TAG, "Board EEPROM not programmed (NO_SERIAL)")
 
+        elif not re.match(r'^\d{1,3}-\d{4}$', response):
+            # Response doesn't match SERIES-NNNN format — old firmware
+            # sent back sweep data instead of a serial number
+            self._board_serial = None
+            self.ui.lblSerialNumber.setText("")
+            if not auto_mode:
+                PopUp.warning(self, Constants.app_title,
+                    "The device returned an unexpected response.\n\n"
+                    "This feature requires firmware version 2.2 or later.\n"
+                    "Please update the firmware via Tools → Check Firmware Version.")
+            else:
+                print(TAG, "Firmware returned unexpected data (old firmware?): '{}'".format(
+                    response[:40]))
+                Log.w(TAG, "Firmware returned unexpected data instead of serial number")
+
         else:
-            # Valid serial number received
+            # Valid serial number received (matches SERIES-NNNN)
             self._board_serial = response
             self.ui.lblSerialNumber.setText("S/N: {}".format(response))
             # Update window title with serial number
