@@ -2303,14 +2303,27 @@ class MainWindow(QtGui.QMainWindow):
 
         # Send firmware version request
         try:
-            # Flush any residual data in the serial buffer
+            # Flush residual data — the Teensy may still be streaming sweep
+            # data if the previous session was closed without USB disconnect
+            self._serial_lock.reset_input_buffer()
+            time.sleep(0.1)
             self._serial_lock.reset_input_buffer()
             self._serial_lock.write(b'F\n')
             time.sleep(0.4)
             bytes_waiting = self._serial_lock.inWaiting()
-            response = ""
+            raw = ""
             if bytes_waiting > 0:
-                response = self._serial_lock.read(bytes_waiting).decode(Constants.app_encoding).strip()
+                raw = self._serial_lock.read(bytes_waiting).decode(Constants.app_encoding).strip()
+            # Take only the first line — the firmware responds with a single
+            # println; anything after the first newline is residual sweep data
+            response = raw.split('\n')[0].strip() if raw else ""
+            # Validate: a firmware version is a short alphanumeric string
+            # (e.g. "2.2"). Sweep data contains ';' and is much longer.
+            if len(response) > 10 or ';' in response:
+                print(TAG, "Firmware query got sweep data instead: '{}'".format(
+                    response[:40]))
+                Log.w(TAG, "Firmware query returned sweep data — old firmware or stale buffer")
+                response = ""
             print(TAG, "Firmware version response: '{}'".format(response))
             Log.i(TAG, "Firmware version response: '{}'".format(response))
         except Exception as e:
@@ -2390,14 +2403,19 @@ class MainWindow(QtGui.QMainWindow):
 
         # Send serial number request
         try:
+            # Double flush — the Teensy may still be streaming sweep data
+            self._serial_lock.reset_input_buffer()
+            time.sleep(0.1)
             self._serial_lock.reset_input_buffer()
             self._serial_lock.write(b'S\n')
             time.sleep(0.4)
             bytes_waiting = self._serial_lock.inWaiting()
-            response = ""
+            raw = ""
             if bytes_waiting > 0:
-                response = self._serial_lock.read(bytes_waiting).decode(
+                raw = self._serial_lock.read(bytes_waiting).decode(
                     Constants.app_encoding).strip()
+            # Take only the first line — anything after is residual sweep data
+            response = raw.split('\n')[0].strip() if raw else ""
             print(TAG, "Board serial number response: '{}'".format(response))
             Log.i(TAG, "Board serial number response: '{}'".format(response))
         except Exception as e:
