@@ -532,10 +532,30 @@ class SerialProcess(multiprocessing.Process):
             return  # Port already open: nothing to do
 
         self._serial.open()
-        # Drain stale data left by a previous session — the Teensy keeps
-        # streaming while the software is closed if USB stays connected
+
+        # --- Robust drain of stale data ---
+        # When the software is closed without USB disconnect, the Teensy may
+        # still be mid-sweep, filling the serial buffer with leftover data.
+        # A single reset_input_buffer() is not enough because the Teensy's USB
+        # TX pipeline keeps delivering data after the flush. We drain actively
+        # for up to 2 seconds, then send a known command ('F') to synchronise
+        # with the firmware's idle loop — its short reply confirms the Teensy
+        # is ready for sweep commands.
         self._serial.reset_input_buffer()
         self._serial.reset_output_buffer()
+        _drain_deadline = time() + 2.0
+        while time() < _drain_deadline:
+            _stale = self._serial.read(max(1, self._serial.inWaiting()))
+            if not _stale:
+                break
+            sleep(0.05)
+        # Sync: send firmware version query and discard the response.
+        # This guarantees the Teensy has returned to its idle loop().
+        self._serial.reset_input_buffer()
+        self._serial.write(b'F\n')
+        sleep(0.3)
+        self._serial.reset_input_buffer()
+
         k = 0
         print(TAG, 'Capturing raw data...')
         print(TAG, 'Wait, processing early data...')
@@ -568,15 +588,24 @@ class SerialProcess(multiprocessing.Process):
                     self._startFreq, self._stopFreq, int(self._fStep))
                 self._serial.write(cmd.encode())
 
-                # 2. Read until the trailer 's' marker
+                # 2. Read until the trailer 's' marker (with timeout)
                 buffer = ''
                 strs = ["" for _ in range(samples + 2)]
+                _sweep_deadline = time() + 15.0  # 15s safety timeout
+                _sweep_ok = True
                 while True:
                     buffer += self._serial.read(self._serial.inWaiting()).decode(
                         Constants.app_encoding)
                     if 's' in buffer:
                         break
+                    if time() > _sweep_deadline:
+                        print(TAG, "WARNING: sweep read timed out (15s), resetting")
+                        self._serial.reset_input_buffer()
+                        _sweep_ok = False
+                        break
                     sleep(0.001)
+                if not _sweep_ok:
+                    continue  # skip this sweep, retry
                 data_raw = buffer.split('\n')
                 length = len(data_raw)
 
