@@ -1866,6 +1866,12 @@ class MainWindow(QtGui.QMainWindow):
         Autoscale / Reset Zoom resets the flag to restore constraints.
         """
         self._user_zoomed_freq_diss = True
+        # Kill any persistent autoRange left from _apply_min_scale —
+        # enableAutoRange(y) is sticky and keeps overriding manual zoom
+        # even after we stop calling _apply_min_scale.
+        self._plt2.disableAutoRange(axis='y')
+        if self._plt3 is not None:
+            self._plt3.disableAutoRange(axis='y')
         # On rect-select, auto-scale both Y-axes to visible data
         if self._plt2.vb.state['mouseMode'] == pg.ViewBox.RectMode:
             self._sync_freq_diss_y_range()
