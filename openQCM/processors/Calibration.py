@@ -338,8 +338,6 @@ class CalibrationProcess(multiprocessing.Process):
             return  # Port already open — nothing to do
 
         self._serial.open()
-        self._serial.reset_input_buffer()
-        self._serial.reset_output_buffer()
         self._serial.timeout = 0.1   # Short read timeout for responsive cancellation
 
         # Drain any data left over from an interrupted previous calibration
