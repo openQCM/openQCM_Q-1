@@ -684,9 +684,11 @@ class MainWindow(QtGui.QMainWindow):
         updateViews1()
         updateViews2()
 
-        # Detect manual zoom/pan on the Frequency/Dissipation plot so we can
-        # sync the Dissipation Y-axis to show only visible data (see _on_freq_diss_manual_zoom)
+        # Detect manual zoom/pan on the Frequency/Dissipation plot.
+        # Connected on BOTH ViewBoxes so that interactions on either Y-axis
+        # (left = frequency, right = dissipation) disable the constraints.
         self._plt2.vb.sigRangeChangedManually.connect(self._on_freq_diss_manual_zoom)
+        self._plt3.sigRangeChangedManually.connect(self._on_freq_diss_manual_zoom)
 
         # =============================================================================
         # CUSTOM RIGHT-CLICK CONTEXT MENU
@@ -1859,19 +1861,13 @@ class MainWindow(QtGui.QMainWindow):
     ###########################################################################
     def _on_freq_diss_manual_zoom(self, mask):
         """
-        Triggered by sigRangeChangedManually on _plt2 (frequency ViewBox).
-        Any manual interaction (pan, scroll, rect-select) disables the
-        automatic Y-axis constraints so the user has full control.
-        On rect-select, both Y-axes are also auto-scaled to visible data.
+        Triggered by sigRangeChangedManually on _plt2.vb or _plt3.
+        Any manual interaction (pan, scroll, rect-select) on either Y-axis
+        disables _apply_min_scale constraints. On rect-select, both Y-axes
+        are auto-scaled to the data visible in the selected X window.
         Autoscale / Reset Zoom resets the flag to restore constraints.
         """
         self._user_zoomed_freq_diss = True
-        # Kill any persistent autoRange left from _apply_min_scale —
-        # enableAutoRange(y) is sticky and keeps overriding manual zoom
-        # even after we stop calling _apply_min_scale.
-        self._plt2.disableAutoRange(axis='y')
-        if self._plt3 is not None:
-            self._plt3.disableAutoRange(axis='y')
         # On rect-select, auto-scale both Y-axes to visible data
         if self._plt2.vb.state['mouseMode'] == pg.ViewBox.RectMode:
             self._sync_freq_diss_y_range()
@@ -1937,14 +1933,14 @@ class MainWindow(QtGui.QMainWindow):
             center = (y_min + y_max) / 2.0
             half = min_range / 2.0
             lo, hi = center - half, center + half
-            # ViewBox uses setRange(), PlotItem uses setYRange()
-            if isinstance(plot_or_vb, pg.ViewBox):
-                plot_or_vb.disableAutoRange(axis='y')
-                plot_or_vb.setRange(yRange=(lo, hi), padding=0)
-            else:
-                plot_or_vb.setYRange(lo, hi, padding=0)
         else:
-            plot_or_vb.enableAutoRange(axis='y', enable=True)
+            lo, hi = float(y_min), float(y_max)
+        # One-shot range set (never enableAutoRange — it is persistent and
+        # would override manual zoom even after we stop calling this method)
+        if isinstance(plot_or_vb, pg.ViewBox):
+            plot_or_vb.setRange(yRange=(lo, hi), padding=0.05)
+        else:
+            plot_or_vb.setYRange(lo, hi, padding=0.05)
 
     def _on_logo_context_menu(self, pos):
         """Easter egg: right-click on logo to toggle min axis scale limits."""
