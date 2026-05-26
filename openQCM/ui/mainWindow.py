@@ -1813,6 +1813,9 @@ class MainWindow(QtGui.QMainWindow):
                 self._curve_dissipation.setData(x=[], y=[])
             if self._curve_temperature is not None:
                 self._curve_temperature.setData(x=[], y=[])
+            # Restore default Y-axis constraints
+            self._user_zoomed_freq_diss = False
+            self.autoscale()
         
         
     ###########################################################################
