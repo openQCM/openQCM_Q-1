@@ -1196,7 +1196,7 @@ class MainWindow(QtGui.QMainWindow):
                 self._apply_min_scale(self._plt2, self._vector_1, MIN_FREQ_RANGE)
                 self._apply_min_scale(self._plt3, self._vector_2, MIN_DISS_RANGE)
             else:
-                self._sync_dissipation_y_range()
+                self._sync_freq_diss_y_range()
 
             ###################################################################
             # Temperature plot - using setData() for efficiency
@@ -1254,7 +1254,7 @@ class MainWindow(QtGui.QMainWindow):
                 self._apply_min_scale(self._plt2, self.worker.get_d1_buffer(), MIN_FREQ_RANGE)
                 self._apply_min_scale(self._plt3, diss_data, MIN_DISS_RANGE)
             else:
-                self._sync_dissipation_y_range()
+                self._sync_freq_diss_y_range()
 
             ###################################################################
             # Temperature plot - using setData() for efficiency
@@ -1864,59 +1864,53 @@ class MainWindow(QtGui.QMainWindow):
         Triggered by sigRangeChangedManually on _plt2 (frequency ViewBox).
         Only activates the manual zoom flag when in Select (Rect) mode — not
         in Pan mode, where the normal _apply_min_scale should keep working.
+        On rect-select, both frequency and dissipation Y-axes are auto-scaled
+        to the data visible in the selected X window (symmetric behaviour).
         """
         if self._plt2.vb.state['mouseMode'] == pg.ViewBox.RectMode:
             self._user_zoomed_freq_diss = True
-            self._sync_dissipation_y_range()
+            self._sync_freq_diss_y_range()
 
-    def _sync_dissipation_y_range(self):
+    def _sync_freq_diss_y_range(self):
         """
-        Recalculate the Dissipation Y-axis range to match only the data
-        points visible in the current X (time) window.
+        Auto-scale both Frequency and Dissipation Y-axes to show only the
+        data visible in the current X (time) window.
 
-        pyqtgraph's built-in autoRange uses the full bounding box of all
-        curve data, ignoring the current X zoom. For a secondary ViewBox
-        (like _plt3) this means the Y-axis always shows the full data
-        extent even when the user has zoomed into a small time window.
-        This method fixes that by filtering to visible data only.
+        pyqtgraph's rect-select sets the Y range to whatever the user drew,
+        which may clip or waste space. This method overrides both Y-axes to
+        fit the actual data in the visible X window with 5% padding.
         """
-        if self._plt3 is None or self._curve_dissipation is None:
-            return
-
-        # Get current X range from the frequency plot
         x_range = self._plt2.vb.viewRange()[0]
         x_min, x_max = x_range[0], x_range[1]
 
-        # Get dissipation curve data
-        data = self._curve_dissipation.getData()
-        if data[0] is None or data[1] is None or len(data[0]) == 0:
-            return
+        # --- Frequency Y-axis (_plt2) ---
+        if self._curve_frequency is not None:
+            data = self._curve_frequency.getData()
+            if data[0] is not None and data[1] is not None and len(data[0]) > 0:
+                mask_f = (data[0] >= x_min) & (data[0] <= x_max)
+                visible = data[1][mask_f]
+                if len(visible) > 0:
+                    valid = visible[~np.isnan(visible)]
+                    if len(valid) > 0:
+                        y_lo, y_hi = float(np.min(valid)), float(np.max(valid))
+                        span = y_hi - y_lo
+                        pad = max(span * 0.05, MIN_FREQ_RANGE / 2)
+                        self._plt2.setYRange(y_lo - pad, y_hi + pad, padding=0)
 
-        x_data, y_data = data[0], data[1]
-
-        # Filter to visible X range
-        mask = (x_data >= x_min) & (x_data <= x_max)
-        visible_y = y_data[mask]
-
-        if len(visible_y) == 0:
-            return
-
-        # Remove NaN values
-        valid = visible_y[~np.isnan(visible_y)]
-        if len(valid) == 0:
-            return
-
-        y_min, y_max = float(np.min(valid)), float(np.max(valid))
-
-        # Add 5% padding (or fixed minimum for flat signals)
-        data_range = y_max - y_min
-        if data_range < 1e-12:
-            padding = 0.5e-6  # minimum padding for dissipation scale
-        else:
-            padding = data_range * 0.05
-
-        self._plt3.disableAutoRange(axis='y')
-        self._plt3.setRange(yRange=(y_min - padding, y_max + padding), padding=0)
+        # --- Dissipation Y-axis (_plt3) ---
+        if self._plt3 is not None and self._curve_dissipation is not None:
+            data = self._curve_dissipation.getData()
+            if data[0] is not None and data[1] is not None and len(data[0]) > 0:
+                mask_d = (data[0] >= x_min) & (data[0] <= x_max)
+                visible = data[1][mask_d]
+                if len(visible) > 0:
+                    valid = visible[~np.isnan(visible)]
+                    if len(valid) > 0:
+                        y_lo, y_hi = float(np.min(valid)), float(np.max(valid))
+                        span = y_hi - y_lo
+                        pad = max(span * 0.05, MIN_DISS_RANGE / 2)
+                        self._plt3.disableAutoRange(axis='y')
+                        self._plt3.setRange(yRange=(y_lo - pad, y_hi + pad), padding=0)
 
     ###########################################################################
     # Minimum Y-axis scale enforcement
