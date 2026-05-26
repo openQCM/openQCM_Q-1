@@ -86,7 +86,7 @@
 // potentiometer AD5252 I2C address is 0x2C(44)
 #define ADDRESS 0x2C
 // potentiometer AD5252 default value for compatibility with openQCM Q-1 shield @5VDC 
-#define POT_VALUE 254 //254
+#define POT_VALUE 240
 // reference clock
 #define REFCLK 125000000
 
