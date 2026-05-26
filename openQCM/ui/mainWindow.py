@@ -1862,12 +1862,12 @@ class MainWindow(QtGui.QMainWindow):
     def _on_freq_diss_manual_zoom(self, mask):
         """
         Triggered by sigRangeChangedManually on _plt2 (frequency ViewBox).
-        Fires only on user interaction (drag, wheel, rect select) — not on
-        programmatic range changes. Sets the manual zoom flag and syncs the
-        Dissipation Y-axis to show only data visible in the current X window.
+        Only activates the manual zoom flag when in Select (Rect) mode — not
+        in Pan mode, where the normal _apply_min_scale should keep working.
         """
-        self._user_zoomed_freq_diss = True
-        self._sync_dissipation_y_range()
+        if self._plt2.vb.state['mouseMode'] == pg.ViewBox.RectMode:
+            self._user_zoomed_freq_diss = True
+            self._sync_dissipation_y_range()
 
     def _sync_dissipation_y_range(self):
         """
