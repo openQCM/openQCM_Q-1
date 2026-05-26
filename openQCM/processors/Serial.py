@@ -532,6 +532,10 @@ class SerialProcess(multiprocessing.Process):
             return  # Port already open: nothing to do
 
         self._serial.open()
+        # Drain stale data left by a previous session — the Teensy keeps
+        # streaming while the software is closed if USB stays connected
+        self._serial.reset_input_buffer()
+        self._serial.reset_output_buffer()
         k = 0
         print(TAG, 'Capturing raw data...')
         print(TAG, 'Wait, processing early data...')
