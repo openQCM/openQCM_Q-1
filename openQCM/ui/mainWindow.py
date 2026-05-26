@@ -45,7 +45,7 @@ TAG = ""  # set to "[MainWindow]" for verbose tagged prints
 # stable noise across the whole plot when the signal is essentially flat.
 # (Override at runtime via the easter-egg right-click on the brand logo.)
 MIN_FREQ_RANGE = 100        # Hz
-MIN_DISS_RANGE = 0.000001   # 1e-6 (provisional — see TODO.md, needs real-data tuning)
+MIN_DISS_RANGE = 0.00001    # 1e-5 (10e-6) — matches the 100 Hz minimum for frequency
 MIN_TEMP_RANGE = 2.0        # °C
 
 
