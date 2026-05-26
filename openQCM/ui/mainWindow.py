@@ -1191,12 +1191,11 @@ class MainWindow(QtGui.QMainWindow):
             self._vector_2 = np.array(self.worker.get_d2_buffer())-self._reference_value_dissipation
             self._curve_dissipation.setData(x=self.worker.get_t2_buffer(), y=self._vector_2)
 
-            # Enforce minimum Y-axis scale (reference mode) — skip if user zoomed
+            # Enforce minimum Y-axis scale (reference mode)
+            # Skip entirely when user has interacted manually (pan/select)
             if not self._user_zoomed_freq_diss:
                 self._apply_min_scale(self._plt2, self._vector_1, MIN_FREQ_RANGE)
                 self._apply_min_scale(self._plt3, self._vector_2, MIN_DISS_RANGE)
-            else:
-                self._sync_freq_diss_y_range()
 
             ###################################################################
             # Temperature plot - using setData() for efficiency
@@ -1249,12 +1248,11 @@ class MainWindow(QtGui.QMainWindow):
             diss_data = self.worker.get_d2_buffer()
             self._curve_dissipation.setData(x=self.worker.get_t2_buffer(), y=diss_data)
 
-            # Enforce minimum Y-axis scale — skip if user zoomed
+            # Enforce minimum Y-axis scale
+            # Skip entirely when user has interacted manually (pan/select)
             if not self._user_zoomed_freq_diss:
                 self._apply_min_scale(self._plt2, self.worker.get_d1_buffer(), MIN_FREQ_RANGE)
                 self._apply_min_scale(self._plt3, diss_data, MIN_DISS_RANGE)
-            else:
-                self._sync_freq_diss_y_range()
 
             ###################################################################
             # Temperature plot - using setData() for efficiency
@@ -1862,13 +1860,14 @@ class MainWindow(QtGui.QMainWindow):
     def _on_freq_diss_manual_zoom(self, mask):
         """
         Triggered by sigRangeChangedManually on _plt2 (frequency ViewBox).
-        Only activates the manual zoom flag when in Select (Rect) mode — not
-        in Pan mode, where the normal _apply_min_scale should keep working.
-        On rect-select, both frequency and dissipation Y-axes are auto-scaled
-        to the data visible in the selected X window (symmetric behaviour).
+        Any manual interaction (pan, scroll, rect-select) disables the
+        automatic Y-axis constraints so the user has full control.
+        On rect-select, both Y-axes are also auto-scaled to visible data.
+        Autoscale / Reset Zoom resets the flag to restore constraints.
         """
+        self._user_zoomed_freq_diss = True
+        # On rect-select, auto-scale both Y-axes to visible data
         if self._plt2.vb.state['mouseMode'] == pg.ViewBox.RectMode:
-            self._user_zoomed_freq_diss = True
             self._sync_freq_diss_y_range()
 
     def _sync_freq_diss_y_range(self):
