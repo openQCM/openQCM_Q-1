@@ -1893,7 +1893,7 @@ class MainWindow(QtGui.QMainWindow):
                     if len(valid) > 0:
                         y_lo, y_hi = float(np.min(valid)), float(np.max(valid))
                         span = y_hi - y_lo
-                        pad = max(span * 0.05, MIN_FREQ_RANGE / 2)
+                        pad = span * 0.05 if span > 0 else 1.0
                         self._plt2.setYRange(y_lo - pad, y_hi + pad, padding=0)
 
         # --- Dissipation Y-axis (_plt3) ---
@@ -1907,7 +1907,7 @@ class MainWindow(QtGui.QMainWindow):
                     if len(valid) > 0:
                         y_lo, y_hi = float(np.min(valid)), float(np.max(valid))
                         span = y_hi - y_lo
-                        pad = max(span * 0.05, MIN_DISS_RANGE / 2)
+                        pad = span * 0.05 if span > 0 else 1e-7
                         self._plt3.disableAutoRange(axis='y')
                         self._plt3.setRange(yRange=(y_lo - pad, y_hi + pad), padding=0)
 
