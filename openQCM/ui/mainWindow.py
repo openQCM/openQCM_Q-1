@@ -18,6 +18,7 @@ lives in the child processes (`SerialProcess`, `CalibrationProcess`).
 This file is mostly UI plumbing and event handling.
 """
 import os
+import re
 import sys
 from datetime import datetime
 
@@ -40,6 +41,15 @@ from openQCM.common.resources import get_data_path
 
 
 TAG = ""  # set to "[MainWindow]" for verbose tagged prints
+
+# Reply-format validators for the 'F' (firmware version) and 'S' (serial
+# number) queries. Pre-v2.2 firmware does not implement these commands and
+# feeds the query to its sweep parser instead, so the reply is sweep data
+# ("3944.59;3692.94\n...") rather than a version/serial string. Validating
+# the format lets us recognise legacy firmware instead of pasting sweep data
+# into the GUI. See _query_device() for why the query is range-primed first.
+_FW_VERSION_RE = re.compile(r'^\d{1,2}\.\d{1,3}$')   # e.g. "2.2"
+_BOARD_SERIAL_RE = re.compile(r'^\d{1,3}-\d{4}$')    # e.g. "20-0051"
 
 # Minimum Y-axis display ranges, used to prevent the autoscale from "exploding"
 # stable noise across the whole plot when the signal is essentially flat.
@@ -2274,6 +2284,55 @@ class MainWindow(QtGui.QMainWindow):
         _set_data_value(self.ui.lweb3, labelweb3)  
 
     ###########################################################################
+    # Low-level serial query helper (firmware version / serial number)
+    ###########################################################################
+    def _query_device(self, command, settle=0.4):
+        """
+        Send a single-line query to the board and return the first non-empty
+        reply line (stripped). Returns "" if the board does not reply.
+
+        Why the query is *range-primed* first: pre-v2.2 firmware does not
+        implement the 'F'/'S' commands — it feeds any input to the sweep
+        parser. That parser latches its internal `message` flag after the
+        first acquisition and never clears it, so a bare 'F'/'S' is misread as
+        a sweep command (freq_start = atol("F") = 0) while freq_stop/freq_step
+        keep the previous measurement's values. The result is a full scan from
+        0 Hz to several MHz at a few-Hz step — hundreds of thousands of points
+        that wedge the board for minutes until it is physically reset. (Root
+        cause confirmed empirically: the RX buffer is empty before the query
+        and only fills *after* 'F' is sent.)
+
+        Sending a trivial "1;1;1" sweep command first pins freq_start=stop=
+        step=1, so any subsequent legacy misparse produces at most a 1-2 point
+        sweep instead of a full scan. On v2.2+ the priming command is an inert
+        1-point sweep that we flush before reading the real reply; the 'F'/'S'
+        handlers there short-circuit before the sweep parser regardless.
+        """
+        import time
+        # Prime the sweep range so a legacy misparse stays bounded, then flush
+        # whatever tiny sweep the priming itself produced.
+        self._serial_lock.reset_input_buffer()
+        self._serial_lock.write(b'1;1;1\n')
+        time.sleep(0.2)
+        self._serial_lock.reset_input_buffer()
+        # Real query.
+        self._serial_lock.write(command)
+        time.sleep(settle)
+        bytes_waiting = self._serial_lock.inWaiting()
+        raw = ""
+        if bytes_waiting > 0:
+            raw = self._serial_lock.read(bytes_waiting).decode(
+                Constants.app_encoding, errors='replace')
+        # Drop any trailing bytes (e.g. a 1-2 point legacy misparse) so they
+        # cannot contaminate the next query.
+        self._serial_lock.reset_input_buffer()
+        for line in raw.splitlines():
+            line = line.strip()
+            if line:
+                return line
+        return ""
+
+    ###########################################################################
     # Firmware version check
     ###########################################################################
     def _check_firmware_version(self, auto_mode=False):
@@ -2281,7 +2340,6 @@ class MainWindow(QtGui.QMainWindow):
         Query the device firmware version via serial command 'F'.
         :param auto_mode: If True, runs silently (no popup on success).
         """
-        import time
 
         # Block if acquisition is running
         if self._is_running:
@@ -2298,16 +2356,9 @@ class MainWindow(QtGui.QMainWindow):
                     "Please connect to the device first.")
             return
 
-        # Send firmware version request
+        # Query the firmware version (range-primed; see _query_device).
         try:
-            # Flush any residual data in the serial buffer
-            self._serial_lock.reset_input_buffer()
-            self._serial_lock.write(b'F\n')
-            time.sleep(0.4)
-            bytes_waiting = self._serial_lock.inWaiting()
-            response = ""
-            if bytes_waiting > 0:
-                response = self._serial_lock.read(bytes_waiting).decode(Constants.app_encoding).strip()
+            response = self._query_device(b'F\n')
             print(TAG, "Firmware version response: '{}'".format(response))
             Log.i(TAG, "Firmware version response: '{}'".format(response))
         except Exception as e:
@@ -2320,10 +2371,12 @@ class MainWindow(QtGui.QMainWindow):
 
         expected = Constants.fw_version
 
-        if response == "":
-            # No response from firmware
-            msg = ("The device firmware did not respond to the version request.\n"
-                   "Expected firmware version: {}\n\n"
+        if not _FW_VERSION_RE.match(response):
+            # No valid version string: either no reply (firmware predates the
+            # 'F' command) or sweep data from the legacy parser. Either way the
+            # firmware is too old and must be updated.
+            msg = ("The device firmware does not support the version query.\n"
+                   "It predates firmware version {} and should be updated.\n\n"
                    "Would you like to update the firmware?".format(expected))
             if PopUp.question(self, Constants.app_title, msg):
                 self._run_firmware_updater()
@@ -2367,8 +2420,6 @@ class MainWindow(QtGui.QMainWindow):
         (e.g. "19-0055") or "NO_SERIAL" if unprogrammed.
         :param auto_mode: If True, runs silently (no popup on success).
         """
-        import time
-
         # Block if acquisition is running
         if self._is_running:
             if not auto_mode:
@@ -2385,16 +2436,9 @@ class MainWindow(QtGui.QMainWindow):
                     "Please connect to the device first.")
             return
 
-        # Send serial number request
+        # Query the board serial number (range-primed; see _query_device).
         try:
-            self._serial_lock.reset_input_buffer()
-            self._serial_lock.write(b'S\n')
-            time.sleep(0.4)
-            bytes_waiting = self._serial_lock.inWaiting()
-            response = ""
-            if bytes_waiting > 0:
-                response = self._serial_lock.read(bytes_waiting).decode(
-                    Constants.app_encoding).strip()
+            response = self._query_device(b'S\n')
             print(TAG, "Board serial number response: '{}'".format(response))
             Log.i(TAG, "Board serial number response: '{}'".format(response))
         except Exception as e:
@@ -2405,8 +2449,10 @@ class MainWindow(QtGui.QMainWindow):
                     "Failed to communicate with device.\n\nError: {}".format(e))
             return
 
-        if response == "":
-            # No response — firmware does not support the 'S' command
+        if not response or (response != "NO_SERIAL"
+                            and not _BOARD_SERIAL_RE.match(response)):
+            # No reply, or sweep data from a legacy parser — firmware predates
+            # the 'S' command and has no serial number support.
             self._board_serial = None
             self.ui.lblSerialNumber.setText("")
             if not auto_mode:
@@ -2415,8 +2461,8 @@ class MainWindow(QtGui.QMainWindow):
                     "This feature requires firmware version 2.2 or later.\n"
                     "Please update the firmware via Tools → Check Firmware Version.")
             else:
-                print(TAG, "Firmware does not support serial number query (no response)")
-                Log.w(TAG, "Firmware does not support serial number query (no response)")
+                print(TAG, "Firmware does not support serial number query (no valid response)")
+                Log.w(TAG, "Firmware does not support serial number query (no valid response)")
 
         elif response == "NO_SERIAL":
             # EEPROM not programmed
