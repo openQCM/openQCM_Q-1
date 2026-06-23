@@ -2275,29 +2275,6 @@ class MainWindow(QtGui.QMainWindow):
         _set_data_value(self.ui.lweb3, labelweb3)  
 
     ###########################################################################
-    # Single-character device query (shared by firmware-version and serial-number)
-    ###########################################################################
-    def _query_serial_command(self, cmd, wait=0.4):
-        """
-        Send a single-character query command and return the device reply.
-
-        Returns the FIRST non-empty line of the reply (stripped). Pre-v2.2
-        firmware does not recognise the 'F'/'S' commands and instead streams
-        sweep data; taking only the first line keeps the caller's format
-        validation clean and prevents a multi-line sweep dump from leaking
-        into the GUI. Returns '' if there is no reply.
-        :raises: serial exceptions (handled by the caller).
-        """
-        import time
-        self._serial_lock.reset_input_buffer()
-        self._serial_lock.write(cmd)
-        time.sleep(wait)
-        n = self._serial_lock.inWaiting()
-        raw = self._serial_lock.read(n).decode(Constants.app_encoding) if n > 0 else ""
-        lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
-        return lines[0] if lines else ""
-
-    ###########################################################################
     # Firmware version check
     ###########################################################################
     def _check_firmware_version(self, auto_mode=False):
@@ -2305,6 +2282,8 @@ class MainWindow(QtGui.QMainWindow):
         Query the device firmware version via serial command 'F'.
         :param auto_mode: If True, runs silently (no popup on success).
         """
+        import time
+
         # Block if acquisition is running
         if self._is_running:
             PopUp.warning(self, Constants.app_title,
@@ -2322,9 +2301,16 @@ class MainWindow(QtGui.QMainWindow):
 
         # Send firmware version request
         try:
-            response = self._query_serial_command(b'F\n')
-            print(TAG, "Firmware version response: '{}'".format(response[:40]))
-            Log.i(TAG, "Firmware version response: '{}'".format(response[:40]))
+            # Flush any residual data in the serial buffer
+            self._serial_lock.reset_input_buffer()
+            self._serial_lock.write(b'F\n')
+            time.sleep(0.4)
+            bytes_waiting = self._serial_lock.inWaiting()
+            response = ""
+            if bytes_waiting > 0:
+                response = self._serial_lock.read(bytes_waiting).decode(Constants.app_encoding).strip()
+            print(TAG, "Firmware version response: '{}'".format(response))
+            Log.i(TAG, "Firmware version response: '{}'".format(response))
         except Exception as e:
             print(TAG, "Firmware version check failed: {}".format(e))
             Log.e(TAG, "Firmware version check failed: {}".format(e))
@@ -2334,11 +2320,6 @@ class MainWindow(QtGui.QMainWindow):
             return
 
         expected = Constants.fw_version
-        # A valid firmware version looks like "2.2" / "3.0". Pre-v2.2 firmware
-        # does not recognise 'F' and replies with sweep data (e.g.
-        # "4520.31;3301.67") — rejected by this pattern (semicolon, or >2
-        # digits before the dot).
-        is_valid_version = bool(re.match(r'^\d{1,2}\.\d{1,3}$', response))
 
         if response == "":
             # No response from firmware
@@ -2355,27 +2336,8 @@ class MainWindow(QtGui.QMainWindow):
                 if PopUp.question(self, Constants.app_title, msg2):
                     self._run_firmware_updater()
 
-        elif not is_valid_version:
-            # Unexpected reply (not a version string) — pre-v2.2 firmware
-            # returned sweep data instead of recognising the 'F' command.
-            # Do NOT echo the raw sweep dump into the dialog.
-            print(TAG, "Firmware query got unexpected data (old firmware?): '{}'".format(response[:40]))
-            Log.w(TAG, "Firmware version query returned unexpected data — old firmware")
-            msg = ("The device firmware is too old and does not support the "
-                   "version query.\n"
-                   "Expected firmware version: {}\n\n"
-                   "Would you like to update the firmware?".format(expected))
-            if PopUp.question(self, Constants.app_title, msg):
-                self._run_firmware_updater()
-            else:
-                msg2 = ("WARNING: Running with an outdated firmware "
-                        "may cause malfunctions or incorrect measurements.\n\n"
-                        "Would you like to proceed with the firmware update?")
-                if PopUp.question(self, Constants.app_title, msg2):
-                    self._run_firmware_updater()
-
         elif response != expected:
-            # Valid version string, but not the expected one
+            # Wrong version
             msg = ("Firmware version {} detected.\n"
                    "Expected version: {}\n\n"
                    "Would you like to update the firmware?".format(response, expected))
@@ -2406,6 +2368,8 @@ class MainWindow(QtGui.QMainWindow):
         (e.g. "19-0055") or "NO_SERIAL" if unprogrammed.
         :param auto_mode: If True, runs silently (no popup on success).
         """
+        import time
+
         # Block if acquisition is running
         if self._is_running:
             if not auto_mode:
@@ -2424,9 +2388,16 @@ class MainWindow(QtGui.QMainWindow):
 
         # Send serial number request
         try:
-            response = self._query_serial_command(b'S\n')
-            print(TAG, "Board serial number response: '{}'".format(response[:40]))
-            Log.i(TAG, "Board serial number response: '{}'".format(response[:40]))
+            self._serial_lock.reset_input_buffer()
+            self._serial_lock.write(b'S\n')
+            time.sleep(0.4)
+            bytes_waiting = self._serial_lock.inWaiting()
+            response = ""
+            if bytes_waiting > 0:
+                response = self._serial_lock.read(bytes_waiting).decode(
+                    Constants.app_encoding).strip()
+            print(TAG, "Board serial number response: '{}'".format(response))
+            Log.i(TAG, "Board serial number response: '{}'".format(response))
         except Exception as e:
             print(TAG, "Serial number query failed: {}".format(e))
             Log.e(TAG, "Serial number query failed: {}".format(e))
