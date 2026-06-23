@@ -4,6 +4,21 @@ Development checklist. Each item can become a GitHub Issue.
 
 ---
 
+## Release
+
+- [ ] **New pre-release build after cross-platform validation of the pre-v2.2
+  firmware-query fix** (added 2026-06-23, commit `d9cb2ef`). The range-priming
+  + reply-format validation fix (`mainWindow._query_device`) is verified on
+  macOS against legacy firmware. Pending validation on:
+    - [ ] second macOS machine
+    - [ ] Linux
+    - [ ] Windows (VM)
+  If all three pass, cut a new pre-release executable: `tools\build_release.bat`
+  → `dist\openQCM_Q-1_release\`, then zip and publish a GitHub Release with a
+  new `rcN` tag.
+
+---
+
 ## Validation
 
 - [ ] **Trimmed mean fraction** (`constants.py:226`, `trim_mean_fraction = 0.10`):
