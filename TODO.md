@@ -14,9 +14,10 @@ Development checklist. Each item can become a GitHub Issue.
     - [x] macOS Apple Silicon (M2, arm64, dedicated conda env) — OK 2026-06-24
     - [x] Linux — OK 2026-06-24
     - [x] Windows (VM) — OK 2026-06-24
-  If all three pass, cut a new pre-release executable: `tools\build_release.bat`
-  → `dist\openQCM_Q-1_release\`, then zip and publish a GitHub Release with a
-  new `rcN` tag.
+  Cross-platform validation COMPLETE — all targets OK 2026-06-24. Pre-release
+  build deferred (to be cut later as `v3.0.0-rc5`): `tools\build_release.bat`
+  → `dist\openQCM_Q-1_release\`, then zip + GitHub Release with the
+  `v3.0.0-rc5` tag.
 
 ---
 
