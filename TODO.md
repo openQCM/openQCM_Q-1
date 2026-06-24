@@ -12,8 +12,8 @@ Development checklist. Each item can become a GitHub Issue.
   macOS against legacy firmware. Pending validation on:
     - [x] second macOS machine (Intel, from source) — OK 2026-06-24
     - [x] macOS Apple Silicon (M2, arm64, dedicated conda env) — OK 2026-06-24
-    - [ ] Linux
-    - [ ] Windows (VM)
+    - [x] Linux — OK 2026-06-24
+    - [x] Windows (VM) — OK 2026-06-24
   If all three pass, cut a new pre-release executable: `tools\build_release.bat`
   → `dist\openQCM_Q-1_release\`, then zip and publish a GitHub Release with a
   new `rcN` tag.
