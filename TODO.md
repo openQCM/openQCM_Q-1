@@ -11,6 +11,7 @@ Development checklist. Each item can become a GitHub Issue.
   + reply-format validation fix (`mainWindow._query_device`) is verified on
   macOS against legacy firmware. Pending validation on:
     - [x] second macOS machine (Intel, from source) — OK 2026-06-24
+    - [x] macOS Apple Silicon (M2, arm64, dedicated conda env) — OK 2026-06-24
     - [ ] Linux
     - [ ] Windows (VM)
   If all three pass, cut a new pre-release executable: `tools\build_release.bat`
