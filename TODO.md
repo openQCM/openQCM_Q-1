@@ -10,7 +10,7 @@ Development checklist. Each item can become a GitHub Issue.
   firmware-query fix** (added 2026-06-23, commit `d9cb2ef`). The range-priming
   + reply-format validation fix (`mainWindow._query_device`) is verified on
   macOS against legacy firmware. Pending validation on:
-    - [ ] second macOS machine
+    - [x] second macOS machine (Intel, from source) — OK 2026-06-24
     - [ ] Linux
     - [ ] Windows (VM)
   If all three pass, cut a new pre-release executable: `tools\build_release.bat`
