@@ -103,6 +103,17 @@ Known behaviours to watch during testing — not blocking, but worth tracking:
 
 ## Documentation
 
+- [ ] **v3.0 User Guide / manual** (added 2026-07-14). Author the public user
+  manual as **Markdown** at `docs/USER_GUIDE.md`, based on the existing spec
+  in `docs/USER_GUIDE_BRIEF.md`. Rationale for the format: Markdown keeps the
+  source git-tracked with readable diffs and editable remotely (github.dev /
+  GitHub web editor) — a `.docx` is binary (opaque diffs, no browser editing,
+  merge conflicts) so it is NOT the source of truth. Figures go in
+  `docs/images/` (screenshots already there). Generate the polished `.docx` /
+  PDF from the Markdown **on demand** as a release deliverable — do NOT commit
+  the binary; attach it to the GitHub Release. Once the PDF is published,
+  update the in-app User Guide link (see item below, `mainWindow_ui.py:1295`).
+
 - [ ] **Firmware serial protocol** — document commands, sweep data format,
   and the `F` command for community contributors.
 
@@ -110,7 +121,8 @@ Known behaviours to watch during testing — not blocking, but worth tracking:
   v2.0 manual (`openQCM_Q-1-userguide-v2.0.pdf`). Update URL once the
   v3.0 user guide PDF is published.
 
-- [ ] **CHANGELOG PART 12** — not yet written. Should cover the work since
-  commit `d1a9d79`: splash screen, `CONSOLE=False`, tracking-safety
-  hysteresis, grid toggle, "-3dB frequency" rename, calibration plot
-  redesign, build pipeline polish, repo cleanup.
+- [x] **CHANGELOG PART 12** — written (splash screen, `CONSOLE=False`,
+  tracking-safety hysteresis, grid toggle, "-3dB frequency" rename,
+  calibration plot redesign, build pipeline polish, repo cleanup).
+- [x] **CHANGELOG PART 13** — written (pre-v2.2 firmware query compatibility:
+  range-priming + reply validation, commit `d9cb2ef`).
