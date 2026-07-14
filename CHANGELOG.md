@@ -733,4 +733,71 @@ Renamed every occurrence of "cut-off frequency" to "-3dB frequency" across 5 fil
 
 ---
 
+# PART 13: PRE-v2.2 FIRMWARE QUERY COMPATIBILITY — June 2026
+
+## Problem
+
+Connecting the v3.0 software to a device running **firmware older than v2.2**
+(no `F`/`S` command handlers) produced two failures: the firmware-version and
+serial-number dialogs showed a dump of raw sweep data instead of the version /
+serial, and the board could become wedged for minutes and stop responding to
+acquisition (measurement and peak detection produced no data).
+
+## Root Cause
+
+Pre-v2.2 firmware feeds any serial input straight to its sweep parser. That
+parser latches an internal `message` flag to `1` after the first acquisition
+and **never clears it**. So a bare `F\n` / `S\n` is misread as a sweep command:
+`freq_start = atol("F") = 0` while `freq_stop` / `freq_step` keep the previous
+measurement's values. The result is a full scan from 0 Hz to several MHz at a
+few-Hz step — **hundreds of thousands of points (~375k)** that flood the serial
+line and wedge the Teensy 4.0 until it is physically reset.
+
+Confirmed empirically (2026-06-23): the RX buffer is empty (`inWaiting()==0`)
+*before* the query and only fills *after* `F` is sent — it is **not** a stale
+host/OS buffer. A physical USB replug appears to "fix" it only because it
+power-cycles the Teensy (native USB CDC, no FTDI), resetting `message` and
+aborting the giant sweep.
+
+## Solution — Range-Priming + Reply Validation (commit `d9cb2ef`)
+
+Unified all device queries in `mainWindow._query_device()`:
+
+1. **Range-prime**: send a trivial `1;1;1\n` sweep command first, pinning
+   `freq_start = freq_stop = freq_step = 1`. Any subsequent legacy misparse is
+   then bounded to a 1–2 point sweep instead of a 375k-point scan. Flush the
+   tiny priming sweep, then send the real `F\n` / `S\n`.
+2. **Validate the reply format**: version must match `^\d{1,2}\.\d{1,3}$`
+   (e.g. `2.2`); serial must match `^\d{1,3}-\d{4}$` (e.g. `19-0055`) or be
+   `NO_SERIAL`. Anything else is treated as "firmware too old" — a clean
+   prompt to update, never a raw sweep dump in the dialog.
+
+On v2.2+ the priming is an inert 1-point sweep (flushed before reading), and
+the `F`/`S` handlers short-circuit before the sweep parser regardless — so
+behaviour is unchanged for current firmware.
+
+### Why both parts are required
+Two earlier single-part attempts were reverted (commits `c432e49`,
+`b873b49`/`9cffa66`). Drain/timeout machinery alone **blocks** for the entire
+375k-point sweep; format-validation alone cleans the display but leaves the
+board wedged (still needs a replug). Only **priming + validation together**
+let old firmware be used across connect/disconnect without a physical replug.
+
+## Validation (2026-06-24)
+
+- **Cross-platform** (pre-v2.2 firmware + v3.0 software): connect → refuse
+  update → measure → stop → disconnect → reconnect → clean "firmware too old?"
+  prompt, no sweep dump, no wedge, no replug. PASS on macOS Intel (from
+  source), macOS Apple Silicon M2 (arm64), Linux, Windows (Parallels VM).
+- **Backward compatibility** (v2.2 firmware + old `openQCM_Q-1_py_v2.1`
+  software): PASS. The old software never sends `F`/`S`, so v2.2's new handlers
+  are never hit; the measurement path is byte-identical (POT 240, AVERAGING 1,
+  RESOLUTION 12, AVERAGE_SAMPLE 5000, 115200 baud).
+
+### Modified Files
+- `openQCM/ui/mainWindow.py` — `_query_device()` (new, range-primed), used by
+  `_check_firmware_version()` and `_query_serial_number()`
+
+---
+
 *Development assisted by Claude Code — February 2026 onwards*
