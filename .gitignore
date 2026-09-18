@@ -30,6 +30,10 @@ env/
 
 # Claude Code
 .claude/
+HANDOFF.md
 
 # Firmware build artifacts
 firmware/**/build/
+
+# Release archives (attached to GitHub Releases, never committed)
+*.zip
