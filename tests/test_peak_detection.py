@@ -1,0 +1,102 @@
+"""
+Offline regression test for the two-phase peak detection.
+
+Replays real full-spectrum calibration sweeps (1-51 MHz, 1 kHz step)
+through the very same CalibrationProcess methods the application uses, so
+the algorithm can be validated without an instrument attached.
+
+Run from the repository root:
+    python -m unittest discover -s tests -v
+"""
+import os
+import sys
+import unittest
+
+import numpy as np
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, REPO_ROOT)
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")   # constants.py imports pyqtgraph
+
+from openQCM.core.constants import Constants                      # noqa: E402
+from openQCM.processors.Calibration import CalibrationProcess     # noqa: E402
+
+TOL_HZ = 2000   # two sweep steps
+
+# file -> (nominal MHz, fundamental Hz, accepted overtones Hz)
+FIXTURES = {
+    "openQCM/Calibration_5MHz.txt":
+        (5, 5.003e6, [14.994e6, 24.986e6, 34.977e6, 44.966e6]),
+    "openQCM/Calibration_10MHz.txt":
+        (10, 10.018e6, [30.087e6, 50.150e6]),
+    # Counter-example that once got F3 rejected (phase peak 35 kHz off)
+    "tools/Calibration_10MHz.txt":
+        (10, 10.019e6, [30.091e6, 50.155e6]),
+    # 8 MHz quartz (Jan 2019): F3 has a spurious phase mode 96 kHz above the
+    # magnitude peak; the 7th overtone (56 MHz) is outside the sweep
+    "tools/Calibration_8MHz.txt":
+        (8, 7.998e6, [23.938e6, 39.873e6]),
+}
+
+
+def run_detection(relpath):
+    data = np.loadtxt(os.path.join(REPO_ROOT, relpath))
+    freq, mag, phase = data[:, 0], data[:, 1], data[:, 2]
+    proc = CalibrationProcess(parser_process=None)
+    mag_c, phase_c = proc.baseline_correction(freq, mag, phase)
+    f0 = proc.peak_detection_fundamental(freq, mag_c, phase_c)
+    overtones = proc.peak_detection_overtones(freq, mag_c, phase_c, f0)
+    return proc, f0, overtones
+
+
+class PeakDetectionRegression(unittest.TestCase):
+
+    def test_fixtures(self):
+        for relpath, (nominal, f0_exp, ov_exp) in FIXTURES.items():
+            with self.subTest(file=relpath):
+                proc, f0, overtones = run_detection(relpath)
+                self.assertAlmostEqual(f0, f0_exp, delta=TOL_HZ)
+                self.assertEqual(len(overtones), len(ov_exp),
+                                 "accepted overtones: {}".format(overtones))
+                for got, exp in zip(overtones, ov_exp):
+                    self.assertAlmostEqual(got, exp, delta=TOL_HZ)
+                self.assertTrue(proc.is_valid_quartz(f0, len(overtones)))
+                label, _, path_calib, filename, _ = proc.describe_quartz(f0)
+                self.assertEqual(label, "{} MHz QCM".format(nominal))
+                self.assertEqual(filename, "Calibration_{}MHz".format(nominal))
+                self.assertTrue(path_calib.endswith("Calibration_{}MHz.txt".format(nominal)))
+
+
+class GenericQuartzRules(unittest.TestCase):
+
+    def test_legacy_file_names_are_preserved(self):
+        self.assertEqual(Constants.calibration_filename_for(5.003e6),
+                         Constants.csv_calibration_filename)
+        self.assertEqual(Constants.calibration_filename_for(10.018e6),
+                         Constants.csv_calibration_filename10)
+        self.assertEqual(Constants.calibration_path_for(10.018e6),
+                         Constants.csv_calibration_path10)
+
+    def test_validity_needs_range_and_harmonics(self):
+        valid = CalibrationProcess.is_valid_quartz
+        self.assertTrue(valid(8.0e6, 1))
+        self.assertFalse(valid(8.0e6, 0), "a lone peak is not a resonator")
+        self.assertFalse(valid(0.5e6, 3), "below the fundamental search range")
+        self.assertFalse(valid(13.0e6, 3), "above the fundamental search range")
+
+    def test_lone_spurious_peak_is_rejected(self):
+        # Synthetic sweep: one sharp peak at 8 MHz and no harmonics at all
+        freq = Constants.calibration_readFREQ
+        mag = -10 + 15 * np.exp(-0.5 * ((freq - 8e6) / 2e3) ** 2)
+        phase = 5 + 40 * np.exp(-0.5 * ((freq - 8e6) / 2e3) ** 2)
+        proc = CalibrationProcess(parser_process=None)
+        mag_c, phase_c = proc.baseline_correction(freq, mag, phase)
+        f0 = proc.peak_detection_fundamental(freq, mag_c, phase_c)
+        self.assertAlmostEqual(f0, 8e6, delta=TOL_HZ)
+        overtones = proc.peak_detection_overtones(freq, mag_c, phase_c, f0)
+        self.assertEqual(len(overtones), 0)
+        self.assertFalse(proc.is_valid_quartz(f0, len(overtones)))
+
+
+if __name__ == "__main__":
+    unittest.main()

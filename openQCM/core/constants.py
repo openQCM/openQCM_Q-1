@@ -162,10 +162,11 @@ class Constants:
 
     # ---------- Peak detection (calibration) ----------
     # Distance in samples between neighbouring peaks for the legacy FindPeak
-    # algorithm. The two-phase algorithm (find fundamental, then find overtones)
+    # fallback. The two-phase algorithm (find fundamental, then find overtones)
     # uses peak_points_fundamental / peak_points_overtone instead.
-    dist5  = 8000      # 5 MHz sensor
-    dist10 = 10000     # 10 MHz sensor
+    dist5  = 8000      # crystals below legacy_dist_switch_hz
+    dist10 = 10000     # crystals above
+    legacy_dist_switch_hz = 7.5e6
 
     # Full-spectrum calibration scan: 1 MHz → 51 MHz, 1 kHz step
     calibration_default_samples = 50001
@@ -192,10 +193,46 @@ class Constants:
     peak_max_frequency_limit = 51000000
     # Cross-validation between magnitude and phase peaks
     peak_phase_threshold = 10            # minimum phase peak (degrees) to accept an overtone
-    # Frequency-difference threshold between magnitude and phase peaks:
-    #   diff_threshold = (calib_fStep * peak_points_overtone) / peak_freq_diff_divisor
-    # Currently 50 kHz (divisor=2). See TODO.md — needs more counter-examples to tune.
+    # Half-width of the window, centred on the magnitude peak, inside which
+    # the phase maximum is searched:
+    #   phase_window_half = (calib_fStep * peak_points_overtone) / peak_freq_diff_divisor
+    # Currently 50 kHz (divisor=2). Searching the phase *inside* this window
+    # (instead of taking the global phase maximum of the +-400 kHz overtone
+    # window) keeps a stronger spurious phase peak nearby from masking the
+    # resonance — seen on F3 of tools/Calibration_8MHz.txt, where a 50.3 deg
+    # spur at +96 kHz beat the 49.0 deg true peak and got F3 rejected.
     peak_freq_diff_divisor = 2
+
+    # Generic quartz support — the *measured* fundamental drives the search,
+    # there is no predefined crystal type. Any fundamental inside
+    # [peak_freq_sweep_min, peak_freq_sweep_max] is accepted provided at least
+    # this many overtones are confirmed by phase: a spurious peak has no
+    # harmonic series, a real resonator does.
+    peak_min_confirmed_overtones = 1
+
+    @staticmethod
+    def quartz_nominal_mhz(freq_fundamental):
+        """Nominal crystal frequency in MHz (7.998 MHz -> 8), for labels and file names."""
+        return int(round(freq_fundamental / 1e6))
+
+    @classmethod
+    def quartz_label(cls, freq_fundamental):
+        return "{} MHz QCM".format(cls.quartz_nominal_mhz(freq_fundamental))
+
+    @classmethod
+    def calibration_filename_for(cls, freq_fundamental):
+        """
+        `Calibration_<N>MHz` derived from the fundamental. For 5 and 10 MHz
+        crystals this yields the same names as the legacy constants above,
+        so existing installations keep working unchanged.
+        """
+        return "Calibration_{}MHz".format(cls.quartz_nominal_mhz(freq_fundamental))
+
+    @classmethod
+    def calibration_path_for(cls, freq_fundamental):
+        return os.path.join(cls.csv_calibration_export_path,
+                            "{}.{}".format(cls.calibration_filename_for(freq_fundamental),
+                                           cls.txt_extension))
 
     # ---------- Ring buffers (live measurement) ----------
     ring_buffer_samples = 16363          # max history kept in memory for plotting

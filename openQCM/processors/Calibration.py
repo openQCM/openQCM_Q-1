@@ -9,9 +9,15 @@ algorithm extracts:
     2. The odd overtones (3×, 5×, 7×, 9× fundamental) inside narrow
        windows centred on the expected positions.
 
-Each overtone candidate is cross-validated against its phase peak: if the
-magnitude/phase peaks are too far apart, or the phase peak is too small,
-the overtone is discarded.
+There is no predefined crystal type: the *measured* fundamental drives the
+overtone search, the validity check and the output file names, so 5, 8 and
+10 MHz crystals (or any other in range) are handled by the same code path.
+
+Each overtone candidate is cross-validated against its phase: the phase
+maximum searched in a narrow window around the magnitude peak must exceed
+a threshold, otherwise the overtone is discarded. A fundamental is accepted
+only if at least `Constants.peak_min_confirmed_overtones` overtones survive
+— a spurious peak has no harmonic series.
 
 Output files (written to `Constants.csv_calibration_export_path`):
     - `Calibration_<N>MHz.txt` — raw acquired sweep (frequency, mag, phase)
@@ -120,51 +126,45 @@ class CalibrationProcess(multiprocessing.Process):
         print(TAG, "Fundamental frequency detected: {:.0f} Hz".format(f_mag_max))
         return f_mag_max
 
-    def auto_detect_qcm_type(self, freq_fundamental):
+    @staticmethod
+    def describe_quartz(freq_fundamental):
         """
-        Map the detected fundamental frequency to the corresponding sensor
-        type and the file paths used for output.
+        Derive label, output paths and legacy peak spacing from the measured
+        fundamental. Nothing here is a lookup on a predefined crystal type.
 
         :return: (qcm_label, path_peaks, path_calib, filename_calib, distance)
         """
-        if 2e6 < freq_fundamental < 4e6:
-            return ("3 MHz QCM",
-                    Constants.cvs_peakfrequencies_path,
-                    Constants.csv_calibration_path3,
-                    Constants.csv_calibration_filename3,
-                    Constants.dist5)
-        if 4e6 < freq_fundamental < 6e6:
-            return ("5 MHz QCM",
-                    Constants.cvs_peakfrequencies_path,
-                    Constants.csv_calibration_path,
-                    Constants.csv_calibration_filename,
-                    Constants.dist5)
-        if 9e6 < freq_fundamental < 11e6:
-            return ("10 MHz QCM",
-                    Constants.cvs_peakfrequencies_path,
-                    Constants.csv_calibration_path10,
-                    Constants.csv_calibration_filename10,
-                    Constants.dist10)
-        # Unrecognised — return default 5 MHz paths so the caller can warn the user
-        print(TAG, "WARNING: unrecognized fundamental frequency {:.0f} Hz, "
-                   "using default paths".format(freq_fundamental))
-        return ("Unknown ({:.0f} Hz)".format(freq_fundamental),
+        distance = (Constants.dist10 if freq_fundamental > Constants.legacy_dist_switch_hz
+                    else Constants.dist5)
+        return (Constants.quartz_label(freq_fundamental),
                 Constants.cvs_peakfrequencies_path,
-                Constants.csv_calibration_path,
-                Constants.csv_calibration_filename,
-                Constants.dist5)
+                Constants.calibration_path_for(freq_fundamental),
+                Constants.calibration_filename_for(freq_fundamental),
+                distance)
+
+    @staticmethod
+    def is_valid_quartz(freq_fundamental, n_confirmed_overtones):
+        """
+        A resonator is accepted when its fundamental lies inside the search
+        range and enough overtones were confirmed by phase. This replaces the
+        former fixed 4-6 / 9-11 MHz windows.
+        """
+        in_range = (Constants.peak_freq_sweep_min < freq_fundamental
+                    < Constants.peak_freq_sweep_max)
+        return in_range and n_confirmed_overtones >= Constants.peak_min_confirmed_overtones
 
     def peak_detection_overtones(self, freq, mag, phase, freq_fundamental):
         """
         Phase 2 — locate the odd overtones (3×, 5×, 7×, 9× fundamental).
 
         Each overtone is searched in a ±400 kHz window around its expected
-        position. Both magnitude and phase peaks are extracted and
-        cross-validated:
-            - the frequency offset between the two peaks must stay within
-              `diff_threshold` (parametrised by `peak_freq_diff_divisor`);
-            - the phase peak must exceed `peak_phase_threshold` degrees.
-        Overtones that fail either check are discarded.
+        position. The magnitude peak is located first; the phase maximum is
+        then searched only within `phase_window_half` of that peak and must
+        exceed `peak_phase_threshold` degrees. Looking at the phase *near the
+        magnitude peak* (rather than at the strongest phase peak of the whole
+        window) keeps a nearby spurious mode from masking the resonance.
+        Overtones without a magnitude peak, or failing the phase check, are
+        discarded.
 
         :return: array of accepted overtone frequencies (Hz)
         """
@@ -181,7 +181,7 @@ class CalibrationProcess(multiprocessing.Process):
         phase_max_arr = np.zeros(len(overtones_f))
 
         calib_fStep = freq_arr[1] - freq_arr[0]
-        diff_threshold = (calib_fStep * Constants.peak_points_overtone) / Constants.peak_freq_diff_divisor
+        phase_window_half = (calib_fStep * Constants.peak_points_overtone) / Constants.peak_freq_diff_divisor
 
         for i in range(len(overtones_f)):
             n = (Constants.peak_overtone_multipliers[i]
@@ -208,42 +208,30 @@ class CalibrationProcess(multiprocessing.Process):
                            "(expected ~{:.0f} Hz)".format(n, overtones_f[i]))
                 frequency_overtones[i] = 0
 
-            # Phase peak (best within the window, if any)
-            idx_phase_max_arr = scipy.signal.argrelextrema(
-                data=phase_arr_sub, comparator=np.greater,
-                order=Constants.peak_points_overtone)[0]
-            f_phase_max = None
-            if len(idx_phase_max_arr) > 0:
-                idx_phase_max = np.argmax(phase_arr_sub[idx_phase_max_arr])
-                f_phase_max = freq_arr_sub[idx_phase_max_arr][idx_phase_max]
-                idx_phase_max_global = idx_phase_max_arr[idx_phase_max]
-                phase_max_arr[i] = phase_arr_sub[idx_phase_max_global]
-
-            # Cross-validation distance (only meaningful if both peaks exist)
-            if f_mag_max is not None and f_phase_max is not None:
-                freq_diff_arr[i] = np.abs(f_mag_max - f_phase_max)
-
+            # Phase maximum in a narrow window centred on the magnitude peak
             if f_mag_max is not None:
+                near = ((freq_arr_sub >= f_mag_max - phase_window_half) &
+                        (freq_arr_sub <= f_mag_max + phase_window_half))
+                idx_phase_max = np.argmax(phase_arr_sub[near])
+                phase_max_arr[i] = phase_arr_sub[near][idx_phase_max]
+                freq_diff_arr[i] = np.abs(f_mag_max - freq_arr_sub[near][idx_phase_max])
                 print(TAG, "Overtone {}x detected: {:.0f} Hz "
-                           "(phase max: {:.1f} deg, freq diff: {:.0f} Hz)".format(
+                           "(phase max: {:.1f} deg at {:+.0f} Hz)".format(
                     n, f_mag_max, phase_max_arr[i], freq_diff_arr[i]))
 
-        # Filtering pass — drop overtones that fail either check
+        # Filtering pass — drop overtones without a magnitude peak or with a
+        # phase response too weak to be a resonance
         indices_to_discard = []
         for i in range(len(overtones_f)):
             n = (Constants.peak_overtone_multipliers[i]
                  if i < len(Constants.peak_overtone_multipliers) else '?')
-            if freq_diff_arr[i] > diff_threshold:
-                print(TAG, "DISCARD overtone {}x: freq difference {:.0f} Hz "
-                           "exceeds threshold {:.0f} Hz".format(
-                    n, freq_diff_arr[i], diff_threshold))
+            if frequency_overtones[i] == 0:
                 indices_to_discard.append(i)
-            if phase_max_arr[i] <= Constants.peak_phase_threshold:
+            elif phase_max_arr[i] <= Constants.peak_phase_threshold:
                 print(TAG, "DISCARD overtone {}x: phase max {:.1f} deg below "
                            "threshold {} deg".format(
                     n, phase_max_arr[i], Constants.peak_phase_threshold))
-                if i not in indices_to_discard:
-                    indices_to_discard.append(i)
+                indices_to_discard.append(i)
 
         frequency_overtones_filtered = np.delete(frequency_overtones, indices_to_discard)
         if indices_to_discard:
@@ -284,10 +272,9 @@ class CalibrationProcess(multiprocessing.Process):
         """
         Configure the serial port and remember the user's QCM-type choice.
 
-        `speed` here is the sensor type label coming from the GUI:
-            - 'Auto'        — auto-detect from the fundamental (default)
-            - '5 MHz QCM'   — legacy manual selection
-            - '10 MHz QCM'  — legacy manual selection
+        `speed` is the sensor label coming from the GUI. It is kept for
+        interface compatibility only: the crystal is always identified from
+        the measured fundamental during peak detection.
         """
         self._serial.port = port
         self._serial.baudrate = Constants.serial_default_speed
@@ -296,19 +283,7 @@ class CalibrationProcess(multiprocessing.Process):
         self._serial.timeout = timeout
         self._serial.writetimeout = writeTimeout
         self._QCStype = speed
-
-        if self._QCStype == 'Auto':
-            self._QCStype_int = -1
-            print(TAG, "QCM Sensor type: Auto-detect (will be determined during peak detection)")
-        elif self._QCStype == '5 MHz QCM':
-            self._QCStype_int = 0
-            print(TAG, "Selected Quartz Crystal Sensor:", self._QCStype)
-        elif self._QCStype == '10 MHz QCM':
-            self._QCStype_int = 1
-            print(TAG, "Selected Quartz Crystal Sensor:", self._QCStype)
-        else:
-            self._QCStype_int = -1
-            print(TAG, "QCM Sensor type: Auto-detect (will be determined during peak detection)")
+        print(TAG, "Quartz type is identified from the measured fundamental during peak detection")
         return self._is_port_available(self._serial.port)
 
     # ------------------------------------------------------------------
@@ -469,31 +444,23 @@ class CalibrationProcess(multiprocessing.Process):
                     raise ValueError("Fundamental frequency not found in 1-12 MHz range")
 
                 (qcm_label, path, path_calib,
-                 filename_calib, distance) = self.auto_detect_qcm_type(freq_fundamental)
-                print(TAG, "Auto-detected QCM type: {}".format(qcm_label))
+                 filename_calib, distance) = self.describe_quartz(freq_fundamental)
+                print(TAG, "Quartz identified from fundamental: {}".format(qcm_label))
 
                 # Phase 2: overtones
                 freq_overtones = self.peak_detection_overtones(
                     readFREQ, data_mag_baseline, data_ph_baseline, freq_fundamental)
 
                 # Assemble [fundamental, overtone3, overtone5, ...]
-                max_freq_mag = np.zeros(len(freq_overtones) + 1)
-                max_freq_mag[0] = freq_fundamental
-                max_freq_mag[1:] = freq_overtones
-                print(TAG, "Peak detection results: {} Hz".format(max_freq_mag))
+                max_freq_mag = np.concatenate(([freq_fundamental], freq_overtones))
+                n_expected = int(np.sum(
+                    np.array(Constants.peak_overtone_multipliers) * freq_fundamental
+                    <= Constants.peak_max_frequency_limit))
+                print(TAG, "Peak detection results: {} Hz ({} of {} overtones confirmed)".format(
+                    max_freq_mag, len(freq_overtones), n_expected))
 
-                # If every position is zero, the calibration failed
-                missing = np.where(max_freq_mag == 0)[0]
-                if len(missing) > 0:
-                    print(TAG, "WARNING: {} overtone(s) not found at positions: {}".format(
-                        len(missing), missing))
-                    if len(missing) == len(max_freq_mag):
-                        self._flag2 = 1
-
-                # The fundamental must lie in a known QCM range; otherwise the
-                # detection is treated as failed (e.g. a spurious noise peak).
-                is_valid_qcm = (4e6 < freq_fundamental < 6e6) or (9e6 < freq_fundamental < 11e6)
-                if freq_fundamental > 0 and is_valid_qcm:
+                # A real resonator shows a harmonic series; a lone peak does not.
+                if self.is_valid_quartz(freq_fundamental, len(freq_overtones)):
                     print(TAG, "Saving data in file...")
                     # Ensure the destination directory exists (the application
                     # creates it at startup, but this guards against a manual
@@ -507,10 +474,11 @@ class CalibrationProcess(multiprocessing.Process):
                                                 readFREQ, temp1, temp2)
                     print(TAG, "Peak Detection for {} saved in: {}".format(qcm_label, path_calib))
                 else:
-                    print(TAG, "WARNING: unable to identify valid fundamental peak")
-                    if freq_fundamental > 0:
-                        print(TAG, "Detected frequency {} Hz is not a valid QCM resonance"
-                              .format(freq_fundamental))
+                    print(TAG, "WARNING: unable to identify a valid quartz resonance")
+                    print(TAG, "Fundamental {:.0f} Hz with {} confirmed overtone(s) "
+                               "(at least {} required)".format(
+                        freq_fundamental, len(freq_overtones),
+                        Constants.peak_min_confirmed_overtones))
                     print(TAG, "Please, repeat Peak Detection!")
                     self._flag2 = 1
 
@@ -518,27 +486,18 @@ class CalibrationProcess(multiprocessing.Process):
                 # Fallback: legacy `FindPeak` on the full spectrum
                 print(TAG, "New algorithm failed ({}), falling back to legacy FindPeak".format(e))
                 try:
-                    if hasattr(self, '_QCStype_int') and self._QCStype_int == 1:
-                        distance = Constants.dist10
-                        path = Constants.cvs_peakfrequencies_path
-                        path_calib = Constants.csv_calibration_path10
-                        filename_calib = Constants.csv_calibration_filename10
-                    else:
-                        distance = Constants.dist5
-                        path = Constants.cvs_peakfrequencies_path
-                        path_calib = Constants.csv_calibration_path
-                        filename_calib = Constants.csv_calibration_filename
-
                     (max_freq_mag, max_value_mag,
                      max_freq_phase, max_value_phase) = self.FindPeak(
-                        readFREQ, temp1, temp2, dist=distance)
+                        readFREQ, temp1, temp2, dist=Constants.dist5)
                     print(TAG, "Legacy FindPeak: {} peaks at frequencies: {} Hz"
                           .format(len(max_freq_mag), max_freq_mag))
 
-                    is_valid = (len(max_freq_mag) > 0 and
-                                ((4e6 < max_freq_mag[0] < 6e6) or
-                                 (9e6 < max_freq_mag[0] < 11e6)))
+                    is_valid = (len(max_freq_mag) > 1 and
+                                Constants.peak_freq_sweep_min < max_freq_mag[0]
+                                < Constants.peak_freq_sweep_max)
                     if is_valid:
+                        (_, path, path_calib,
+                         filename_calib, _) = self.describe_quartz(max_freq_mag[0])
                         print(TAG, "Saving data in file...")
                         import os
                         os.makedirs(os.path.dirname(path), exist_ok=True)
