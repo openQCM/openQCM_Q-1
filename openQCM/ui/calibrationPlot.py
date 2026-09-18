@@ -2,6 +2,8 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 import pyqtgraph as pg
 import numpy as np
 
+from openQCM.core.constants import Constants
+
 TAG = "[CalibrationPlot]"
 
 # Project-wide colors aligned with the main GUI
@@ -28,8 +30,6 @@ def _is_grid_on(plot):
 ###############################################################################
 class CalibrationPlotWindow(QtGui.QDialog):
 
-    # QCM overtone multipliers: fundamental=1, then odd harmonics
-    OVERTONE_LABELS = [1, 3, 5, 7, 9]
 
     def __init__(self, parent=None, theme='dark'):
         super(CalibrationPlotWindow, self).__init__(parent)
@@ -223,12 +223,7 @@ class CalibrationPlotWindow(QtGui.QDialog):
             # Title
             if len(valid_peak_freqs) > 0:
                 fund_freq = valid_peak_freqs[0]
-                if 4e6 < fund_freq < 6e6:
-                    qcm_type = "5 MHz QCM"
-                elif 9e6 < fund_freq < 11e6:
-                    qcm_type = "10 MHz QCM"
-                else:
-                    qcm_type = "Unknown"
+                qcm_type = Constants.quartz_label(fund_freq)
                 self._title_label.setText(
                     "Peak Detection Diagnostic -- {} -- {} peaks detected".format(
                         qcm_type, len(valid_peak_freqs)))
@@ -288,9 +283,8 @@ class CalibrationPlotWindow(QtGui.QDialog):
             scatter_amp_peaks.setZValue(Z_PEAK)
             self._plt_amp.addItem(scatter_amp_peaks)
             # Peak labels (white in dark / black in light)
-            for vi, (pf, pv) in zip(valid_indices,
-                                    zip(valid_peak_freqs, valid_peak_mag)):
-                n = self.OVERTONE_LABELS[vi] if vi < len(self.OVERTONE_LABELS) else '?'
+            for pf, pv in zip(valid_peak_freqs, valid_peak_mag):
+                n = int(round(pf / valid_peak_freqs[0]))   # harmonic order, not file position
                 text = pg.TextItem(text="F{}: {:.0f} Hz".format(n, pf),
                                    color=label_color, anchor=(0.5, 1.2))
                 text.setPos(pf, pv)
@@ -337,9 +331,9 @@ class CalibrationPlotWindow(QtGui.QDialog):
             scatter_phase_peaks.setZValue(Z_PEAK)
             self._plt_phase.addItem(scatter_phase_peaks)
             # Phase peak labels — frequency of the PHASE peak (for amp-vs-phase comparison)
-            for vi, (pf, pv) in zip(valid_indices,
-                                    zip(phase_peak_freqs, phase_peak_values)):
-                n = self.OVERTONE_LABELS[vi] if vi < len(self.OVERTONE_LABELS) else '?'
+            for amp_pf, (pf, pv) in zip(valid_peak_freqs,
+                                        zip(phase_peak_freqs, phase_peak_values)):
+                n = int(round(amp_pf / valid_peak_freqs[0]))   # harmonic order, not file position
                 text = pg.TextItem(text="F{}: {:.0f} Hz".format(n, pf),
                                    color=label_color, anchor=(0.5, 1.2))
                 text.setPos(pf, pv)

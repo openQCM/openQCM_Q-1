@@ -33,7 +33,7 @@ from openQCM.core.ringBuffer import RingBuffer
 from openQCM.core.constants import Constants
 from openQCM.common.fileStorage import FileStorage
 from openQCM.common.logger import Logger as Log
-from openQCM.common.switcher import Overtone_Switcher_5MHz, Overtone_Switcher_10MHz
+from openQCM.common.switcher import OvertoneSwitcher
 
 
 TAG = ""  # set to "[Serial]" for verbose tagged prints
@@ -134,37 +134,11 @@ class SerialProcess(multiprocessing.Process):
 
     def _get_overtone_intervals(self):
         """
-        Return the (L, R) frequency intervals defining the asymmetric sweep
-        window around the current reference. The choice of intervals depends on
-        the sensor type (5/10 MHz, inferred from the reference frequency) and
-        on the selected overtone index `_overtone_int`.
-
-        :return: (L_interval_Hz, R_interval_Hz)
+        (L, R) Hz defining the asymmetric sweep window around the current
+        reference frequency, from the frequency-keyed profile table.
         """
-        ref = self._reference_frequency
-
-        # 5 MHz sensor: F0 ≈ 5 MHz; its odd overtones reach up to ~45 MHz.
-        # We detect 5 MHz by the *fundamental* range (4–6 MHz). Higher overtones
-        # of a 5 MHz sensor live above 9 MHz so we identify them by index.
-        if 4e6 < ref < 6e6:
-            return {
-                0: (Constants.L5_fundamental,  Constants.R5_fundamental),
-                1: (Constants.L5_3th_overtone, Constants.R5_3th_overtone),
-                2: (Constants.L5_5th_overtone, Constants.R5_5th_overtone),
-                3: (Constants.L5_7th_overtone, Constants.R5_7th_overtone),
-                4: (Constants.L5_9th_overtone, Constants.R5_9th_overtone),
-            }.get(self._overtone_int, (15000, 5000))
-
-        # 10 MHz sensor or higher overtones (covers F0=10 MHz, F3=30 MHz, F5=50 MHz)
-        if 9e6 < ref < 51e6:
-            return {
-                0: (Constants.L10_fundamental,  Constants.R10_fundamental),
-                1: (Constants.L10_3th_overtone, Constants.R10_3th_overtone),
-                2: (Constants.L10_5th_overtone, Constants.R10_5th_overtone),
-            }.get(self._overtone_int, (15000, 5000))
-
-        # Fallback: should not happen if calibration produced a valid F0
-        return 15000, 5000
+        L, R, _, _ = Constants.sweep_profile_for(self._reference_frequency)
+        return L, R
 
     def _recalculate_baseline_for_range(self):
         """Re-evaluate the calibration baseline polynomial on the new sweep grid."""
@@ -676,31 +650,21 @@ class SerialProcess(multiprocessing.Process):
         """
         Build the sweep window for the currently selected overtone.
 
-        Auto-detects the sensor type from the fundamental frequency stored in
-        PeakFrequencies.txt: 4–6 MHz → 5 MHz sensor, 9–11 MHz → 10 MHz sensor.
+        Window and smoothing depend only on the absolute frequency of the
+        selected peak (see `Constants.sweep_profiles`); the crystal type is
+        never looked up.
 
         :param samples: number of samples per sweep
         :return: (overtone_name, overtone_value, fStep, readFREQ,
                   SG_window_size, spline_points, spline_factor)
         """
         peaks_mag = self.load_frequencies_file()
-
-        if 4e6 < peaks_mag[0] < 6e6:
-            switcher = Overtone_Switcher_5MHz(peak_frequencies=peaks_mag)
-            (overtone_name, overtone_value,
-             self._startFreq, self._stopFreq,
-             SG_window_size, spline_factor) = switcher.overtone5MHz_to_freq_range(self._overtone_int)
-            print(TAG, "openQCM Device setup: @5MHz")
-        elif 9e6 < peaks_mag[0] < 11e6:
-            switcher = Overtone_Switcher_10MHz(peak_frequencies=peaks_mag)
-            (overtone_name, overtone_value,
-             self._startFreq, self._stopFreq,
-             SG_window_size, spline_factor) = switcher.overtone10MHz_to_freq_range(self._overtone_int)
-            print(TAG, "openQCM Device setup: @10MHz")
-        else:
-            raise ValueError(
-                "Unsupported fundamental frequency {} Hz — expected 5 MHz or 10 MHz QCM"
-                .format(peaks_mag[0]))
+        switcher = OvertoneSwitcher(peak_frequencies=peaks_mag)
+        (overtone_name, overtone_value,
+         self._startFreq, self._stopFreq,
+         SG_window_size, spline_factor) = switcher.to_freq_range(self._overtone_int)
+        print(TAG, "openQCM Device setup: {} (fundamental {:.0f} Hz)".format(
+            Constants.quartz_label(peaks_mag[0]), peaks_mag[0]))
 
         fStep = (self._stopFreq - self._startFreq) / (samples - 1)
         spline_points = int(self._stopFreq - self._startFreq) + 1
@@ -716,19 +680,12 @@ class SerialProcess(multiprocessing.Process):
 
     def load_calibration_file(self):
         """
-        Load the full calibration sweep matching the detected sensor type.
+        Load the full calibration sweep written by Peak Detection for the
+        crystal whose fundamental is stored in PeakFrequencies.txt.
 
-        :return: (frequency, magnitude, phase) arrays from Calibration_*.txt
+        :return: (frequency, magnitude, phase) arrays from Calibration_<N>MHz.txt
         """
         peaks_mag = self.load_frequencies_file()
-        if 4e6 < peaks_mag[0] < 6e6:
-            filename = Constants.csv_calibration_path
-        elif 9e6 < peaks_mag[0] < 11e6:
-            filename = Constants.csv_calibration_path10
-        else:
-            raise ValueError(
-                "Unsupported fundamental frequency {} Hz — no calibration file"
-                .format(peaks_mag[0]))
-
+        filename = Constants.calibration_path_for(peaks_mag[0])
         data = loadtxt(filename)
         return data[:, 0], data[:, 1], data[:, 2]

@@ -20,6 +20,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")   # constants.py imports p
 
 from openQCM.core.constants import Constants                      # noqa: E402
 from openQCM.processors.Calibration import CalibrationProcess     # noqa: E402
+from openQCM.common.switcher import OvertoneSwitcher              # noqa: E402
 
 TOL_HZ = 2000   # two sweep steps
 
@@ -96,6 +97,51 @@ class GenericQuartzRules(unittest.TestCase):
         overtones = proc.peak_detection_overtones(freq, mag_c, phase_c, f0)
         self.assertEqual(len(overtones), 0)
         self.assertFalse(proc.is_valid_quartz(f0, len(overtones)))
+
+
+class SweepProfiles(unittest.TestCase):
+    """The frequency-keyed table must reproduce the former per-crystal values."""
+
+    LEGACY = {   # resonance Hz -> (L, R, SG window, spline)
+        5.003e6:  (15000, 5000,  9, 0.05),   # 5 MHz F0
+        14.994e6: (15000, 5000, 11, 0.01),   # 5 MHz F3
+        24.986e6: (15000, 5000, 11, 0.01),   # 5 MHz F5
+        34.977e6: (50000, 2500, 33, 0.01),   # 5 MHz F7
+        44.966e6: (5000000, 100000, 5, 0.5), # 5 MHz F9 (placeholder)
+        10.018e6: (15000, 5000, 11, 0.01),   # 10 MHz F0
+        30.087e6: (15000, 5000, 11, 0.01),   # 10 MHz F3
+        50.150e6: (23000, 3000, 19, 0.01),   # 10 MHz F5
+    }
+
+    def test_legacy_profiles_preserved(self):
+        for f, expected in self.LEGACY.items():
+            with self.subTest(freq_mhz=f / 1e6):
+                self.assertEqual(Constants.sweep_profile_for(f), expected)
+
+    def test_8mhz_peaks_get_sensible_profiles(self):
+        self.assertEqual(Constants.sweep_profile_for(7.998e6), (15000, 5000, 11, 0.01))
+        self.assertEqual(Constants.sweep_profile_for(23.938e6), (15000, 5000, 11, 0.01))
+        self.assertEqual(Constants.sweep_profile_for(39.873e6), (23000, 3000, 19, 0.01))
+
+    def test_sg_window_is_odd(self):
+        for _, _, _, sg, _ in Constants.sweep_profiles:
+            self.assertEqual(sg % 2, 1)
+
+
+class Switcher(unittest.TestCase):
+
+    def test_names_follow_harmonic_ratio(self):
+        sw = OvertoneSwitcher(np.array([7.998e6, 23.938e6, 39.873e6]))
+        self.assertEqual([sw.to_freq_range(i)[0] for i in range(3)], ["F0", "F3", "F5"])
+
+    def test_missing_overtone_does_not_shift_names(self):
+        sw = OvertoneSwitcher(np.array([5.003e6, 24.986e6]))   # F3 rejected
+        self.assertEqual(sw.to_freq_range(1)[0], "F5")
+
+    def test_window_matches_profile(self):
+        sw = OvertoneSwitcher(np.array([5.003e6, 14.994e6]))
+        name, centre, start, stop, sg, spline = sw.to_freq_range(1)
+        self.assertEqual((centre - start, stop - centre, sg, spline), (15000, 5000, 11, 0.01))
 
 
 if __name__ == "__main__":

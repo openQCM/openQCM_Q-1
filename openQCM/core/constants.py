@@ -3,7 +3,7 @@ openQCM Q-1 — application-wide constants and helper axis classes.
 
 Constants are grouped by feature area:
     - Application & plot defaults
-    - Per-overtone signal-processing parameters (5 MHz / 10 MHz sensors)
+    - Per-overtone signal-processing parameters (by resonance frequency)
     - Serial / process / log / file paths
     - Peak detection (calibration) tuning
     - Auto-tracking and signal-quality thresholds
@@ -66,55 +66,43 @@ class Constants:
     argument_default_samples = 501                         # samples per measurement sweep
 
     # ---------- Signal processing per overtone ----------
-    # For each overtone:
-    #   L*  = Hz to subtract from the peak to define sweep start
-    #   R*  = Hz to add to the peak to define sweep stop
-    #   SG_window_size* = Savitzky-Golay smoothing window (must be odd)
-    #   Spline_factor*  = scipy UnivariateSpline smoothing factor (s parameter)
-    SG_order = 3                                           # SG polynomial order (common to all overtones)
+    # The sweep window and smoothing used in Measurement mode depend on the
+    # *absolute frequency* of the resonance being tracked, not on the crystal
+    # type: higher overtones have lower Q, broader and more asymmetric peaks,
+    # and need wider windows and stronger smoothing. One table therefore
+    # serves 5, 8, 10 MHz crystals alike. Each row is
+    #     (upper bound Hz, L, R, SG window, spline factor)
+    #   L / R          = Hz subtracted from / added to the peak -> sweep start / stop
+    #   SG window      = Savitzky-Golay smoothing window (must be odd)
+    #   spline factor  = scipy UnivariateSpline smoothing factor (s parameter)
+    # The values are the empirically tuned ones formerly stored per crystal
+    # (L5_*, L10_*, ...); every 5 / 10 MHz resonance maps to exactly the
+    # profile it had before.
+    SG_order = 3                                           # SG polynomial order (common to all)
 
-    # 5 MHz sensor — fundamental F0 ~5 MHz
-    L5_fundamental = 15000
-    R5_fundamental = 5000
-    SG_window_size5_fundamental = 9
-    Spline_factor5_fundamental = 0.05
-    # 5 MHz sensor — 3rd overtone F3 ~15 MHz
-    L5_3th_overtone = 15000
-    R5_3th_overtone = 5000
-    SG_window_size5_3th_overtone = 11
-    Spline_factor5_3th_overtone = 0.01
-    # 5 MHz sensor — 5th overtone F5 ~25 MHz
-    L5_5th_overtone = 15000
-    R5_5th_overtone = 5000
-    SG_window_size5_5th_overtone = 11
-    Spline_factor5_5th_overtone = 0.01
-    # 5 MHz sensor — 7th overtone F7 ~35 MHz
-    L5_7th_overtone = 50000
-    R5_7th_overtone = 2500
-    SG_window_size5_7th_overtone = 33
-    Spline_factor5_7th_overtone = 0.01
-    # 5 MHz sensor — 9th overtone F9 ~45 MHz
-    # NOTE: parameters are placeholders pending hardware validation (see TODO.md)
-    L5_9th_overtone = 5000000
-    R5_9th_overtone = 100000
-    SG_window_size5_9th_overtone = 5
-    Spline_factor5_9th_overtone = 0.5
+    sweep_profiles = [
+        # ~5 MHz fundamentals
+        (7.5e6,   15000,  5000,  9, 0.05),
+        # 8-30 MHz: fundamentals of 8/10 MHz crystals, F3/F5 of 5 MHz, F3 of 8/10 MHz
+        (32.5e6,  15000,  5000, 11, 0.01),
+        # ~35 MHz: F7 of 5 MHz
+        (37.5e6,  50000,  2500, 33, 0.01),
+        # ~40 MHz: F5 of 8 MHz — borrows the 50 MHz profile, still to be
+        # validated on real hardware (no 8 MHz crystal in house)
+        (42.5e6,  23000,  3000, 19, 0.01),
+        # ~45 MHz: F9 of 5 MHz — placeholder pending validation (see TODO.md)
+        (47.5e6, 5000000, 100000, 5, 0.5),
+        # ~50 MHz: F5 of 10 MHz
+        (51.0e6,  23000,  3000, 19, 0.01),
+    ]
 
-    # 10 MHz sensor — fundamental F0 ~10 MHz
-    L10_fundamental = 15000
-    R10_fundamental = 5000
-    SG_window_size10_fundamental = 11
-    Spline_factor10_fundamental = 0.01
-    # 10 MHz sensor — 3rd overtone F3 ~30 MHz
-    L10_3th_overtone = 15000
-    R10_3th_overtone = 5000
-    SG_window_size10_3th_overtone = 11
-    Spline_factor10_3th_overtone = 0.01
-    # 10 MHz sensor — 5th overtone F5 ~50 MHz
-    L10_5th_overtone = 23000
-    R10_5th_overtone = 3000
-    SG_window_size10_5th_overtone = 19
-    Spline_factor10_5th_overtone = 0.01
+    @classmethod
+    def sweep_profile_for(cls, frequency):
+        """(L, R, SG window, spline factor) for a resonance at `frequency` Hz."""
+        for upper, L, R, sg, spline in cls.sweep_profiles:
+            if frequency < upper:
+                return L, R, sg, spline
+        return cls.sweep_profiles[-1][1:]
 
     # ---------- Serial port ----------
     serial_default_speed = 115200

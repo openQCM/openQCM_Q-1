@@ -35,6 +35,7 @@ from openQCM.core.constants import (
     Constants, SourceType,
     DateAxis, NonScientificAxis, OneDecimalAxis, ElapsedTimeAxis,
 )
+from openQCM.common.switcher import OvertoneSwitcher
 from openQCM.common.logger import Logger as Log
 from openQCM.common.architecture import Architecture, OSType
 from openQCM.common.resources import get_data_path
@@ -299,18 +300,11 @@ class MainWindow(QtGui.QMainWindow):
             #####
 
             if self._get_source() == SourceType.serial:
-                # Infer the QCM sensor type from the highest peak frequency listed
-                # in PeakFrequencies.txt (last item, since the list is sorted desc).
+                # The quartz is described by its fundamental, i.e. the last
+                # item of the speed list (sorted descending).
                 speeds = self.worker.get_source_speeds(SourceType.serial)
-                overtones_number = len(speeds)
-                top_freq = float(speeds[overtones_number - 1])
-                if 4e6 < top_freq < 6e6:
-                    label_quartz = "5 MHz QCM"
-                elif 9e6 < top_freq < 11e6:
-                    label_quartz = "10 MHz QCM"
-
-
-                _set_data_value(self.ui.info1a, label_quartz)
+                fundamental = float(speeds[-1])
+                _set_data_value(self.ui.info1a, Constants.quartz_label(fundamental))
                 label11= "Measurement openQCM Q-1"
                 _set_data_value(self.ui.info11, label11)
                 self._overtone_name,self._overtone_value, self._fStep = self.worker.get_overtone()
@@ -1399,50 +1393,43 @@ class MainWindow(QtGui.QMainWindow):
     # Overtone quick-select buttons
     ###########################################################################
 
-    # Mapping: button label → index in PeakFrequencies.txt (file order)
-    OVERTONE_MAP = {'F0': 0, 'F3': 1, 'F5': 2, 'F7': 3, 'F9': 4}
-    INDEX_TO_LABEL = {0: 'F0', 1: 'F3', 2: 'F5', 3: 'F7', 4: 'F9'}
+    def _peaks_by_harmonic_label(self):
+        """
+        {label: frequency} for the peaks in PeakFrequencies.txt, labelled by
+        their harmonic ratio to the fundamental ("F0", "F3", "F5", ...).
+        Labelling by ratio rather than by file position keeps the buttons
+        truthful when Peak Detection rejected an intermediate overtone.
+        Raises if the file is missing or unreadable.
+        """
+        peak_freqs = np.loadtxt(Constants.cvs_peakfrequencies_path)[:, 0]
+        return {OvertoneSwitcher.harmonic_name(pf, peak_freqs[0]): pf
+                for pf in peak_freqs if pf > 0}
 
     def _update_overtone_buttons(self):
-        """Enable overtone buttons based on calibration results (PeakFrequencies.txt)."""
+        """Enable the overtone buttons whose harmonic was found by Peak Detection."""
         try:
-            peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
-            peak_freqs = peak_data[:, 0]
+            peaks = self._peaks_by_harmonic_label()
         except Exception:
-            # No calibration data — disable all buttons
-            for btn in self.ui.overtone_buttons.values():
-                btn.setEnabled(False)
-                btn.setChecked(False)
-                btn.setProperty('calibrated', False)
-            return
+            peaks = {}   # no calibration data: every button stays disabled
 
-        # Enable buttons for detected peaks (frequency > 0)
         for label, btn in self.ui.overtone_buttons.items():
-            idx = self.OVERTONE_MAP[label]
-            if idx < len(peak_freqs) and peak_freqs[idx] > 0:
-                btn.setEnabled(True)
-                btn.setProperty('calibrated', True)
-            else:
-                btn.setEnabled(False)
+            found = label in peaks
+            btn.setEnabled(found)
+            btn.setProperty('calibrated', found)
+            if not found:
                 btn.setChecked(False)
-                btn.setProperty('calibrated', False)
 
         # Sync with current dropdown selection
         self._sync_overtone_buttons()
 
     def _on_overtone_button_clicked(self, label):
         """Handle click on an overtone button — update dropdown to match."""
-        idx = self.OVERTONE_MAP[label]
         try:
-            peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
-            peak_freqs = peak_data[:, 0]
-            if idx < len(peak_freqs):
-                target_freq = str(peak_freqs[idx])
-                # Find this frequency in the dropdown (which is in reverse order)
-                for i in range(self.ui.cBox_Speed.count()):
-                    if self.ui.cBox_Speed.itemText(i) == target_freq:
-                        self.ui.cBox_Speed.setCurrentIndex(i)
-                        break
+            target_freq = str(self._peaks_by_harmonic_label()[label])
+            for i in range(self.ui.cBox_Speed.count()):
+                if self.ui.cBox_Speed.itemText(i) == target_freq:
+                    self.ui.cBox_Speed.setCurrentIndex(i)
+                    break
         except Exception:
             pass
         # Update checked state
@@ -1456,12 +1443,8 @@ class MainWindow(QtGui.QMainWindow):
             return
         try:
             current_freq = float(current_text)
-            peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
-            peak_freqs = peak_data[:, 0]
-            # Find which index matches the selected frequency
-            for i, pf in enumerate(peak_freqs):
+            for label, pf in self._peaks_by_harmonic_label().items():
                 if abs(pf - current_freq) < 1.0:  # float comparison tolerance
-                    label = self.INDEX_TO_LABEL.get(i)
                     for l, btn in self.ui.overtone_buttons.items():
                         btn.setChecked(l == label)
                     return
@@ -2167,16 +2150,11 @@ class MainWindow(QtGui.QMainWindow):
     # Opens Peak Data View showing calibration amplitude/phase with peaks
     ###########################################################################
     def _open_peak_data_viewer(self):
-        # Find the most recently modified calibration file
-        calib_path = None
-        latest_mtime = 0
-        for candidate in [Constants.csv_calibration_path,
-                          Constants.csv_calibration_path10]:
-            if os.path.exists(candidate):
-                mtime = os.path.getmtime(candidate)
-                if mtime > latest_mtime:
-                    latest_mtime = mtime
-                    calib_path = candidate
+        # Find the most recently written Calibration_<N>MHz.txt, whatever N
+        import glob
+        pattern = os.path.join(Constants.csv_calibration_export_path, "Calibration_*MHz.txt")
+        candidates = glob.glob(pattern)
+        calib_path = max(candidates, key=os.path.getmtime) if candidates else None
 
         peaks_path = Constants.cvs_peakfrequencies_path
 

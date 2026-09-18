@@ -5,9 +5,13 @@ from the main application (Calibration.py).
 
 Usage: python peak_detection_analyzer.py <calibration_file>
 
-Input: Calibration_5MHz.txt or Calibration_10MHz.txt
+Input: any Calibration_<N>MHz.txt (5, 8, 10 MHz, ...)
        3 columns (space-separated): frequency, amplitude, phase
        50001 rows, 1 MHz to 51 MHz, 1 kHz step
+
+The crystal type is never assumed: the measured fundamental drives the
+overtone search, the validity check and the label, exactly as in
+openQCM/processors/Calibration.py.
 """
 import sys
 import numpy as np
@@ -26,9 +30,8 @@ PEAK_POINTS_OVERTONE = 100             # argrelextrema order (~100 kHz min spaci
 OVERTONE_MULTIPLIERS = [3, 5, 7, 9]   # Odd harmonics
 PEAK_MAX_FREQ_LIMIT = 51_000_000       # 51 MHz upper limit
 PEAK_PHASE_THRESHOLD = 10              # degrees — minimum phase peak
-PEAK_FREQ_DIFF_DIVISOR = 2            # 50 kHz threshold (provisional, see TODO)
-VALID_5MHZ = (4e6, 6e6)               # Valid fundamental range for 5 MHz QCM
-VALID_10MHZ = (9e6, 11e6)             # Valid fundamental range for 10 MHz QCM
+PEAK_FREQ_DIFF_DIVISOR = 2            # phase searched within +-50 kHz of the magnitude peak
+PEAK_MIN_CONFIRMED_OVERTONES = 1      # a lone peak with no harmonics is not a resonator
 
 
 def load_calibration(filepath):
@@ -78,14 +81,15 @@ def detect_fundamental(freq, mag_corrected):
     return f_fundamental, all_candidates
 
 
-def detect_qcm_type(f_fundamental):
-    """Auto-detect QCM sensor type from fundamental frequency."""
-    if VALID_5MHZ[0] < f_fundamental < VALID_5MHZ[1]:
-        return "5 MHz QCM", True
-    elif VALID_10MHZ[0] < f_fundamental < VALID_10MHZ[1]:
-        return "10 MHz QCM", True
-    else:
-        return f"Unknown ({f_fundamental/1e6:.3f} MHz)", False
+def quartz_label(f_fundamental):
+    """Label derived from the measured fundamental (7.998 MHz -> '8 MHz QCM')."""
+    return f"{int(round(f_fundamental / 1e6))} MHz QCM"
+
+
+def is_valid_quartz(f_fundamental, n_confirmed_overtones):
+    """Fundamental inside the search range and enough overtones confirmed by phase."""
+    in_range = PEAK_FREQ_MIN < f_fundamental < PEAK_FREQ_MAX
+    return in_range and n_confirmed_overtones >= PEAK_MIN_CONFIRMED_OVERTONES
 
 
 def detect_overtones(freq, mag_corrected, phase_corrected, f_fundamental):
@@ -94,7 +98,7 @@ def detect_overtones(freq, mag_corrected, phase_corrected, f_fundamental):
     Cross-validates magnitude and phase peaks.
     """
     fStep = freq[1] - freq[0]
-    diff_threshold = (fStep * PEAK_POINTS_OVERTONE) / PEAK_FREQ_DIFF_DIVISOR
+    phase_window_half = (fStep * PEAK_POINTS_OVERTONE) / PEAK_FREQ_DIFF_DIVISOR
 
     results = []
     for n in OVERTONE_MULTIPLIERS:
@@ -118,25 +122,22 @@ def detect_overtones(freq, mag_corrected, phase_corrected, f_fundamental):
             f_mag = freq_sub[mag_peaks[best]]
             a_mag = mag_sub[mag_peaks[best]]
 
-        # Find phase peak
-        phase_peaks = scipy.signal.argrelextrema(phase_sub, np.greater, order=PEAK_POINTS_OVERTONE)[0]
+        # Phase maximum searched only near the magnitude peak, so a stronger
+        # spurious phase mode elsewhere in the window cannot mask the resonance
         f_phase, a_phase = 0, 0
-        if len(phase_peaks) > 0:
-            best = np.argmax(phase_sub[phase_peaks])
-            f_phase = freq_sub[phase_peaks[best]]
-            a_phase = phase_sub[phase_peaks[best]]
+        phase_peaks = np.array([], dtype=int)
+        if f_mag > 0:
+            near = np.where((freq_sub >= f_mag - phase_window_half) &
+                            (freq_sub <= f_mag + phase_window_half))[0]
+            best = near[np.argmax(phase_sub[near])]
+            f_phase, a_phase = freq_sub[best], phase_sub[best]
+            phase_peaks = np.array([best])
 
-        # Cross-validation
-        freq_diff = abs(f_mag - f_phase) if (f_mag > 0 and f_phase > 0) else float('inf')
+        freq_diff = abs(f_mag - f_phase) if f_mag > 0 else float('inf')
         reject_reasons = []
-
         if f_mag == 0:
             reject_reasons.append("no magnitude peak found")
-        if f_phase == 0:
-            reject_reasons.append("no phase peak found")
-        if freq_diff > diff_threshold:
-            reject_reasons.append(f"freq diff {freq_diff:.0f} Hz > threshold {diff_threshold:.0f} Hz")
-        if a_phase <= PEAK_PHASE_THRESHOLD:
+        elif a_phase <= PEAK_PHASE_THRESHOLD:
             reject_reasons.append(f"phase max {a_phase:.1f}° <= {PEAK_PHASE_THRESHOLD}° threshold")
 
         accepted = len(reject_reasons) == 0
@@ -164,7 +165,7 @@ def detect_overtones(freq, mag_corrected, phase_corrected, f_fundamental):
         if f_phase > 0:
             print(f"    Phase peak:     {f_phase/1e6:.6f} MHz (phase: {a_phase:.1f}°)")
         if freq_diff < float('inf'):
-            print(f"    Freq diff:      {freq_diff:.0f} Hz (threshold: {diff_threshold:.0f} Hz)")
+            print(f"    Phase offset:   {freq_diff:.0f} Hz (searched within +-{phase_window_half:.0f} Hz)")
         for r in reject_reasons:
             print(f"    REASON: {r}")
 
@@ -318,19 +319,17 @@ def main():
     f_fundamental, fund_candidates = detect_fundamental(freq, mag_corrected)
     print()
 
-    # Step 4: QCM type
-    print("[Step 4] QCM type detection...")
-    qcm_type, is_valid = detect_qcm_type(f_fundamental)
-    if is_valid:
-        print(f"  Detected: {qcm_type} (fundamental: {f_fundamental/1e6:.6f} MHz)")
-    else:
-        print(f"  WARNING: {qcm_type} — NOT a valid QCM fundamental frequency!")
-        print(f"  Valid ranges: 4-6 MHz (5 MHz sensor) or 9-11 MHz (10 MHz sensor)")
+    # Step 4: quartz described by its fundamental
+    print("[Step 4] Quartz identification from the fundamental...")
+    qcm_type = quartz_label(f_fundamental)
+    print(f"  {qcm_type} (fundamental: {f_fundamental/1e6:.6f} MHz)")
     print()
 
     # Step 5: Overtone detection
     print("[Step 5] Phase 2 — Overtone detection...")
     overtone_results = detect_overtones(freq, mag_corrected, phase_corrected, f_fundamental)
+    n_confirmed = sum(1 for ot in overtone_results if ot['accepted'])
+    is_valid = is_valid_quartz(f_fundamental, n_confirmed)
     print()
 
     # Summary
@@ -358,11 +357,10 @@ def main():
     print()
     all_zero = all(ot['f_mag'] == 0 for ot in overtone_results)
     if not is_valid:
-        print("  VERDICT: FAIL — Fundamental is not a valid QCM frequency")
+        print(f"  VERDICT: FAIL — fundamental out of range or fewer than "
+              f"{PEAK_MIN_CONFIRMED_OVERTONES} overtone(s) confirmed (no harmonic series)")
     elif all_zero and len(overtone_results) > 0:
         print("  VERDICT: FAIL — All overtones are zero")
-    elif len(accepted) == 0 and len(overtone_results) > 0:
-        print("  VERDICT: WARNING — No overtones accepted (fundamental only)")
     else:
         print(f"  VERDICT: OK — {1 + len(accepted)} peaks detected")
     print()
