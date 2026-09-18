@@ -102,6 +102,13 @@ Known behaviours to watch during testing — not blocking, but worth tracking:
     - a short Measurement log on F5 (~40 MHz) to confirm the borrowed sweep
       profile tracks the peak
 
+- [ ] **High-DPI displays** — reported by the 8 MHz customer (2026-09-18) on a
+  3000x2000 Windows screen: widgets and fonts render tiny, the layout does not
+  scale. Investigate `Qt.AA_EnableHighDpiScaling` / `AA_UseHighDpiPixmaps`
+  before creating the QApplication (and `QT_SCALE_FACTOR` / `QT_AUTO_SCREEN_SCALE_FACTOR`
+  for the frozen build); check pyqtgraph label sizes. Not related to the
+  generic quartz work — handle separately.
+
 - [ ] **Socket Client data source** (`constants.py:36`) — reserved enum value,
   currently unused. Implement when remote acquisition is needed.
 
