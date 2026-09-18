@@ -369,7 +369,7 @@ class MainWindow(QtGui.QMainWindow):
                 lbl.setText(elided)
                 lbl.setToolTip(csv_name)
                 sn_suffix = " [{}]".format(self._board_serial) if self._board_serial else ""
-                self.setWindowTitle("openQCM Q-1 - version 3.0{} \u2014 {}".format(sn_suffix, csv_name))
+                self.setWindowTitle("{}{} \u2014 {}".format(Constants.app_window_title, sn_suffix, csv_name))
 
             if self._get_source() == SourceType.calibration:
                self.ui.pButton_Clear.setEnabled(False) #insert
@@ -401,7 +401,7 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.lblLogFile.setText("")
         self.ui.lblLogFile.setToolTip("")
         sn_suffix = " [{}]".format(self._board_serial) if self._board_serial else ""
-        self.setWindowTitle("openQCM Q-1 - version 3.0{}".format(sn_suffix))
+        self.setWindowTitle("{}{}".format(Constants.app_window_title, sn_suffix))
         # Reset reference button label
         self.ui.pButton_Reference.setText("Set Reference")
         print("")
@@ -1643,7 +1643,7 @@ class MainWindow(QtGui.QMainWindow):
             self._connected_port = None
             self._board_serial = None
             self.ui.lblSerialNumber.setText("")
-            self.setWindowTitle("openQCM Q-1 - version 3.0")
+            self.setWindowTitle(Constants.app_window_title)
             self.ui.pButton_Connect.setText("Connect")
             self._set_button_role(self.ui.pButton_Connect, "btnConnect")
             self.ui.cBox_Port.setEnabled(True)

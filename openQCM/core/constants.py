@@ -52,6 +52,11 @@ class Constants:
     # ---------- Application ----------
     app_title = "Real-Time openQCM GUI"
     app_version = '3.0'
+    # Build label shown in the window title so a binary built from this
+    # branch is recognisable at a glance. Empty string on main.
+    app_build_label = "generic quartz freq (feature/generic-quartz-frequency)"
+    app_window_title = "openQCM Version {}{}".format(
+        app_version, " - " + app_build_label if app_build_label else "")
     fw_version = "2.2"                                     # expected firmware version (must match firmware FW_VERSION)
     app_sources = ["Measurement", "Peak Detection"]        # indices match SourceType
     app_encoding = "utf-8"

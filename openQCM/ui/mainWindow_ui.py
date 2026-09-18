@@ -20,6 +20,7 @@ from pyqtgraph import GraphicsLayoutWidget
 from pyqtgraph import AxisItem as _AxisItem
 
 from openQCM.common.resources import get_resource_path
+from openQCM.core.constants import Constants
 
 
 # ---------- Theme palettes ----------
@@ -1486,7 +1487,8 @@ class Ui_Main(object):
             self._mainWindow,
             "About openQCM Q-1",
             f"<h3>openQCM Q-1 Real-Time Monitor</h3>"
-            f"<p>Version {Constants.app_version}</p>"
+            f"<p>Version {Constants.app_version}"
+            f"{' - ' + Constants.app_build_label if Constants.app_build_label else ''}</p>"
             f"<p>Open-source Python application for real-time data acquisition "
             f"and analysis from openQCM Q-1 Device.</p>"
             f"<p><a href='https://openqcm.com/'>openqcm.com</a></p>"
@@ -2160,5 +2162,5 @@ class Ui_Main(object):
         return self._current_theme
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle("openQCM Q-1 - version 3.0")
+        MainWindow.setWindowTitle(Constants.app_window_title)
         MainWindow.setWindowIcon(QtGui.QIcon(get_resource_path('icons/favicon.ico')))

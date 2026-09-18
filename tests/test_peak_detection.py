@@ -9,6 +9,7 @@ Run from the repository root:
     python -m unittest discover -s tests -v
 """
 import os
+import subprocess
 import sys
 import unittest
 
@@ -25,6 +26,9 @@ from openQCM.common.switcher import OvertoneSwitcher              # noqa: E402
 TOL_HZ = 2000   # two sweep steps
 
 # file -> (nominal MHz, fundamental Hz, accepted overtones Hz)
+# The two files under openQCM/ are the committed factory defaults but are
+# rewritten by every Peak Detection run; their expectations hold only for
+# the committed content, so they are skipped when modified locally.
 FIXTURES = {
     "openQCM/Calibration_5MHz.txt":
         (5, 5.003e6, [14.994e6, 24.986e6, 34.977e6, 44.966e6]),
@@ -40,6 +44,16 @@ FIXTURES = {
 }
 
 
+def locally_modified(relpath):
+    """True if `relpath` differs from the committed version (or git is unavailable)."""
+    try:
+        return subprocess.call(["git", "diff", "--quiet", "--", relpath],
+                               cwd=REPO_ROOT, stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL) != 0
+    except OSError:
+        return True
+
+
 def run_detection(relpath):
     data = np.loadtxt(os.path.join(REPO_ROOT, relpath))
     freq, mag, phase = data[:, 0], data[:, 1], data[:, 2]
@@ -53,7 +67,11 @@ def run_detection(relpath):
 class PeakDetectionRegression(unittest.TestCase):
 
     def test_fixtures(self):
+        skipped = []
         for relpath, (nominal, f0_exp, ov_exp) in FIXTURES.items():
+            if relpath.startswith("openQCM/") and locally_modified(relpath):
+                skipped.append(relpath)   # SkipTest inside a subTest would abort the loop
+                continue
             with self.subTest(file=relpath):
                 proc, f0, overtones = run_detection(relpath)
                 self.assertAlmostEqual(f0, f0_exp, delta=TOL_HZ)
@@ -66,6 +84,10 @@ class PeakDetectionRegression(unittest.TestCase):
                 self.assertEqual(label, "{} MHz QCM".format(nominal))
                 self.assertEqual(filename, "Calibration_{}MHz".format(nominal))
                 self.assertTrue(path_calib.endswith("Calibration_{}MHz.txt".format(nominal)))
+        if skipped:
+            print("\n[skipped, rewritten by a local Peak Detection run — restore with "
+                  "`git checkout -- <file>`]: " + ", ".join(skipped))
+        self.assertLess(len(skipped), len(FIXTURES), "every fixture was skipped")
 
 
 class GenericQuartzRules(unittest.TestCase):
