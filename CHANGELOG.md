@@ -801,3 +801,95 @@ let old firmware be used across connect/disconnect without a physical replug.
 ---
 
 *Development assisted by Claude Code — February 2026 onwards*
+
+---
+
+# PART 14: GENERIC QUARTZ FREQUENCY — September 2026
+
+Branch `feature/generic-quartz-frequency`. Motivated by a customer request to
+support **8 MHz crystals**; delivered as a generalisation rather than a third
+hard-coded case.
+
+## Problem
+
+The two-phase peak detection already searched the overtones as odd multiples
+of the *measured* fundamental, but the crystal type was still hard-coded in
+five places, so any quartz other than 5 or 10 MHz failed:
+
+- `Calibration.auto_detect_qcm_type` mapped fixed 4–6 / 9–11 MHz windows to
+  label, file name and legacy peak spacing.
+- The validity gate accepted only those windows: an 8 MHz fundamental was
+  reported as "not a valid QCM resonance" and `PeakFrequencies.txt` was not
+  written.
+- `Serial.get_frequencies` / `_get_overtone_intervals` / `load_calibration_file`
+  tested the same ranges and raised `ValueError` before the first sweep.
+- Two switcher classes and two blocks of per-crystal constants
+  (`L5_*`, `L10_*`, `SG_window_size*`, `Spline_factor*`) selected the sweep
+  window and smoothing.
+- The GUI quartz label, Peak Detection Diagnostic title and Peak Data View
+  file lookup repeated the ranges.
+
+Replaying the only real 8 MHz sweep in our archive
+(`tools/Calibration_8MHz.txt`, January 2019) exposed a second issue: **F3 at
+23.938 MHz was rejected** by the magnitude/phase cross-check. A spurious phase
+mode 96 kHz above the peak reached 50.3°, the true phase peak 49.0°; the
+algorithm took the strongest phase peak of the whole ±400 kHz window and then
+failed the 50 kHz distance rule.
+
+## Solution
+
+- **Quartz described by its fundamental** — `CalibrationProcess.describe_quartz`
+  derives label (`"8 MHz QCM"`), calibration file name
+  (`Calibration_8MHz.txt`) and paths via `Constants.quartz_label` /
+  `calibration_filename_for` / `calibration_path_for`. For 5 and 10 MHz the
+  names are unchanged, so existing installations are unaffected.
+- **Validity by harmonic series** — `is_valid_quartz` accepts a fundamental in
+  the 1–12 MHz search range when at least `peak_min_confirmed_overtones` (1)
+  overtones are confirmed by phase. A lone spurious peak has no harmonics.
+- **Phase looked up near the magnitude peak** — the phase maximum is searched
+  within ±50 kHz of the magnitude peak (`peak_freq_diff_divisor` keeps its
+  value, its meaning becomes the half-width) and must exceed 10°. Identical
+  results on every 5 and 10 MHz sweep in the repository; F3 of the 8 MHz sweep
+  is now accepted.
+- **Sweep profiles keyed on frequency** — one table `Constants.sweep_profiles`
+  `(upper bound, L, R, SG window, spline factor)` replaces the per-crystal
+  constants and both switcher classes. Every former 5/10 MHz value is
+  reproduced exactly; a 37.5–42.5 MHz band (F5 of 8 MHz) borrows the 50 MHz
+  profile. `OvertoneSwitcher` names overtones by harmonic ratio, so a rejected
+  intermediate overtone no longer shifts F3/F5/... labels or GUI buttons.
+- Consumers updated: `SerialProcess`, `MainWindow` (label, overtone buttons,
+  Peak Data View glob on `Calibration_*MHz.txt`), `CalibrationPlotWindow`,
+  `tools/peak_detection_analyzer.py`. Dead crystal-type code removed
+  (`PopUp.question_QCM`, `serial_default_QCS`, 3 MHz constants, `dist5/dist10`).
+
+## Validation
+
+Offline only — **no 8 MHz hardware in house**. `tests/test_peak_detection.py`
+replays the production methods on the four real sweeps:
+
+| Sweep | F0 | Accepted overtones |
+|---|---|---|
+| `openQCM/Calibration_5MHz.txt` | 5.003 MHz | F3 14.994, F5 24.986, F7 34.977, F9 44.966 MHz |
+| `openQCM/Calibration_10MHz.txt` | 10.018 MHz | F3 30.087, F5 50.150 MHz |
+| `tools/Calibration_10MHz.txt` (counter-example) | 10.019 MHz | F3 30.091, F5 50.155 MHz |
+| `tools/Calibration_8MHz.txt` | 7.998 MHz | F3 23.938, F5 39.873 MHz (F7 at 56 MHz out of range) |
+
+Plus a synthetic lone 8 MHz peak with no harmonics, correctly rejected.
+Results on 5 and 10 MHz are unchanged with respect to `main`.
+
+**Open point for delivery:** the 8 MHz support is validated blind on a single
+2019 file. The customer must be told, and asked for their Peak Detection
+output and a short F5 (~40 MHz) measurement log — see TODO.md.
+
+### Modified Files
+- `openQCM/core/constants.py` — `sweep_profiles`, `sweep_profile_for`,
+  `quartz_label`, `calibration_filename_for`, `calibration_path_for`,
+  `peak_min_confirmed_overtones`, `legacy_findpeak_distance`
+- `openQCM/processors/Calibration.py` — `describe_quartz`, `is_valid_quartz`,
+  phase window in `peak_detection_overtones`, generic legacy fallback
+- `openQCM/processors/Serial.py` — frequency-keyed windows and file lookup
+- `openQCM/common/switcher.py` — `OvertoneSwitcher`
+- `openQCM/ui/mainWindow.py`, `openQCM/ui/calibrationPlot.py`, `openQCM/ui/popUp.py`
+- `tools/peak_detection_analyzer.py`, `tools/Calibration_8MHz.txt` (new fixture)
+- `tests/test_peak_detection.py` (new)
+

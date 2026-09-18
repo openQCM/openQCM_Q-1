@@ -15,33 +15,6 @@ TAG = "[PopUp]"
 class PopUp:
 
     @staticmethod
-    def question_QCM(parent, title, message):
-        """
-        Ask the user to choose the QCM sensor type at startup.
-        Currently unused (auto-detection from the calibration file is preferred),
-        kept for backward compatibility with older entry points.
-
-        :return: 1 → @10 MHz, 0 → @5 MHz
-        """
-        box = QtGui.QMessageBox(parent)
-        box.setIcon(QtGui.QMessageBox.Question)
-        box.setWindowTitle(title)
-        box.setGeometry(700, 400, 340, 220)
-        box.setText(message)
-        box.setStandardButtons(QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-        b10 = box.button(QtGui.QMessageBox.Yes)
-        b10.setText('@10MHz')
-        b5 = box.button(QtGui.QMessageBox.No)
-        b5.setText(' @5MHz')
-        box.exec_()
-        if box.clickedButton() == b10:
-            print(TAG, 'Quartz Crystal Sensor installed on the openQCM Device: @10MHz')
-            return 1
-        if box.clickedButton() == b5:
-            print(TAG, 'Quartz Crystal Sensor installed on the openQCM Device: @5MHz')
-            return 0
-
-    @staticmethod
     def warning(parent, title, message):
         """Modal warning popup (Ok button)."""
         QtGui.QMessageBox.warning(parent, title, message, QtGui.QMessageBox.Ok)

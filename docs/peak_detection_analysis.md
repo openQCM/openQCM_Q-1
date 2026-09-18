@@ -4,6 +4,8 @@
 ## Contesto
 L'algoritmo di Peak Detection (v0.1.6) esegue la calibrazione del sensore QCM: scansiona 1–51 MHz in 10 sezioni da 5 MHz, rileva la fondamentale e le armoniche dispari (3x, 5x, 7x, 9x), con auto-detect del tipo di sensore (3/5/10 MHz).
 
+> **Aggiornamento 2026-09-18 (ramo `feature/generic-quartz-frequency`)**: il tipo di sensore non è più predefinito. La fondamentale misurata guida ricerca degli overtone, validità, etichetta e nome file; i parametri di Measurement sono scelti per fascia di frequenza assoluta (`Constants.sweep_profiles`). Le tabelle sotto marcate *(legacy)* descrivono lo stato precedente; le sezioni *Aggiornamento* riportano quello attuale. Sviluppo motivato da una richiesta per quarzi a 8 MHz e validato offline sul solo file `tools/Calibration_8MHz.txt` (2019).
+
 ---
 
 ## 1. Flusso dell'Algoritmo
@@ -63,13 +65,24 @@ Fallback: se l'algoritmo nuovo fallisce → FindPeak legacy
 | `peak_points_overtone` | 100 | Order argrelextrema (= 100 kHz) |
 | `peak_max_frequency_limit` | 51 MHz | Limite massimo overtone |
 
-### Cross-validazione
+### Cross-validazione (aggiornamento 2026-09-18)
 | Parametro | Valore | Significato |
 |-----------|--------|-------------|
 | `peak_phase_threshold` | 10° | Fase minima per accettare overtone |
-| `peak_freq_diff_divisor` | 4 | Soglia = (1000×100)/4 = 25 kHz |
+| `peak_freq_diff_divisor` | 2 | Semi-finestra = (1000×100)/2 = 50 kHz intorno al picco di ampiezza in cui si cerca il massimo di fase |
 
-### Auto-detect QCM
+Prima si confrontava il picco di ampiezza con il massimo di fase *globale* della finestra ±400 kHz e si scartava se distavano più della soglia. Sul file a 8 MHz un modo spurio di fase a +96 kHz da F3 (50,3°) superava il picco vero (49,0°) e faceva scartare F3. Ora la fase si legge nell'intorno del picco di ampiezza: stessa garanzia fisica, immune allo spurio vicino. Esiti identici su tutti i file a 5 e 10 MHz.
+
+### Identificazione del quarzo (aggiornamento 2026-09-18)
+| Regola | Valore |
+|--------|--------|
+| Fondamentale ammessa | 1–12 MHz (`peak_freq_sweep_min/max`) |
+| Overtone confermati richiesti | ≥ 1 (`peak_min_confirmed_overtones`) |
+| Etichetta | `"<round(F0/1e6)> MHz QCM"` |
+| File di calibrazione | `Calibration_<round(F0/1e6)>MHz.txt` |
+| Distance FindPeak (fallback legacy) | 8,000 (`legacy_findpeak_distance`) |
+
+Tabella precedente *(legacy)*:
 | Range Fondamentale | Tipo | Distance (legacy) |
 |-------------------|------|-------------------|
 | 2–4 MHz | 3 MHz QCM | dist5 = 8,000 |
@@ -91,7 +104,20 @@ Fallback: se l'algoritmo nuovo fallisce → FindPeak legacy
 | Scala ampiezza | (V - 0.9) / 0.03 |
 | Scala fase | (V - 0.9) / 0.01 |
 
-### Parametri Measurement (per overtone, dopo calibrazione)
+### Parametri Measurement (aggiornamento 2026-09-18: per fascia di frequenza)
+
+`Constants.sweep_profiles`, indicizzata sulla frequenza assoluta della risonanza selezionata. Riproduce esattamente i valori legacy per ogni picco di 5 e 10 MHz.
+
+| Fascia | L (Hz) | R (Hz) | SG window | Spline | Casi coperti |
+|--------|--------|--------|-----------|--------|--------------|
+| < 7,5 MHz | 15,000 | 5,000 | 9 | 0.05 | F0 di 5 MHz |
+| 7,5–32,5 MHz | 15,000 | 5,000 | 11 | 0.01 | F0 di 8/10 MHz, F3/F5 di 5 MHz, F3 di 8/10 MHz |
+| 32,5–37,5 MHz | 50,000 | 2,500 | 33 | 0.01 | F7 di 5 MHz |
+| 37,5–42,5 MHz | 23,000 | 3,000 | 19 | 0.01 | F5 di 8 MHz — preso in prestito dal profilo 50 MHz, **da validare su hardware** |
+| 42,5–47,5 MHz | 5,000,000 | 100,000 | 5 | 0.5 | F9 di 5 MHz — placeholder |
+| 47,5–51 MHz | 23,000 | 3,000 | 19 | 0.01 | F5 di 10 MHz |
+
+Tabelle precedenti *(legacy, per tipo di quarzo)*:
 
 #### 5 MHz QCM
 | Overtone | L (Hz) | R (Hz) | SG window | Spline factor |

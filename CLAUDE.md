@@ -65,7 +65,10 @@ OPENQCM/
 │  ├─ overtone_analyzer.py           # zoom on a single overtone window
 │  ├─ qcm_data_analyzer.py           # PyQt5 GUI for offline CSV analysis with cursors
 │  ├─ sampling_time_monitor.py       # simple sampling-period histogram script
-│  └─ Calibration_10MHz.txt          # counter-example calibration file
+│  ├─ Calibration_10MHz.txt          # counter-example calibration file (F3 phase 35 kHz off)
+│  └─ Calibration_8MHz.txt           # only real 8 MHz sweep we have (Jan 2019) — see §6
+├─ tests/
+│  └─ test_peak_detection.py         # offline replay of the 4 calibration files + synthetic cases
 ├─ docs/
 │  ├─ USER_GUIDE_BRIEF.md            # spec for AI to generate the public user manual
 │  ├─ peak_detection_analysis.md     # algorithm notes
@@ -225,6 +228,20 @@ sensor distach" bug — see TODO.md and the commit history.
   to avoid a circular import.
 - **Wording**: the -3dB amplitude crossings are "**-3dB frequencies**",
   *never* "cut-off". The renaming is in commit `d1a39cf`.
+- **No predefined crystal type.** Since branch `feature/generic-quartz-frequency`
+  the *measured* fundamental drives everything: overtone search and validity
+  (`CalibrationProcess.describe_quartz` / `is_valid_quartz`), labels and file
+  names (`Constants.quartz_label` / `calibration_path_for`), Measurement
+  sweep windows (`Constants.sweep_profile_for`, keyed on absolute frequency),
+  GUI overtone buttons (`OvertoneSwitcher.harmonic_name`). Never reintroduce
+  `4e6 < f < 6e6`-style range checks. The phase cross-check looks at the
+  phase *within ±50 kHz of the magnitude peak*, not at the strongest phase
+  peak of the ±400 kHz window (a spur 96 kHz off F3 of the 8 MHz sweep beat
+  the true peak by 1.3°). The only real 8 MHz data is
+  `tools/Calibration_8MHz.txt` (2019, custom job): the 8 MHz support was
+  validated **blind** on that single file — the customer must be told so
+  when they test a real 8 MHz quartz, and the 40 MHz profile in
+  `sweep_profiles` is borrowed from 50 MHz pending their feedback.
 
 ---
 
@@ -274,7 +291,7 @@ update-check feature self-disables in the frozen build.
 
 | Tool | Purpose |
 |---|---|
-| `peak_detection_analyzer.py <calib_file>` | full algorithm replay with 4-panel matplotlib plot |
+| `peak_detection_analyzer.py <calib_file>` | full algorithm replay with 4-panel matplotlib plot (matplotlib is *not* in the `openqcm` env; stub it or install it) |
 | `overtone_analyzer.py <calib_file> <n>` | zoom on a single overtone window with mag/phase cross-validation |
 | `qcm_data_analyzer.py` | interactive PyQt5 + pyqtgraph: opens a CSV log, two draggable cursors, live stats and histograms |
 | `sampling_time_monitor.py <csv_file>` | simple matplotlib sampling-period histogram |
@@ -306,6 +323,15 @@ The `qcm_data_analyzer` tool keeps pyqtgraph's default menu — leave it.
 Search both branches in `MainWindow._update_plot`: there are two
 parallel blocks (`vector1[0]=='nan'` early-data path vs the
 acquisition-running path) with **identical** strings. Update both.
+
+### Run the offline regression tests
+```
+conda activate openqcm
+python -m unittest discover -s tests -v
+```
+Replays the four real calibration sweeps (5, 10, 10-counter-example,
+8 MHz) through the production `CalibrationProcess` methods and checks
+the sweep-profile table and switcher naming. No hardware needed.
 
 ### Verify imports after refactor
 ```

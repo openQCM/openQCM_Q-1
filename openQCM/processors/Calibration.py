@@ -129,18 +129,15 @@ class CalibrationProcess(multiprocessing.Process):
     @staticmethod
     def describe_quartz(freq_fundamental):
         """
-        Derive label, output paths and legacy peak spacing from the measured
-        fundamental. Nothing here is a lookup on a predefined crystal type.
+        Derive label and output paths from the measured fundamental. Nothing
+        here is a lookup on a predefined crystal type.
 
-        :return: (qcm_label, path_peaks, path_calib, filename_calib, distance)
+        :return: (qcm_label, path_peaks, path_calib, filename_calib)
         """
-        distance = (Constants.dist10 if freq_fundamental > Constants.legacy_dist_switch_hz
-                    else Constants.dist5)
         return (Constants.quartz_label(freq_fundamental),
                 Constants.cvs_peakfrequencies_path,
                 Constants.calibration_path_for(freq_fundamental),
-                Constants.calibration_filename_for(freq_fundamental),
-                distance)
+                Constants.calibration_filename_for(freq_fundamental))
 
     @staticmethod
     def is_valid_quartz(freq_fundamental, n_confirmed_overtones):
@@ -266,7 +263,7 @@ class CalibrationProcess(multiprocessing.Process):
     # Serial port lifecycle
     # ------------------------------------------------------------------
     def open(self, port,
-             speed=Constants.serial_default_QCS,
+             speed=None,
              timeout=Constants.serial_timeout_ms,
              writeTimeout=Constants.serial_writetimeout_ms):
         """
@@ -444,7 +441,7 @@ class CalibrationProcess(multiprocessing.Process):
                     raise ValueError("Fundamental frequency not found in 1-12 MHz range")
 
                 (qcm_label, path, path_calib,
-                 filename_calib, distance) = self.describe_quartz(freq_fundamental)
+                 filename_calib) = self.describe_quartz(freq_fundamental)
                 print(TAG, "Quartz identified from fundamental: {}".format(qcm_label))
 
                 # Phase 2: overtones
@@ -488,7 +485,7 @@ class CalibrationProcess(multiprocessing.Process):
                 try:
                     (max_freq_mag, max_value_mag,
                      max_freq_phase, max_value_phase) = self.FindPeak(
-                        readFREQ, temp1, temp2, dist=Constants.dist5)
+                        readFREQ, temp1, temp2, dist=Constants.legacy_findpeak_distance)
                     print(TAG, "Legacy FindPeak: {} peaks at frequencies: {} Hz"
                           .format(len(max_freq_mag), max_freq_mag))
 
@@ -497,7 +494,7 @@ class CalibrationProcess(multiprocessing.Process):
                                 < Constants.peak_freq_sweep_max)
                     if is_valid:
                         (_, path, path_calib,
-                         filename_calib, _) = self.describe_quartz(max_freq_mag[0])
+                         filename_calib) = self.describe_quartz(max_freq_mag[0])
                         print(TAG, "Saving data in file...")
                         import os
                         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -542,8 +539,8 @@ class CalibrationProcess(multiprocessing.Process):
 
     @staticmethod
     def get_speeds():
-        """Return the QCM-type labels offered to the user."""
-        return [str(v) for v in ['10 MHz QCM', '5 MHz QCM']]
+        """Nothing to choose: the quartz is identified from the measured fundamental."""
+        return []
 
     def _is_port_available(self, port):
         """True if `port` is among the discovered openQCM ports."""

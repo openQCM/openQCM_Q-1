@@ -232,8 +232,6 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.infobar.setText("Select a port and click Connect")
         ###################################################################################################################################
         self.get_web_info()
-        # Gets the QCS installed on the device (not used now)
-        # self._QCS_installed = PopUp.question_QCM(self, Constants.app_title, "Please choose the Quartz Crystal Resonator installed on the openQCM-1 Device (default 5MHz if exit)")
 
     ###########################################################################
     # Starts the acquisition of the selected serial port

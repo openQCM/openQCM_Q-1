@@ -64,7 +64,7 @@ The **[openQCM Q-1](https://openqcm.com/about-openqcm-q-1)** is a community-driv
    ```
 
 4. In the GUI, select the serial port from the dropdown and click **Connect**.
-5. Run **Peak Detection** — the QCM type (5/10 MHz) is auto-detected.
+5. Run **Peak Detection** — the quartz is identified from its measured fundamental (5, 8, 10 MHz, ...).
 6. Select the desired overtone (F0, F3, F5, F7, or F9) and click **START** to begin acquisition.
 
 For platform-specific notes (Apple Silicon, Linux serial permissions, pip alternative) see [Installation](#installation).
@@ -79,13 +79,13 @@ For platform-specific notes (Apple Silicon, Linux serial permissions, pip altern
 
 - Serial port connection to the openQCM Q-1 device with automatic port detection
 - Multiprocessing architecture for non-blocking acquisition and UI rendering
-- Support for **5 MHz** and **10 MHz** quartz crystal sensors
+- Support for **5 MHz**, **8 MHz** and **10 MHz** quartz crystal sensors — no crystal type is preset: the software works from the measured fundamental, so any resonator with a fundamental in 1–12 MHz follows the same code path
 - Configurable sampling with multiple overtones (Fundamental, 3rd, 5th, 7th, 9th)
 
 **Dual operating modes**
 
 - **Measurement Mode** — Continuous frequency sweep acquisition with real-time resonance frequency and dissipation tracking.
-- **Peak Detection Mode** — Automatic identification of resonance peaks across the full frequency spectrum with QCM type auto-detection and phase cross-validation.
+- **Peak Detection Mode** — Automatic identification of resonance peaks across the full frequency spectrum; the quartz is identified from its measured fundamental and each overtone is cross-validated against its phase response.
 
 **Data logging**
 
@@ -114,8 +114,13 @@ For platform-specific notes (Apple Silicon, Linux serial permissions, pip altern
 
 The peak detection operates in two phases:
 
-1. **Fundamental detection** — Scans the full 1–12 MHz range to locate the fundamental resonance peak using `scipy.signal.argrelextrema`, then auto-detects the QCM type (5 or 10 MHz).
-2. **Overtone detection** — Searches for odd harmonics (3rd, 5th, 7th, 9th) in ±400 kHz windows around expected positions, with **phase cross-validation**: overtones are discarded if the magnitude/phase peak frequency difference exceeds a threshold or the phase amplitude is below 10°.
+1. **Fundamental detection** — Scans the full 1–12 MHz range to locate the fundamental resonance peak using `scipy.signal.argrelextrema`. The measured fundamental then drives everything else: overtone positions, validity check, quartz label and calibration file name (`Calibration_<N>MHz.txt`).
+2. **Overtone detection** — Searches for odd harmonics (3rd, 5th, 7th, 9th) in ±400 kHz windows around `n × F0`, with **phase cross-validation**: the phase maximum within ±50 kHz of the magnitude peak must exceed 10°, otherwise the overtone is discarded.
+3. **Validation** — A fundamental is accepted only if at least one overtone is confirmed: a spurious peak has no harmonic series, a resonator does. No fixed 5/10 MHz ranges are involved.
+
+Measurement-mode sweep windows and smoothing are selected from a single table keyed on the **absolute resonance frequency** (`Constants.sweep_profiles`), not on the crystal type.
+
+> **8 MHz crystals** — generalisation developed and validated on an archived 8 MHz calibration sweep (`tools/Calibration_8MHz.txt`); the 40 MHz (F5) measurement profile still awaits confirmation on real hardware.
 
 A legacy fallback (`FindPeak`) activates automatically if the new algorithm fails.
 

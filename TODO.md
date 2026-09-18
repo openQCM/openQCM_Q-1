@@ -38,18 +38,20 @@ Development checklist. Each item can become a GitHub Issue.
       ("No valid resonance — check sensor connection") instead of reusing
       the existing -3dB edge flags
 
-- [ ] **Peak detection freq_diff threshold** (`constants.py:196-198`,
-  `peak_freq_diff_divisor = 2` gives ~50 kHz): provisional fix after
-  counter-example `tools/Calibration_10MHz.txt` showed valid F3 rejected
-  by only 10 kHz excess.
-    - Collect more counter-examples to validate
-    - Consider adaptive threshold proportional to frequency (e.g. 0.1% of f_expected)
-    - Evaluate weighting by amplitude and phase beyond frequency diff alone
-    - Higher overtones have broader asymmetric peaks — may need per-overtone tuning
+- [ ] **Peak detection phase window** (`constants.py`, `peak_freq_diff_divisor = 2`
+  gives a ±50 kHz window around the magnitude peak in which the phase maximum
+  is searched). Replaced the former "global phase max vs magnitude peak
+  distance" rule after `tools/Calibration_8MHz.txt` showed F3 rejected because
+  a spurious phase mode 96 kHz away was 1.3° stronger than the true peak.
+    - Collect more counter-examples (any crystal) to validate the window width
+    - Consider a width proportional to frequency (higher overtones are broader)
+    - Evaluate weighting by amplitude beyond the phase threshold alone
 
-- [ ] **9th overtone parameters** (`constants.py:98-100`): `L5_9th_overtone`,
-  `R5_9th_overtone`, `SG_window_size5_9th_overtone` are placeholders —
-  need real calibration data to set proper values
+- [ ] **Sweep profiles pending hardware validation** (`constants.py`,
+  `Constants.sweep_profiles`):
+    - 42.5–47.5 MHz band (F9 of 5 MHz): L/R/SG values are placeholders
+    - 37.5–42.5 MHz band (F5 of 8 MHz): borrowed from the 50 MHz profile,
+      never tried on a real 8 MHz quartz
 
 - [ ] **`MIN_DISS_RANGE`** (`mainWindow.py:48`, currently `1e-6`): provisional
   minimum Y-axis range for dissipation — validate against real measurement data
@@ -90,11 +92,15 @@ Known behaviours to watch during testing — not blocking, but worth tracking:
 
 ## Features
 
-- [ ] **Explicit QCM 5/10 MHz type detection** — currently inferred from peak
-  frequency in calibration. Add explicit detection logic in `Serial.py`.
-
-- [ ] **Quartz sensor label in GUI** — display "5 MHz QCM" or "10 MHz QCM"
-  in the main window status area.
+- [ ] **Generic quartz frequency — field validation with the customer**
+  (branch `feature/generic-quartz-frequency`, motivated by an 8 MHz request).
+  The 8 MHz path was validated *blind* on a single archived sweep
+  (`tools/Calibration_8MHz.txt`, Jan 2019). When the customer tests a real
+  8 MHz quartz, tell them so explicitly and ask for:
+    - the `Calibration_8MHz.txt` / `PeakFrequencies.txt` produced by their
+      Peak Detection (expected: F0 ≈ 8, F3 ≈ 24, F5 ≈ 40 MHz all accepted)
+    - a short Measurement log on F5 (~40 MHz) to confirm the borrowed sweep
+      profile tracks the peak
 
 - [ ] **Socket Client data source** (`constants.py:36`) — reserved enum value,
   currently unused. Implement when remote acquisition is needed.

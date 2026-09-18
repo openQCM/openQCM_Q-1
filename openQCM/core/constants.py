@@ -107,7 +107,6 @@ class Constants:
     # ---------- Serial port ----------
     serial_default_speed = 115200
     serial_default_overtone = None
-    serial_default_QCS = "@10MHz"
     serial_writetimeout_ms = 0
     serial_timeout_ms = None
 
@@ -131,13 +130,13 @@ class Constants:
     csv_export_path = get_data_path("logged_data")         # measurement CSV logs
     csv_sweeps_filename = "sweep"                          # base name for raw sweep dumps (when enabled)
 
-    # Calibration files: one per supported sensor type
+    # Calibration sweep files. Peak Detection names them from the measured
+    # fundamental (see calibration_filename_for below); the two legacy names
+    # are kept because they are the factory-default files shipped in the
+    # release bundle (tools/package_release.py) and committed in openQCM/.
     csv_calibration_export_path = get_data_path("openQCM")
-    csv_calibration_filename3   = "Calibration_3MHz"
     csv_calibration_filename    = "Calibration_5MHz"
     csv_calibration_filename10  = "Calibration_10MHz"
-    csv_calibration_path3  = os.path.join(csv_calibration_export_path,
-                                          "{}.{}".format(csv_calibration_filename3, txt_extension))
     csv_calibration_path   = os.path.join(csv_calibration_export_path,
                                           "{}.{}".format(csv_calibration_filename,  txt_extension))
     csv_calibration_path10 = os.path.join(csv_calibration_export_path,
@@ -152,9 +151,7 @@ class Constants:
     # Distance in samples between neighbouring peaks for the legacy FindPeak
     # fallback. The two-phase algorithm (find fundamental, then find overtones)
     # uses peak_points_fundamental / peak_points_overtone instead.
-    dist5  = 8000      # crystals below legacy_dist_switch_hz
-    dist10 = 10000     # crystals above
-    legacy_dist_switch_hz = 7.5e6
+    legacy_findpeak_distance = 8000
 
     # Full-spectrum calibration scan: 1 MHz → 51 MHz, 1 kHz step
     calibration_default_samples = 50001

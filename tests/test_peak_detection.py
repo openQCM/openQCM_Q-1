@@ -62,7 +62,7 @@ class PeakDetectionRegression(unittest.TestCase):
                 for got, exp in zip(overtones, ov_exp):
                     self.assertAlmostEqual(got, exp, delta=TOL_HZ)
                 self.assertTrue(proc.is_valid_quartz(f0, len(overtones)))
-                label, _, path_calib, filename, _ = proc.describe_quartz(f0)
+                label, _, path_calib, filename = proc.describe_quartz(f0)
                 self.assertEqual(label, "{} MHz QCM".format(nominal))
                 self.assertEqual(filename, "Calibration_{}MHz".format(nominal))
                 self.assertTrue(path_calib.endswith("Calibration_{}MHz.txt".format(nominal)))

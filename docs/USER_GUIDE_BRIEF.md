@@ -19,7 +19,7 @@ This document is a technical briefing for an AI assistant to generate a **detail
 
 - **License**: GPLv3
 - **Vendor**: openQCM / Novaetech
-- **Hardware**: USB-connected board with Teensy microcontroller, socket for replaceable quartz crystal sensors (5 MHz or 10 MHz fundamental)
+- **Hardware**: USB-connected board with Teensy microcontroller, socket for replaceable quartz crystal sensors (typically 5 MHz or 10 MHz fundamental; 8 MHz supported, any fundamental in 1–12 MHz is handled from its measured value)
 - **Firmware version reported by device**: 2.2
 - **Software version**: 3.0 (dev)
 
@@ -187,7 +187,7 @@ If the real data range exceeds the minimum, autoscale behaves normally.
 ### 7.1 Measurement Parameters Dialog
 
 Non-modal info window showing:
-- Mode (Measurement / Peak Detection), QCM type (5 MHz / 10 MHz, auto-detected)
+- Mode (Measurement / Peak Detection), QCM type (e.g. 5 / 8 / 10 MHz, derived from the measured fundamental)
 - Overtone name (Fundamental / 3rd / 5th / 7th / 9th)
 - Port, baud rate, firmware version
 - Sweep start/stop/range/step (Hz), samples per sweep
@@ -273,11 +273,10 @@ When the quartz crystal is physically disconnected (USB still plugged):
 The user guide should mention this only at a high level; link to a separate technical doc for math details.
 
 - **Phase 1**: fundamental frequency search in 1–12 MHz using `scipy.signal.argrelextrema` with 6 MHz minimum distance between candidates. Selects the highest-amplitude peak.
-- **QCM auto-detection**: 4–6 MHz → 5 MHz sensor; 9–11 MHz → 10 MHz sensor; otherwise invalid.
-- **Phase 2**: for each odd overtone (3×, 5×, 7×, 9×), search ±400 kHz around expected frequency. Cross-validate magnitude peak vs phase peak:
-  - Frequency difference between mag and phase peaks must be < 50 kHz
-  - Phase peak must exceed 10°
-- **Validation**: fundamental must be in a valid QCM range; if all peaks are zero, peak detection is flagged as failed.
+- **Quartz identification**: no preset type. The measured fundamental gives the label ("8 MHz QCM"), the calibration file name (`Calibration_8MHz.txt`) and the expected overtone positions.
+- **Phase 2**: for each odd overtone (3×, 5×, 7×, 9×), search ±400 kHz around `n × F0`. Cross-validate with the phase response:
+  - The phase maximum within ±50 kHz of the magnitude peak must exceed 10°
+- **Validation**: the fundamental must lie in 1–12 MHz and at least one overtone must be confirmed (a spurious peak has no harmonic series); otherwise peak detection is flagged as failed.
 
 If calibration fails, open **Peak Data View** to see what was detected. Two diagnostic CLI tools are available:
 
@@ -351,8 +350,8 @@ Every interactive widget has a tooltip (hover for a short description).
 ### 14.2 Peak Detection Warning
 
 - Verify the quartz sensor is correctly inserted in the socket (spring-loaded contacts)
-- Verify that it's a supported type (5 MHz or 10 MHz)
-- If the calibration always finds a spurious peak outside valid QCM ranges, open **Peak Data View** or use `tools/peak_detection_analyzer.py` to diagnose
+- Verify that its fundamental lies in 1–12 MHz (5, 8 and 10 MHz crystals are the tested cases)
+- If the calibration keeps rejecting the sensor ("fewer than 1 overtone confirmed"), open **Peak Data View** or use `tools/peak_detection_analyzer.py` to diagnose
 
 ### 14.3 "Tracking Stopped" during measurement
 
