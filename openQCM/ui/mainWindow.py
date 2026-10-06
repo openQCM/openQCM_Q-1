@@ -31,6 +31,7 @@ from openQCM.ui.mainWindow_ui import Ui_Main
 from openQCM.ui.popUp import PopUp
 from openQCM.ui.calibrationPlot import CalibrationPlotWindow
 from openQCM.core.worker import Worker
+from openQCM.common.calibrationPaths import CalibrationPaths
 from openQCM.core.constants import (
     Constants, SourceType,
     DateAxis, NonScientificAxis, OneDecimalAxis, ElapsedTimeAxis,
@@ -170,6 +171,10 @@ class MainWindow(QtGui.QMainWindow):
         self._internet_connected = False
         self._board_serial = None       # Board serial number from EEPROM (e.g. "19-0055")
 
+        # Where Peak Detection files are read/written for this window's board.
+        # Single mode keeps the legacy shared folder.
+        self._calib = CalibrationPaths.legacy()
+
         # Serial connection state. The Connect / Disconnect button explicitly
         # opens and closes the port; the port is kept locked until Disconnect
         # is pressed, independent of the measurement mode.
@@ -275,7 +280,8 @@ class MainWindow(QtGui.QMainWindow):
                              speed = speed_value,
                              samples = self.ui.sBox_Samples.value(),
                              source = self._get_source(),
-                             export_enabled = self.ui.chBox_export.isChecked())
+                             export_enabled = self.ui.chBox_export.isChecked(),
+                             calib_dir = self._calib.root)
 
         if self.worker.start():
             # Gets frequency range 
@@ -301,7 +307,7 @@ class MainWindow(QtGui.QMainWindow):
             if self._get_source() == SourceType.serial:
                 # Infer the QCM sensor type from the highest peak frequency listed
                 # in PeakFrequencies.txt (last item, since the list is sorted desc).
-                speeds = self.worker.get_source_speeds(SourceType.serial)
+                speeds = self.worker.get_source_speeds(SourceType.serial, self._calib.root)
                 overtones_number = len(speeds)
                 top_freq = float(speeds[overtones_number - 1])
                 if 4e6 < top_freq < 6e6:
@@ -1146,7 +1152,7 @@ class MainWindow(QtGui.QMainWindow):
                    self.ui.infobar.setStyleSheet('background-color: #e8f5e9; color: #2e7d32; padding: 8px; border-radius: 4px;')
                    # Show non-blocking popup with peak frequencies
                    try:
-                       peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
+                       peak_data = np.loadtxt(self._calib.peak_frequencies)
                        peaks = peak_data[:, 0]
                        # QCM overtone multipliers: 1 (fundamental), 3, 5, 7, 9
                        overtone_labels = [1, 3, 5, 7, 9]
@@ -1362,7 +1368,7 @@ class MainWindow(QtGui.QMainWindow):
             if self._get_source() != SourceType.calibration:
                 self.ui.cBox_Speed.clear()
                 source = self._get_source()
-                speeds = self.worker.get_source_speeds(source)
+                speeds = self.worker.get_source_speeds(source, self._calib.root)
                 if speeds is not None:
                     self.ui.cBox_Speed.addItems(speeds)
                 if self._get_source() == SourceType.serial:
@@ -1382,7 +1388,7 @@ class MainWindow(QtGui.QMainWindow):
 
         # Only populate speed dropdown in measurement mode
         if self._get_source() != SourceType.calibration:
-            speeds = self.worker.get_source_speeds(source) or []
+            speeds = self.worker.get_source_speeds(source, self._calib.root) or []
             if speeds:
                 self.ui.cBox_Speed.addItems(speeds)
                 if self._get_source() == SourceType.serial:
@@ -1406,7 +1412,7 @@ class MainWindow(QtGui.QMainWindow):
     def _update_overtone_buttons(self):
         """Enable overtone buttons based on calibration results (PeakFrequencies.txt)."""
         try:
-            peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
+            peak_data = np.loadtxt(self._calib.peak_frequencies)
             peak_freqs = peak_data[:, 0]
         except Exception:
             # No calibration data — disable all buttons
@@ -1434,7 +1440,7 @@ class MainWindow(QtGui.QMainWindow):
         """Handle click on an overtone button — update dropdown to match."""
         idx = self.OVERTONE_MAP[label]
         try:
-            peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
+            peak_data = np.loadtxt(self._calib.peak_frequencies)
             peak_freqs = peak_data[:, 0]
             if idx < len(peak_freqs):
                 target_freq = str(peak_freqs[idx])
@@ -1456,7 +1462,7 @@ class MainWindow(QtGui.QMainWindow):
             return
         try:
             current_freq = float(current_text)
-            peak_data = np.loadtxt(Constants.cvs_peakfrequencies_path)
+            peak_data = np.loadtxt(self._calib.peak_frequencies)
             peak_freqs = peak_data[:, 0]
             # Find which index matches the selected frequency
             for i, pf in enumerate(peak_freqs):
@@ -2170,15 +2176,15 @@ class MainWindow(QtGui.QMainWindow):
         # Find the most recently modified calibration file
         calib_path = None
         latest_mtime = 0
-        for candidate in [Constants.csv_calibration_path,
-                          Constants.csv_calibration_path10]:
+        for candidate in [self._calib.calibration_5,
+                          self._calib.calibration_10]:
             if os.path.exists(candidate):
                 mtime = os.path.getmtime(candidate)
                 if mtime > latest_mtime:
                     latest_mtime = mtime
                     calib_path = candidate
 
-        peaks_path = Constants.cvs_peakfrequencies_path
+        peaks_path = self._calib.peak_frequencies
 
         if calib_path is None or not os.path.exists(peaks_path):
             PopUp.warning(self, "Peak Data View",

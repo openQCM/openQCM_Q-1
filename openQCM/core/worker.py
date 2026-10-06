@@ -25,6 +25,7 @@ from openQCM.processors.Parser import ParserProcess
 from openQCM.processors.Serial import SerialProcess
 from openQCM.processors.SocketClient import SocketProcess
 from openQCM.processors.Calibration import CalibrationProcess
+from openQCM.common.calibrationPaths import CalibrationPaths
 from openQCM.common.fileStorage import FileStorage
 from openQCM.common.fileManager import FileManager
 from openQCM.common.logger import Logger as Log
@@ -44,7 +45,9 @@ class Worker:
                  speed=Constants.serial_default_overtone,
                  samples=Constants.argument_default_samples,
                  source=SourceType.serial,
-                 export_enabled=False):
+                 export_enabled=False,
+                 calib_dir=None,
+                 csv_tag=None):
         """
         :param QCS_on:         Quartz Crystal Sensor type label (informational)
         :param port:           Serial port to open at start
@@ -54,6 +57,11 @@ class Worker:
         :param source:         SourceType.serial | calibration | SocketClient
         :param export_enabled: When True, raw sweep dumps are also written
                                to disk in addition to the CSV log
+        :param calib_dir:      Peak Detection folder of this board
+                               (None = legacy shared folder, single mode)
+        :param csv_tag:        extra token inserted in the CSV log name
+                               (dual mode: "CH1_<serial>") so two channels
+                               started in the same second never collide
         """
         # Inter-process queues (one per data channel + one for tracking events)
         self._queue1 = Queue()           # raw amplitude trace
@@ -101,6 +109,8 @@ class Worker:
         self._samples = samples
         self._source = source
         self._export = export_enabled
+        self._calib_dir = calib_dir
+        self._csv_tag = csv_tag
 
         # Per-sweep latest values (also forwarded to the CSV log)
         self._d1_store = self._d2_store = None
@@ -133,15 +143,18 @@ class Worker:
 
         :return: True if the acquisition started successfully
         """
-        # Fresh log filename per START press: YYYY-MM-DD_hh-mm-ss
+        # Fresh log filename per START press: YYYY-MM-DD_hh-mm-ss[_<tag>]
         self._csv_filename = strftime(Constants.csv_default_prefix, localtime())
+        if self._csv_tag:
+            self._csv_filename = "{}_{}".format(self._csv_filename, self._csv_tag)
 
         # Measurement mode requires a previous Peak Detection. Bail out early
         # with a clear log message instead of crashing when the calibration
         # files are missing (typical first-run state of a fresh install).
         if self._source == SourceType.serial:
-            import os
-            if not os.path.isfile(Constants.cvs_peakfrequencies_path):
+            calib = (CalibrationPaths(self._calib_dir) if self._calib_dir
+                     else CalibrationPaths.legacy())
+            if not calib.has_calibration():
                 print(TAG, "Cannot start Measurement: PeakFrequencies.txt is missing. "
                            "Run Peak Detection first.")
                 Log.w(TAG, "Cannot start Measurement: PeakFrequencies.txt is missing")
@@ -160,9 +173,11 @@ class Worker:
             self._queue_tracking)
 
         if self._source == SourceType.serial:
-            self._acquisition_process = SerialProcess(self._parser_process)
+            self._acquisition_process = SerialProcess(
+                self._parser_process, calib_dir=self._calib_dir)
         elif self._source == SourceType.calibration:
-            self._acquisition_process = CalibrationProcess(self._parser_process)
+            self._acquisition_process = CalibrationProcess(
+                self._parser_process, calib_dir=self._calib_dir)
         elif self._source == SourceType.SocketClient:
             self._acquisition_process = SocketProcess(self._parser_process)
 
@@ -604,10 +619,14 @@ class Worker:
         return None
 
     @staticmethod
-    def get_source_speeds(source):
-        """Return the list of available overtone choices for the given SourceType."""
+    def get_source_speeds(source, calib_dir=None):
+        """
+        Return the list of available overtone choices for the given SourceType.
+        In measurement mode they come from the PeakFrequencies.txt in
+        `calib_dir` (None = legacy shared folder).
+        """
         if source == SourceType.serial:
-            return SerialProcess.get_speeds()
+            return SerialProcess.get_speeds(calib_dir)
         if source == SourceType.calibration:
             return CalibrationProcess.get_speeds()
         if source == SourceType.SocketClient:

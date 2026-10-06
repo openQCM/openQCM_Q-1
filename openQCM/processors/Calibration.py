@@ -13,7 +13,8 @@ Each overtone candidate is cross-validated against its phase peak: if the
 magnitude/phase peaks are too far apart, or the phase peak is too small,
 the overtone is discarded.
 
-Output files (written to `Constants.csv_calibration_export_path`):
+Output files (written to the process' calibration folder — the legacy
+`openQCM/` folder in single mode, `openQCM/boards/<serial>/` in dual mode):
     - `Calibration_<N>MHz.txt` — raw acquired sweep (frequency, mag, phase)
     - `PeakFrequencies.txt`    — detected peak frequencies (one per row)
 
@@ -32,6 +33,7 @@ from numpy import loadtxt
 from progressbar import Bar, Percentage, ProgressBar, RotatingMarker, Timer
 
 from openQCM.core.constants import Constants
+from openQCM.common.calibrationPaths import CalibrationPaths
 from openQCM.common.fileStorage import FileStorage
 from openQCM.common.logger import Logger as Log
 
@@ -44,12 +46,15 @@ class CalibrationProcess(multiprocessing.Process):
     # ------------------------------------------------------------------
     # Construction / lifecycle
     # ------------------------------------------------------------------
-    def __init__(self, parser_process):
+    def __init__(self, parser_process, calib_dir=None):
         """
         :param parser_process: shared ParserProcess that forwards data to the GUI.
+        :param calib_dir:      destination folder of the output files;
+                               None = legacy shared folder (single mode)
         """
         multiprocessing.Process.__init__(self)
         self._exit = multiprocessing.Event()
+        self._calib = CalibrationPaths(calib_dir) if calib_dir else CalibrationPaths.legacy()
 
         # Aliased channels — only a subset is used during calibration
         self._parser1 = parser_process     # baseline-corrected magnitude
@@ -129,28 +134,28 @@ class CalibrationProcess(multiprocessing.Process):
         """
         if 2e6 < freq_fundamental < 4e6:
             return ("3 MHz QCM",
-                    Constants.cvs_peakfrequencies_path,
-                    Constants.csv_calibration_path3,
+                    self._calib.peak_frequencies,
+                    self._calib.calibration_3,
                     Constants.csv_calibration_filename3,
                     Constants.dist5)
         if 4e6 < freq_fundamental < 6e6:
             return ("5 MHz QCM",
-                    Constants.cvs_peakfrequencies_path,
-                    Constants.csv_calibration_path,
+                    self._calib.peak_frequencies,
+                    self._calib.calibration_5,
                     Constants.csv_calibration_filename,
                     Constants.dist5)
         if 9e6 < freq_fundamental < 11e6:
             return ("10 MHz QCM",
-                    Constants.cvs_peakfrequencies_path,
-                    Constants.csv_calibration_path10,
+                    self._calib.peak_frequencies,
+                    self._calib.calibration_10,
                     Constants.csv_calibration_filename10,
                     Constants.dist10)
         # Unrecognised — return default 5 MHz paths so the caller can warn the user
         print(TAG, "WARNING: unrecognized fundamental frequency {:.0f} Hz, "
                    "using default paths".format(freq_fundamental))
         return ("Unknown ({:.0f} Hz)".format(freq_fundamental),
-                Constants.cvs_peakfrequencies_path,
-                Constants.csv_calibration_path,
+                self._calib.peak_frequencies,
+                self._calib.calibration_5,
                 Constants.csv_calibration_filename,
                 Constants.dist5)
 
@@ -503,7 +508,7 @@ class CalibrationProcess(multiprocessing.Process):
                     np.savetxt(path, np.column_stack([max_freq_mag, max_freq_mag]))
                     print(TAG, "Peak frequencies for {} saved in: {}".format(qcm_label, path))
                     FileStorage.TXT_sweeps_save(filename_calib,
-                                                Constants.csv_calibration_export_path,
+                                                self._calib.root,
                                                 readFREQ, temp1, temp2)
                     print(TAG, "Peak Detection for {} saved in: {}".format(qcm_label, path_calib))
                 else:
@@ -520,13 +525,13 @@ class CalibrationProcess(multiprocessing.Process):
                 try:
                     if hasattr(self, '_QCStype_int') and self._QCStype_int == 1:
                         distance = Constants.dist10
-                        path = Constants.cvs_peakfrequencies_path
-                        path_calib = Constants.csv_calibration_path10
+                        path = self._calib.peak_frequencies
+                        path_calib = self._calib.calibration_10
                         filename_calib = Constants.csv_calibration_filename10
                     else:
                         distance = Constants.dist5
-                        path = Constants.cvs_peakfrequencies_path
-                        path_calib = Constants.csv_calibration_path
+                        path = self._calib.peak_frequencies
+                        path_calib = self._calib.calibration_5
                         filename_calib = Constants.csv_calibration_filename
 
                     (max_freq_mag, max_value_mag,
@@ -545,7 +550,7 @@ class CalibrationProcess(multiprocessing.Process):
                         np.savetxt(path, np.column_stack([max_freq_mag, max_freq_mag]))
                         print(TAG, "Peak frequencies saved in: {}".format(path))
                         FileStorage.TXT_sweeps_save(filename_calib,
-                                                    Constants.csv_calibration_export_path,
+                                                    self._calib.root,
                                                     readFREQ, temp1, temp2)
                         print(TAG, "Peak Detection saved in: {}".format(path_calib))
                     else:

@@ -31,6 +31,7 @@ from progressbar import Bar, Percentage, ProgressBar, RotatingMarker, Timer
 
 from openQCM.core.ringBuffer import RingBuffer
 from openQCM.core.constants import Constants
+from openQCM.common.calibrationPaths import CalibrationPaths
 from openQCM.common.fileStorage import FileStorage
 from openQCM.common.logger import Logger as Log
 from openQCM.common.switcher import Overtone_Switcher_5MHz, Overtone_Switcher_10MHz
@@ -44,14 +45,17 @@ class SerialProcess(multiprocessing.Process):
     # ------------------------------------------------------------------
     # Initialisation / lifecycle
     # ------------------------------------------------------------------
-    def __init__(self, parser_process):
+    def __init__(self, parser_process, calib_dir=None):
         """
         :param parser_process: shared ParserProcess used to forward data to the
                                GUI through six dedicated queues plus a tracking
                                notification channel.
+        :param calib_dir:      folder holding this board's Peak Detection files;
+                               None = legacy shared folder (single mode)
         """
         multiprocessing.Process.__init__(self)
         self._exit = multiprocessing.Event()
+        self._calib = CalibrationPaths(calib_dir) if calib_dir else CalibrationPaths.legacy()
 
         # All channels share the same ParserProcess instance; aliases are kept
         # for readability where each one is used.
@@ -650,17 +654,19 @@ class SerialProcess(multiprocessing.Process):
         return connected
 
     @staticmethod
-    def get_speeds():
+    def get_speeds(calib_dir=None):
         """
-        Return the overtone frequencies (Hz) as strings, in descending order.
+        Return the overtone frequencies (Hz) as strings, in descending order,
+        read from the PeakFrequencies.txt in `calib_dir` (None = legacy folder).
 
         Returns an empty list if `PeakFrequencies.txt` is missing or unreadable
         (e.g. on first launch before Peak Detection has been run). The GUI
         handles the empty list by disabling Measurement mode until a
         calibration is generated.
         """
+        calib = CalibrationPaths(calib_dir) if calib_dir else CalibrationPaths.legacy()
         try:
-            data = loadtxt(Constants.cvs_peakfrequencies_path)
+            data = loadtxt(calib.peak_frequencies)
             peaks_mag = data[:, 0]
             return [str(v) for v in peaks_mag[::-1]]
         except (OSError, IOError, ValueError, IndexError) as e:
@@ -708,10 +714,9 @@ class SerialProcess(multiprocessing.Process):
         return (overtone_name, overtone_value, fStep, readFREQ,
                 SG_window_size, spline_points, spline_factor)
 
-    @staticmethod
-    def load_frequencies_file():
+    def load_frequencies_file(self):
         """Return the array of peak frequencies (Hz) from PeakFrequencies.txt."""
-        data = loadtxt(Constants.cvs_peakfrequencies_path)
+        data = loadtxt(self._calib.peak_frequencies)
         return data[:, 0]
 
     def load_calibration_file(self):
@@ -721,11 +726,8 @@ class SerialProcess(multiprocessing.Process):
         :return: (frequency, magnitude, phase) arrays from Calibration_*.txt
         """
         peaks_mag = self.load_frequencies_file()
-        if 4e6 < peaks_mag[0] < 6e6:
-            filename = Constants.csv_calibration_path
-        elif 9e6 < peaks_mag[0] < 11e6:
-            filename = Constants.csv_calibration_path10
-        else:
+        filename = self._calib.calibration_for(peaks_mag[0])
+        if filename is None:
             raise ValueError(
                 "Unsupported fundamental frequency {} Hz — no calibration file"
                 .format(peaks_mag[0]))
