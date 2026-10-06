@@ -65,10 +65,17 @@ class LogStream:
     Stream-like adapter that mirrors stdout / stderr into a QTextEdit while
     still forwarding to the original terminal stream. Used to surface child
     process prints in the System Log tab of the GUI.
+
+    In dual-instrument mode both windows live in the same process and share
+    sys.stdout, so one stream fans out to every registered System Log
+    instead of the second window wrapping the first one's stream.
     """
     def __init__(self, text_widget, original_stream):
-        self.text_widget = text_widget
+        self.text_widgets = [text_widget]
         self.original_stream = original_stream
+
+    def add_widget(self, text_widget):
+        self.text_widgets.append(text_widget)
 
     def write(self, text):
         if self.original_stream:
@@ -76,12 +83,17 @@ class LogStream:
         # Skip carriage-return-only lines (used for in-place progress prints)
         if text and text.strip() and text != '\r':
             timestamp = datetime.now().strftime("[%H:%M:%S] ")
-            # Cross-thread safe append via Qt's queued meta call
-            QtCore.QMetaObject.invokeMethod(
-                self.text_widget, "append",
-                QtCore.Qt.QueuedConnection,
-                QtCore.Q_ARG(str, timestamp + text.rstrip()),
-            )
+            for widget in list(self.text_widgets):
+                try:
+                    # Cross-thread safe append via Qt's queued meta call
+                    QtCore.QMetaObject.invokeMethod(
+                        widget, "append",
+                        QtCore.Qt.QueuedConnection,
+                        QtCore.Q_ARG(str, timestamp + text.rstrip()),
+                    )
+                except RuntimeError:
+                    # Widget of a window already destroyed
+                    self.text_widgets.remove(widget)
 
     def flush(self):
         if self.original_stream:
@@ -116,23 +128,44 @@ def _extract_value(html_text):
 
 class MainWindow(QtGui.QMainWindow):
 
-    def __init__(self, samples=Constants.argument_default_samples):
+    def __init__(self, samples=Constants.argument_default_samples,
+                 channel=None, primary=True):
         """
         :param samples: default samples per sweep used for the initial sidebar value
+        :param channel: None in single-instrument mode; "CH1" / "CH2" in
+                        dual-instrument mode, where each window drives one board
+                        with its own per-board calibration folder
+        :param primary: False for the secondary dual-mode window, which skips
+                        the one-per-application work (web news / update check)
         """
         QtGui.QMainWindow.__init__(self)
+        self._channel = channel
+        # Dual mode: the other channel windows, closed together with this one
+        self._peers = []
 
         self.ui = Ui_Main()
         self.ui.setupUi(self)
+        if self._channel:
+            self.setWindowTitle(self._title_base())
+            self.ui.lblBrandSubtitle.setText("Dual instrument · {}".format(self._channel))
+            # Two windows must fit side by side on a 1920 px screen
+            self.setMinimumSize(QtCore.QSize(800, 600))
         self.show()
 
         # Mirror stdout / stderr into the System Log tab so child-process prints
         # surface in the GUI alongside terminal output.
-        self._original_stdout = sys.stdout
-        self._original_stderr = sys.stderr
-        sys.stdout = LogStream(self.ui.systemLog, self._original_stdout)
-        sys.stderr = LogStream(self.ui.systemLog, self._original_stderr)
-        print("System Log initialized - openQCM Q-1 Real-Time Monitor")
+        if isinstance(sys.stdout, LogStream):
+            self._original_stdout = sys.stdout.original_stream
+            self._original_stderr = sys.stderr.original_stream
+            sys.stdout.add_widget(self.ui.systemLog)
+            sys.stderr.add_widget(self.ui.systemLog)
+        else:
+            self._original_stdout = sys.stdout
+            self._original_stderr = sys.stderr
+            sys.stdout = LogStream(self.ui.systemLog, self._original_stdout)
+            sys.stderr = LogStream(self.ui.systemLog, self._original_stderr)
+        print("System Log initialized - openQCM Q-1 Real-Time Monitor{}".format(
+            " ({})".format(self._channel) if self._channel else ""))
 
         # Shared variables, initial values
         self._plt0 = None
@@ -172,8 +205,11 @@ class MainWindow(QtGui.QMainWindow):
         self._board_serial = None       # Board serial number from EEPROM (e.g. "19-0055")
 
         # Where Peak Detection files are read/written for this window's board.
-        # Single mode keeps the legacy shared folder.
-        self._calib = CalibrationPaths.legacy()
+        # Single mode keeps the legacy shared folder. Dual mode has no folder
+        # until a board is connected and identified (see
+        # _assign_board_calibration): falling back to the shared folder there
+        # would reintroduce the cross-board overwrite this mode exists to avoid.
+        self._calib = None if self._channel else CalibrationPaths.legacy()
 
         # Serial connection state. The Connect / Disconnect button explicitly
         # opens and closes the port; the port is kept locked until Disconnect
@@ -235,7 +271,8 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.infostatus.setText("Disconnected")
         self.ui.infobar.setText("Select a port and click Connect")
         ###################################################################################################################################
-        self.get_web_info()
+        if primary:
+            self.get_web_info()
         # Gets the QCS installed on the device (not used now)
         # self._QCS_installed = PopUp.question_QCM(self, Constants.app_title, "Please choose the Quartz Crystal Resonator installed on the openQCM-1 Device (default 5MHz if exit)")
 
@@ -281,7 +318,8 @@ class MainWindow(QtGui.QMainWindow):
                              samples = self.ui.sBox_Samples.value(),
                              source = self._get_source(),
                              export_enabled = self.ui.chBox_export.isChecked(),
-                             calib_dir = self._calib.root)
+                             calib_dir = self._calib.root,
+                             csv_tag = self._csv_tag())
 
         if self.worker.start():
             # Gets frequency range 
@@ -307,7 +345,7 @@ class MainWindow(QtGui.QMainWindow):
             if self._get_source() == SourceType.serial:
                 # Infer the QCM sensor type from the highest peak frequency listed
                 # in PeakFrequencies.txt (last item, since the list is sorted desc).
-                speeds = self.worker.get_source_speeds(SourceType.serial, self._calib.root)
+                speeds = self._source_speeds(SourceType.serial)
                 overtones_number = len(speeds)
                 top_freq = float(speeds[overtones_number - 1])
                 if 4e6 < top_freq < 6e6:
@@ -383,7 +421,7 @@ class MainWindow(QtGui.QMainWindow):
                 lbl.setText(elided)
                 lbl.setToolTip(csv_name)
                 sn_suffix = " [{}]".format(self._board_serial) if self._board_serial else ""
-                self.setWindowTitle("openQCM Q-1 - version 3.0{} \u2014 {}".format(sn_suffix, csv_name))
+                self.setWindowTitle("{}{} \u2014 {}".format(self._title_base(), sn_suffix, csv_name))
 
             if self._get_source() == SourceType.calibration:
                self.ui.pButton_Clear.setEnabled(False) #insert
@@ -415,7 +453,7 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.lblLogFile.setText("")
         self.ui.lblLogFile.setToolTip("")
         sn_suffix = " [{}]".format(self._board_serial) if self._board_serial else ""
-        self.setWindowTitle("openQCM Q-1 - version 3.0{}".format(sn_suffix))
+        self.setWindowTitle("{}{}".format(self._title_base(), sn_suffix))
         # Reset reference button label
         self.ui.pButton_Reference.setText("Set Reference")
         print("")
@@ -443,34 +481,47 @@ class MainWindow(QtGui.QMainWindow):
 
         res = PopUp.question(self, Constants.app_title, "Are you sure you want to quit openQCM application now?")
         if res:
-            self._is_closing = True  # Set flag to prevent second dialog
-            if self.worker.is_running():
-                print(TAG, 'Window closed without stopping the capture, application will stop...')
-                Log.i(TAG, "Window closed without stopping the capture, application will stop...")
-                self.stop()
-            # Release serial port and lock file on exit
-            if self._serial_lock is not None:
-                try:
-                    self._serial_lock.close()
-                    print(TAG, "Serial port closed on exit")
-                    Log.i(TAG, "Serial port closed on exit")
-                except Exception as e:
-                    print(TAG, "Warning: Error closing serial port on exit: {}".format(str(e)))
-                self._serial_lock = None
-            # Release the lock file
-            self._release_port_lock()
-            # Close child dialogs
-            for dlg in [getattr(self, '_data_viewer', None),
-                        getattr(self, '_raw_data_viewer', None),
-                        getattr(self, '_calib_plot_window', None),
-                        getattr(self.ui, 'deviceInfoDialog', None)]:
-                if dlg is not None:
-                    dlg.close()
+            self._shutdown()
+            # Dual mode: quitting from either window stops and closes both
+            for peer in self._peers:
+                if not getattr(peer, '_is_closing', False):
+                    peer._shutdown()
+                    peer.close()
             evnt.accept()
         else:
             evnt.ignore()
-    
-          
+
+    def _shutdown(self):
+        """Stop the acquisition, release the port and close child dialogs."""
+        self._is_closing = True  # Set flag to prevent second dialog
+        if self.worker.is_running():
+            print(TAG, 'Window closed without stopping the capture, application will stop...')
+            Log.i(TAG, "Window closed without stopping the capture, application will stop...")
+            self.stop()
+        # Release serial port and lock file on exit
+        if self._serial_lock is not None:
+            try:
+                self._serial_lock.close()
+                print(TAG, "Serial port closed on exit")
+                Log.i(TAG, "Serial port closed on exit")
+            except Exception as e:
+                print(TAG, "Warning: Error closing serial port on exit: {}".format(str(e)))
+            self._serial_lock = None
+        # Release the lock file
+        self._release_port_lock()
+        # Close child dialogs
+        for dlg in [getattr(self, '_data_viewer', None),
+                    getattr(self, '_raw_data_viewer', None),
+                    getattr(self, '_calib_plot_window', None),
+                    getattr(self.ui, 'deviceInfoDialog', None)]:
+            if dlg is not None:
+                dlg.close()
+
+    def set_peers(self, peers):
+        """Dual mode: register the other channel windows (closed together)."""
+        self._peers = [w for w in peers if w is not self]
+
+
     ###########################################################################
     # Enables or disables the UI elements of the window.
     ###########################################################################
@@ -1368,7 +1419,7 @@ class MainWindow(QtGui.QMainWindow):
             if self._get_source() != SourceType.calibration:
                 self.ui.cBox_Speed.clear()
                 source = self._get_source()
-                speeds = self.worker.get_source_speeds(source, self._calib.root)
+                speeds = self._source_speeds(source)
                 if speeds is not None:
                     self.ui.cBox_Speed.addItems(speeds)
                 if self._get_source() == SourceType.serial:
@@ -1388,14 +1439,17 @@ class MainWindow(QtGui.QMainWindow):
 
         # Only populate speed dropdown in measurement mode
         if self._get_source() != SourceType.calibration:
-            speeds = self.worker.get_source_speeds(source, self._calib.root) or []
+            speeds = self._source_speeds(source) or []
             if speeds:
                 self.ui.cBox_Speed.addItems(speeds)
                 if self._get_source() == SourceType.serial:
                     self.ui.cBox_Speed.setCurrentIndex(len(speeds) - 1)
             else:
                 # No PeakFrequencies.txt yet → guide the user to Peak Detection
-                if self._get_source() == SourceType.serial:
+                if self._get_source() == SourceType.serial and self._calib is None:
+                    self.ui.infobar.setText(
+                        "Connect this channel's board to load its calibration.")
+                elif self._get_source() == SourceType.serial:
                     self.ui.infobar.setText(
                         "No calibration found — switch to Peak Detection mode "
                         "and click START to calibrate the sensor first.")
@@ -1618,6 +1672,8 @@ class MainWindow(QtGui.QMainWindow):
                 self._check_firmware_version(auto_mode=True)
                 # Auto-query board serial number from EEPROM
                 self._query_serial_number(auto_mode=True)
+                # Dual mode: bind this window to the board's own calibration
+                self._assign_board_calibration()
 
             except serial.SerialException as e:
                 # Connection failed - release the lock file
@@ -1668,7 +1724,7 @@ class MainWindow(QtGui.QMainWindow):
             self._connected_port = None
             self._board_serial = None
             self.ui.lblSerialNumber.setText("")
-            self.setWindowTitle("openQCM Q-1 - version 3.0")
+            self.setWindowTitle(self._title_base())
             self.ui.pButton_Connect.setText("Connect")
             self._set_button_role(self.ui.pButton_Connect, "btnConnect")
             self.ui.cBox_Port.setEnabled(True)
@@ -1680,6 +1736,10 @@ class MainWindow(QtGui.QMainWindow):
             self.ui.infobar.setText("Ready to connect")
             print(TAG, "Disconnected from serial port")
             Log.i(TAG, "Disconnected from serial port")
+            if self._channel:
+                # The next board connected here may be a different one
+                self._calib = None
+                self._source_changed()
 
     ###########################################################################
     # Gets the current source type
@@ -1687,6 +1747,53 @@ class MainWindow(QtGui.QMainWindow):
     def _get_source(self):
         #:rtype: SourceType.
         return SourceType(self.ui.cBox_Source.currentIndex())
+
+    ###########################################################################
+    # Dual-instrument helpers (no-ops / legacy behaviour in single mode)
+    ###########################################################################
+    def _title_base(self):
+        base = "openQCM Q-1 - version 3.0"
+        return "{} \u2014 {}".format(base, self._channel) if self._channel else base
+
+    def _source_speeds(self, source):
+        """Overtone choices for `source`, read from this window's calibration folder."""
+        if source == SourceType.serial and self._calib is None:
+            return []
+        return self.worker.get_source_speeds(
+            source, self._calib.root if self._calib else None)
+
+    def _csv_tag(self):
+        """Dual mode: "CH1_<board key>" in the CSV log name; None in single mode."""
+        if not self._channel or self._calib is None:
+            return None
+        return "{}_{}".format(self._channel, os.path.basename(self._calib.root))
+
+    def _assign_board_calibration(self):
+        """
+        Dual mode: point this window at the connected board's own Peak
+        Detection folder (openQCM/boards/<serial>/) and reload the overtone
+        list from it. Called right after Connect + serial-number query.
+        """
+        if not self._channel or not self._serial_connected:
+            return
+        self._calib = CalibrationPaths.for_board(self._board_serial, self._connected_port)
+        print(TAG, "[{}] Calibration folder: {}".format(self._channel, self._calib.root))
+        Log.i(TAG, "[{}] Calibration folder: {}".format(self._channel, self._calib.root))
+
+        if not self._board_serial:
+            # Boards without an EEPROM serial are keyed by port name, which is
+            # only as stable as the OS port assignment.
+            PopUp.warning_nonblocking(self, Constants.app_title,
+                "The board on {} has no serial number, so its calibration is "
+                "stored by port name ({}).\n\nKeep this board on the same USB "
+                "port, or run Peak Detection again after moving it.".format(
+                    self._connected_port, os.path.basename(self._calib.root)))
+
+        self._source_changed()
+        if not self._calib.has_calibration():
+            self.ui.infobar.setText(
+                "No calibration for this board yet \u2014 run Peak Detection "
+                "on {} first.".format(self._channel))
 
     ###########################################################################
     # Resize event handling - pause updates during resize for better performance
@@ -2173,6 +2280,11 @@ class MainWindow(QtGui.QMainWindow):
     # Opens Peak Data View showing calibration amplitude/phase with peaks
     ###########################################################################
     def _open_peak_data_viewer(self):
+        if self._calib is None:
+            PopUp.warning(self, "Peak Data View",
+                          "Connect this channel's board first:\n"
+                          "its calibration is stored per board.")
+            return
         # Find the most recently modified calibration file
         calib_path = None
         latest_mtime = 0
@@ -2503,6 +2615,16 @@ class MainWindow(QtGui.QMainWindow):
         """Launch the platform-specific firmware updater tool.
         Releases the serial port first so the updater can access the device."""
         import subprocess
+
+        if self._channel:
+            # The Teensy loader flashes whichever board it finds; with two
+            # boards attached it cannot be pointed at this channel's one.
+            PopUp.warning(self, Constants.app_title,
+                "Firmware update is not available in dual-instrument mode.\n\n"
+                "Close the application, leave only this board connected,\n"
+                "start openQCM Q-1 in single-instrument mode and use\n"
+                "Tools \u2192 Check Firmware Version.")
+            return
 
         # Release serial port so the updater can access the device
         if self._serial_lock is not None:
