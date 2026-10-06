@@ -241,6 +241,25 @@ pyinstaller openQCM_Q-1.spec
 
 The executable will be generated in `dist/openQCM_Q-1/`.
 
+### Two instruments (dual-instrument mode)
+
+To acquire from two openQCM Q-1 boards at once (e.g. two flow cells), connect
+both via USB and start:
+
+```bash
+python run.py --dual
+```
+
+On the Windows standalone build, double-click `openQCM_Q-1_dual.bat`.
+Two windows open side by side, **CH1** and **CH2**; in each one select a port,
+click Connect, then run Peak Detection and Measurement as usual. The boards are
+acquired in parallel and independently.
+
+Each board keeps its own calibration in `openQCM/boards/<serial>/`, so every
+board needs its own Peak Detection the first time. CSV logs are named
+`YYYY-MM-DD_hh-mm-ss_CH1_<serial>_Fn.csv`. Firmware update is disabled in this
+mode: use single mode with only that board connected.
+
 ---
 
 ## Project Structure

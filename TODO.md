@@ -21,6 +21,23 @@ Development checklist. Each item can become a GitHub Issue.
 
 ---
 
+## Double instrument (`feature/double-instrument`)
+
+- [ ] **Field test with two real boards** (offline / single-board checks done
+  2026-10-06): Peak Detection on both in parallel, Measurement ≥ 30 min,
+  ~0.4 s sampling on each, STOP/START one channel while the other runs,
+  unplug one board mid-run, close. macOS, Windows (VM + native), Linux,
+  Windows frozen build via `openQCM_Q-1_dual.bat`.
+- [ ] Customer feedback; then decide on the optional **Overview window**
+  (CH1/CH2 Δf and ΔD overlaid, START all / STOP all).
+- [ ] `SerialProcess.run` read loop has no timeout: a wedged board blocks its
+  own channel until STOP force-terminates it after 5 s.
+- [ ] Decide whether single mode should also move to per-board calibration
+  (would force every user to redo Peak Detection after upgrading).
+- [ ] Merge: set `Constants.app_build_label = ""` on main.
+
+---
+
 ## Validation
 
 - [ ] **Trimmed mean fraction** (`constants.py:226`, `trim_mean_fraction = 0.10`):

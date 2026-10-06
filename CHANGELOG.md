@@ -800,4 +800,72 @@ let old firmware be used across connect/disconnect without a physical replug.
 
 ---
 
+# PART 15: DOUBLE INSTRUMENT — October 2026
+
+Branch `feature/double-instrument`. Motivated by a customer request to measure
+**two flow cells at the same time from one application**. One Q-1 board drives
+a single sensor, so this means two boards.
+
+## Problem
+
+Running two GUI instances, one per board, was reported to crash
+intermittently. Serial access was already safe (fcntl lock file on
+macOS/Linux, exclusive COM handle on Windows), but the instances shared:
+
+- **Peak Detection files** — `PeakFrequencies.txt` and `Calibration_<N>MHz.txt`
+  were addressed through `Constants` class attributes, i.e. one location per
+  installation. Calibrating board B silently overwrote board A's baseline and
+  sweep window; a read during the other instance's write could hit a
+  half-written file.
+- **CSV log name** `YYYY-MM-DD_hh-mm-ss_Fn.csv` — two STARTs in the same second
+  on the same overtone opened the same file for writing.
+- the rotating application log file (only between separate processes).
+
+## Solution — two channel windows in one application
+
+`python run.py --dual` (Windows release: `openQCM_Q-1_dual.bat`) opens two
+`MainWindow` instances, **CH1** and **CH2**, tiled on the two halves of the
+screen. Each window keeps its own `Worker` and acquisition child process, so
+the boards are acquired **in parallel** at the native ~0.4 s sweep period and
+a stalled board never blocks the other. Reusing `MainWindow` gives each channel
+every existing feature (Peak Detection, overtone buttons, reference, cursors,
+Raw/Peak Data View, tracking-safety banners) without duplicated UI code.
+
+### Per-board calibration
+`openQCM/common/calibrationPaths.py` — `CalibrationPaths(root)` derives every
+Peak Detection file name from one folder. `legacy()` is the historical
+`openQCM/` folder; `for_board()` is `openQCM/boards/<serial>/`, keyed by the
+EEPROM serial (`S` query at Connect), or `port_<port name>` with a warning for
+boards without a serial. `SerialProcess`, `CalibrationProcess` and `Worker`
+take an optional `calib_dir` string (pickles cleanly under `spawn`).
+
+A dual-mode window has **no** calibration folder until its board is connected
+and identified — there is deliberately no fallback to the shared folder. Each
+board therefore needs its own Peak Detection the first time.
+
+### Other per-channel behaviour
+- CSV log `YYYY-MM-DD_hh-mm-ss_CH1_<serial>_Fn.csv`.
+- Window title / sidebar subtitle show the channel; minimum width 800 px.
+- Firmware update refused (the Teensy loader cannot be pointed at one of two
+  attached boards) — use single mode with one board.
+- Closing either window shuts down both; one System Log stream fans out to
+  both windows.
+- Web news / update check only in CH1.
+
+### Unchanged
+Without `--dual` every path resolves to the previous behaviour: one window,
+legacy `openQCM/` calibration folder, same CSV names, same title base.
+
+### Modified Files
+- `openQCM/common/calibrationPaths.py` (new)
+- `openQCM/processors/Serial.py`, `openQCM/processors/Calibration.py`,
+  `openQCM/core/worker.py` — `calib_dir`, `csv_tag`
+- `openQCM/ui/mainWindow.py` — `channel` / `primary`, `_assign_board_calibration`,
+  `_shutdown`, `LogStream` fan-out
+- `openQCM/app.py`, `openQCM/common/arguments.py` — `--dual`
+- `openQCM/core/constants.py`, `openQCM/ui/mainWindow_ui.py` — build label
+- `tools/package_release.py` — `openQCM_Q-1_dual.bat`, README.txt section
+
+---
+
 *Development assisted by Claude Code — February 2026 onwards*

@@ -120,6 +120,14 @@ touch Qt directly — every result flows through the parser queues.
 The GUI polls those queues with `Worker.consume_queue*` from a
 `QTimer.timeout` (`Constants.plot_update_ms = 50`).
 
+**Dual-instrument mode** (`--dual`, branch `feature/double-instrument`): two
+`MainWindow` instances (`channel="CH1"/"CH2"`) in the same QApplication, each
+with its own Worker / child process. Peak Detection files are located through
+`CalibrationPaths` (`openQCM/common/calibrationPaths.py`): legacy `openQCM/` in
+single mode, `openQCM/boards/<serial>/` per board in dual mode. Never read
+`Constants.cvs_peakfrequencies_path` / `csv_calibration_path*` directly any more —
+go through the window's / process' `CalibrationPaths`.
+
 The serial port is held open in the GUI process via `_serial_lock` to
 keep it reserved across acquisitions. It is **closed** before any
 START (so the child can claim it) and reacquired in
