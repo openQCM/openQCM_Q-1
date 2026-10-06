@@ -107,7 +107,11 @@ class OPENQCM:
         # and we are about to build the GUI tree.
         self._splash_update("Initializing application...")
 
-        win = mainWindow.MainWindow(samples=self._args.get_user_samples())
+        samples = self._args.get_user_samples()
+        if self._args.get_dual():
+            windows = self._open_dual_windows(samples)
+        else:
+            windows = [mainWindow.MainWindow(samples=samples)]
 
         # Close the PyInstaller splash screen now that MainWindow is ready.
         self._splash_close()
@@ -117,8 +121,33 @@ class OPENQCM:
         print(TAG, "Application closed")
         Log.i(TAG, "Finishing Application...\n")
         Log.i(TAG, "Application closed\n")
-        win.close()
+        for win in windows:
+            win.close()
         self.close()
+
+    def _open_dual_windows(self, samples):
+        """
+        Dual-instrument mode: one MainWindow per board, each with its own
+        Worker / acquisition process and per-board calibration folder, tiled
+        on the left and right halves of the primary screen.
+        """
+        print(TAG, "Dual-instrument mode")
+        Log.i(TAG, "Dual-instrument mode")
+        windows = [mainWindow.MainWindow(samples=samples, channel="CH1"),
+                   mainWindow.MainWindow(samples=samples, channel="CH2", primary=False)]
+        for win in windows:
+            win.set_peers(windows)
+
+        screen = self._app.desktop().availableGeometry()
+        half = screen.width() // 2
+        for i, win in enumerate(windows):
+            # resize() sets the client area; subtract the window frame so the
+            # two outer frames sit edge to edge.
+            frame_w = win.frameGeometry().width() - win.width()
+            frame_h = win.frameGeometry().height() - win.height()
+            win.resize(half - frame_w, screen.height() - frame_h)
+            win.move(screen.x() + i * half, screen.y())
+        return windows
 
     def close(self):
         """Tear down the Qt event loop and exit the interpreter."""

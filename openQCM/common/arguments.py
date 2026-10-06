@@ -6,6 +6,7 @@ Supported flags:
     -d / --debug      enable DEBUG log level
     -v / --verbose    also emit log records to the console
     -s / --samples    override the default samples-per-sweep
+    --dual            dual-instrument mode: two boards, one window each
 """
 import argparse
 
@@ -43,6 +44,11 @@ class Arguments:
                             dest="user_samples",
                             default=Constants.argument_default_samples,
                             help="Override the default samples-per-sweep")
+        parser.add_argument("--dual",
+                            dest="dual",
+                            action='store_true',
+                            help="Dual-instrument mode: drive two openQCM Q-1 "
+                                 "boards, one window each, with per-board calibration")
         self._parser = parser.parse_args()
 
     def set_user_log_level(self):
@@ -55,6 +61,10 @@ class Arguments:
     def get_user_samples(self):
         """Return the samples-per-sweep chosen by the user (or the default)."""
         return int(self._parser.user_samples)
+
+    def get_dual(self):
+        """Return True when `--dual` was passed."""
+        return self._parser.dual
 
     def get_user_console_log(self):
         """Return True when `--verbose` was passed."""
