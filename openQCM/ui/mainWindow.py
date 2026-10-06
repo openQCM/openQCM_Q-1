@@ -1752,7 +1752,7 @@ class MainWindow(QtGui.QMainWindow):
     # Dual-instrument helpers (no-ops / legacy behaviour in single mode)
     ###########################################################################
     def _title_base(self):
-        base = "openQCM Q-1 - version 3.0"
+        base = Constants.app_window_title
         return "{} \u2014 {}".format(base, self._channel) if self._channel else base
 
     def _source_speeds(self, source):

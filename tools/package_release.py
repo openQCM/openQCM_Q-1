@@ -14,6 +14,7 @@ assemble the user-facing release folder under `dist/openQCM_Q-1_release/`:
             TyUploader.exe            (Windows updater)
             openQCM_Q-1_FW_*.hex      (firmware binary to flash)
         logged_data/                 ← empty, will fill with measurement CSV logs
+        openQCM_Q-1_dual.bat         ← launcher for dual-instrument mode (--dual)
         README.txt                   ← first-run instructions
 
 Usage:
@@ -51,6 +52,14 @@ FIRMWARE_UPDATE_FILES = [
     # The .hex name is firmware-version specific; pick whichever exists.
 ]
 
+# Double-clickable launcher for `--dual`. `start ""` detaches the GUI so the
+# cmd window closes at once; %~dp0 makes it work from any current directory.
+DUAL_LAUNCHER_NAME = "openQCM_Q-1_dual.bat"
+DUAL_LAUNCHER_CONTENT = (
+    "@echo off\r\n"
+    "rem Dual-instrument mode: two openQCM Q-1 boards, one window each.\r\n"
+    "start \"\" \"%~dp0{}\" --dual\r\n".format(EXE_NAME))
+
 README_CONTENT = """\
 openQCM Q-1 — Standalone Windows build
 ======================================
@@ -72,6 +81,19 @@ Each acquisition is saved as a CSV file in the `logged_data/` folder
 with the name `YYYY-MM-DD_hh-mm-ss_Fn.csv` (e.g.
 `2026-04-27_15-30-00_F3.csv`).
 
+Two instruments (dual-instrument mode)
+--------------------------------------
+To acquire from two openQCM Q-1 boards at the same time (e.g. two flow
+cells), connect both via USB and double-click `openQCM_Q-1_dual.bat`.
+Two windows open side by side, CH1 and CH2: in each one select a port,
+click Connect, then run Peak Detection and Measurement as usual. The two
+boards are acquired in parallel and independently.
+
+Each board keeps its own calibration in `openQCM/boards/<serial>/`, so
+every board needs its own Peak Detection the first time. CSV logs are
+named `YYYY-MM-DD_hh-mm-ss_CH1_<serial>_Fn.csv`. Firmware update is not
+available in this mode: use `openQCM_Q-1.exe` with a single board.
+
 Firmware update
 ---------------
 If a new firmware is required, choose Tools → Check Firmware Version
@@ -83,6 +105,7 @@ is flashed, close the updater and reconnect from the application.
 Folder layout
 -------------
 openQCM_Q-1.exe          — the application
+openQCM_Q-1_dual.bat     — start in dual-instrument mode (two boards)
 openQCM/                 — calibration files (auto-updated)
 firmware_update/         — firmware updater tool + .hex binary
 logged_data/             — measurement CSV logs (auto-created on each run)
@@ -154,6 +177,10 @@ def main():
             print("Copied:", hex_file.name)
     else:
         print("WARNING: firmware_update/ directory not found in repo")
+
+    # Write the dual-instrument launcher (binary mode keeps the CRLF endings)
+    (RELEASE_DIR / DUAL_LAUNCHER_NAME).write_bytes(DUAL_LAUNCHER_CONTENT.encode("ascii"))
+    print("Wrote:   ", DUAL_LAUNCHER_NAME)
 
     # Write the README
     (RELEASE_DIR / "README.txt").write_text(README_CONTENT, encoding="utf-8")
