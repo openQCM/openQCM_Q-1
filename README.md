@@ -260,6 +260,8 @@ board needs its own Peak Detection the first time. CSV logs are named
 `YYYY-MM-DD_hh-mm-ss_CH1_<serial>_Fn.csv`. Firmware update is disabled in this
 mode: use single mode with only that board connected.
 
+Full guide: [docs/DUAL_INSTRUMENT.md](docs/DUAL_INSTRUMENT.md).
+
 ---
 
 ## Project Structure
