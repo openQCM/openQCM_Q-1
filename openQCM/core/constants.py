@@ -52,8 +52,8 @@ class Constants:
     # ---------- Application ----------
     app_title = "Real-Time openQCM GUI"
     app_version = '3.0'
-    # Build label shown in the window title so a binary built from this
-    # branch is recognisable at a glance. Empty string on main.
+    # Build label shown in the window title so a binary of this custom
+    # dual-instrument build is recognisable at a glance.
     app_build_label = "double instrument (feature/double-instrument)"
     app_window_title = "openQCM Version {}{}".format(
         app_version, " - " + app_build_label if app_build_label else "")

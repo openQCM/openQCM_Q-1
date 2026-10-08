@@ -34,7 +34,6 @@ Development checklist. Each item can become a GitHub Issue.
   own channel until STOP force-terminates it after 5 s.
 - [ ] Decide whether single mode should also move to per-board calibration
   (would force every user to redo Peak Detection after upgrading).
-- [ ] Merge: set `Constants.app_build_label = ""` on main.
 
 ---
 

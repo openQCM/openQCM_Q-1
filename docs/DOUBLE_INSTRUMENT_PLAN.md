@@ -1,6 +1,7 @@
 # Double instrument — implementation plan
 
 Branch: `feature/double-instrument` (from `main` @ `8490b31`)
+Custom build — not intended to be merged into `main`.
 Worktree: `../openQCM_Q-1-double-instrument`
 Status: **approved 2026-10-06** — two side-by-side windows; overview (step 5) deferred
 
@@ -97,7 +98,7 @@ Without `--dual` nothing changes.
 ### 4 · Docs
 - CHANGELOG PART 15, README "Two instruments" section, TODO, CLAUDE.md §3
   note on per-board calibration; window build label as on the generic
-  quartz branch (cleared on merge).
+  quartz branch.
 
 ### 5 (optional, after field feedback) · Overview window
 - Overlay of CH1/CH2 Δf and ΔD vs time read from the two workers' ring

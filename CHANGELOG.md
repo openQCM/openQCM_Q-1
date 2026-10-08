@@ -802,7 +802,8 @@ let old firmware be used across connect/disconnect without a physical replug.
 
 # PART 15: DOUBLE INSTRUMENT — October 2026
 
-Branch `feature/double-instrument`. Motivated by a customer request to measure
+Branch `feature/double-instrument` — **custom build, not intended for `main`**.
+Motivated by a customer request to measure
 **two flow cells at the same time from one application**. One Q-1 board drives
 a single sensor, so this means two boards.
 
