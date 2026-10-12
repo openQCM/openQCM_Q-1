@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520" role="img" aria-label="Q-1 firmware check and external-loader replacement workflow">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5F7386"/></marker></defs>
+<rect width="1000" height="520" fill="white"/>
+<rect x="16" y="4" width="968" height="42" rx="4" fill="#F3F7FA" stroke="#245D86" stroke-width="1.5"/>
+<text x="500" y="33" font-family="DejaVu Sans, sans-serif" font-size="22" fill="#245D86" font-weight="bold" text-anchor="middle">
+<tspan x="500" dy="0">2.2 alone does not identify the firmware build</tspan>
+</text>
+<rect x="16" y="65" width="224" height="86" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="128.0" y="102.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="128.0" dy="0">Stop acquisition</tspan>
+<tspan x="128.0" dy="25">Preserve run data</tspan>
+</text>
+<rect x="274" y="65" width="426" height="86" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="487.0" y="102.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="487.0" dy="0">Connect; open Tools &gt;</tspan>
+<tspan x="487.0" dy="25">Check Firmware Version</tspan>
+</text>
+<path d="M 240 108 H 273" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 700 108 H 747" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 846 56 L 944 108 L 846 160 L 748 108 Z" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="846" y="102" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="846" dy="0">Exactly</tspan>
+<tspan x="846" dy="24">2.2?</tspan>
+</text>
+<path d="M 846 160 V 180 H 236 V 212" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="516" y="173" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#245D86" font-weight="normal" text-anchor="middle">
+<tspan x="516" dy="0">No / invalid</tspan>
+</text>
+<path d="M 944 108 H 984 V 196 H 747 V 212" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="953" y="177" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#245D86" font-weight="normal" text-anchor="middle">
+<tspan x="953" dy="0">Yes</tspan>
+</text>
+<rect x="16" y="213" width="440" height="108" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="236.0" y="248.0" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="236.0" dy="0">Accept offered updater launch</tspan>
+<tspan x="236.0" dy="26">App disconnects and</tspan>
+<tspan x="236.0" dy="26">releases the port</tspan>
+</text>
+<rect x="510" y="213" width="474" height="108" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="747.0" y="248.0" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="747.0" dy="0">Verify build provenance</tspan>
+<tspan x="747.0" dy="26">If replacing: disconnect and</tspan>
+<tspan x="747.0" dy="26">open the loader manually</tspan>
+</text>
+<path d="M 236 321 V 348 H 160 V 367" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 747 321 V 348 H 160" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="576" y="341" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#5F7386" font-weight="normal" text-anchor="middle">
+<tspan x="576" dy="0">If replacement is needed</tspan>
+</text>
+<rect x="16" y="369" width="290" height="113" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="161.0" y="405.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="161.0" dy="0">In the external loader</tspan>
+<tspan x="161.0" dy="27">Select verified HEX</tspan>
+<tspan x="161.0" dy="27">for Q-1 / Teensy 4.0</tspan>
+</text>
+<rect x="344" y="369" width="286" height="113" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="487.0" y="405.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="487.0" dy="0">Program the device</tspan>
+<tspan x="487.0" dy="27">Confirm success</tspan>
+<tspan x="487.0" dy="27">in the loader</tspan>
+</text>
+<rect x="668" y="369" width="316" height="113" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="826.0" y="396.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="826.0" dy="0">Reboot firmware; close loader</tspan>
+<tspan x="826.0" dy="24">Reconnect; check firmware</tspan>
+<tspan x="826.0" dy="24">Detect peaks; short run</tspan>
+<tspan x="826.0" dy="24">Reopen the CSV</tspan>
+</text>
+<path d="M 306 425 H 343" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 630 425 H 667" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="500" y="513" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="500" dy="0">The app launches the loader only: no HEX is passed; upload is not monitored.</tspan>
+</text>
+</svg>

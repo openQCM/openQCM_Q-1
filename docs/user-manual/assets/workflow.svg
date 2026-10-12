@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="118" viewBox="0 0 1000 118" role="img" aria-label="Q-1 acquisition sequence: connect, detect peaks, inspect result, acquire and log, stop and archive">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5F7386"/></marker></defs>
+<rect width="1000" height="118" fill="white"/>
+<rect x="8" y="11" width="176" height="96" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="96" y="43" font-family="DejaVu Sans, sans-serif" font-size="23" fill="#245D86" font-weight="bold" text-anchor="middle">
+<tspan x="96" dy="0">1</tspan>
+</text>
+<text x="96" y="82" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="96" dy="0">Connect</tspan>
+</text>
+<path d="M 185 60 H 206" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="210" y="11" width="176" height="96" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="298" y="43" font-family="DejaVu Sans, sans-serif" font-size="23" fill="#245D86" font-weight="bold" text-anchor="middle">
+<tspan x="298" dy="0">2</tspan>
+</text>
+<text x="298" y="82" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="298" dy="0">Detect peaks</tspan>
+</text>
+<path d="M 387 60 H 408" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="412" y="11" width="176" height="96" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="500" y="43" font-family="DejaVu Sans, sans-serif" font-size="23" fill="#245D86" font-weight="bold" text-anchor="middle">
+<tspan x="500" dy="0">3</tspan>
+</text>
+<text x="500" y="82" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="500" dy="0">Inspect result</tspan>
+</text>
+<path d="M 589 60 H 610" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="614" y="11" width="176" height="96" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="702" y="43" font-family="DejaVu Sans, sans-serif" font-size="23" fill="#245D86" font-weight="bold" text-anchor="middle">
+<tspan x="702" dy="0">4</tspan>
+</text>
+<text x="702" y="82" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="702" dy="0">Acquire and log</tspan>
+</text>
+<path d="M 791 60 H 812" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="816" y="11" width="176" height="96" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="904" y="43" font-family="DejaVu Sans, sans-serif" font-size="23" fill="#245D86" font-weight="bold" text-anchor="middle">
+<tspan x="904" dy="0">5</tspan>
+</text>
+<text x="904" y="82" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="904" dy="0">Stop and archive</tspan>
+</text>
+</svg>

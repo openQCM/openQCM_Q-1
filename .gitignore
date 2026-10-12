@@ -37,3 +37,7 @@ firmware/**/build/
 
 # Release archives (attached to GitHub Releases, never committed)
 *.zip
+
+# User manual renders (Markdown is the source; attach these to the GitHub Release)
+docs/user-manual/*.docx
+docs/user-manual/*.pdf

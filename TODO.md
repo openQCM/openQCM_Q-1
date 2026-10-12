@@ -113,6 +113,12 @@ Known behaviours to watch during testing — not blocking, but worth tracking:
   PDF from the Markdown **on demand** as a release deliverable — do NOT commit
   the binary; attach it to the GitHub Release. Once the PDF is published,
   update the in-app User Guide link (see item below, `mainWindow_ui.py:1295`).
+  **Status 2026-10-12:** draft Edition 1.1 committed at
+  `docs/user-manual/openQCM_Q-1_Software_User_Manual_v3.0.md` (+ `assets/`),
+  written against `8490b31` / rc4. To update for rc5: Lock/Unlock Axes now in
+  the plot context menu (§11 still cites the logo right-click), dual-axis
+  pan/zoom on Frequency/Dissipation (§11), source baseline + R-link commit pins,
+  rc4 → rc5 wording for the legacy-firmware query fix (§2, §4, §18, §19).
 
 - [ ] **Firmware serial protocol** — document commands, sweep data format,
   and the `F` command for community contributors.

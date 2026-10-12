@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="510" viewBox="0 0 1000 510" role="img" aria-label="Functional signal path for openQCM Q-1; not a wiring diagram">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5F7386"/></marker></defs>
+<rect width="1000" height="510" fill="white"/>
+<text x="16" y="29" font-family="DejaVu Sans, sans-serif" font-size="22" fill="#24313F" font-weight="bold" text-anchor="start">
+<tspan x="16" dy="0">Functional signal path · not a wiring diagram</tspan>
+</text>
+<rect x="288" y="56" width="696" height="244" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="307" y="85" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#245D86" font-weight="bold" text-anchor="start">
+<tspan x="307" dy="0">Q-1 INSTRUMENT</tspan>
+</text>
+<text x="16" y="85" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#245D86" font-weight="bold" text-anchor="start">
+<tspan x="16" dy="0">HOST CONTROL</tspan>
+</text>
+<rect x="16" y="109" width="244" height="82" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="138.0" y="144.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="138.0" dy="0">Software commands</tspan>
+<tspan x="138.0" dy="25">frequency sweep</tspan>
+</text>
+<rect x="308" y="109" width="188" height="82" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="402.0" y="144.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="402.0" dy="0">DDS excitation</tspan>
+<tspan x="402.0" dy="25">frequency sweep</tspan>
+</text>
+<rect x="540" y="109" width="188" height="82" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="634.0" y="144.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="634.0" dy="0">Quartz sensor</tspan>
+<tspan x="634.0" dy="25">response</tspan>
+</text>
+<rect x="772" y="101" width="192" height="98" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="868.0" y="132.0" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="868.0" dy="0">Amplitude /</tspan>
+<tspan x="868.0" dy="25">phase detection</tspan>
+<tspan x="868.0" dy="25">AD8302</tspan>
+</text>
+<path d="M 260 150 H 307" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 496 150 H 539" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 728 150 H 771" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="308" y="224" width="402" height="54" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="509.0" y="258.0" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="509.0" dy="0">Instrument-reported temperature</tspan>
+</text>
+<rect x="750" y="219" width="214" height="64" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="857.0" y="245.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="857.0" dy="0">Digitization and</tspan>
+<tspan x="857.0" dy="25">USB transfer</tspan>
+</text>
+<path d="M 868 199 V 218" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 710 251 H 749" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 857 283 V 325 H 454 V 374" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="661" y="320" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#5F7386" font-weight="normal" text-anchor="middle">
+<tspan x="661" dy="0">Response + temperature data</tspan>
+</text>
+<rect x="16" y="349" width="968" height="121" rx="6" fill="#F3F7FA" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="36" y="376" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#245D86" font-weight="bold" text-anchor="start">
+<tspan x="36" dy="0">HOST ANALYSIS</tspan>
+</text>
+<rect x="308" y="385" width="292" height="64" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="454.0" y="411.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="454.0" dy="0">Host processing of</tspan>
+<tspan x="454.0" dy="25">the resonance curve</tspan>
+</text>
+<rect x="646" y="374" width="318" height="85" rx="6" fill="#FFFFFF" stroke="#9BACBA" stroke-width="1.5"/>
+<text x="805.0" y="399.5" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="middle">
+<tspan x="805.0" dy="0">Resonance frequency +</tspan>
+<tspan x="805.0" dy="24">dissipation (estimates)</tspan>
+<tspan x="805.0" dy="24">Plots and CSV</tspan>
+</text>
+<path d="M 600 417 H 645" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M 454 325 V 384" fill="none" stroke="#5F7386" stroke-width="1.8" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="16" y="500" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#24313F" font-weight="normal" text-anchor="start">
+<tspan x="16" dy="0">Temperature is reported separately by the instrument.</tspan>
+</text>
+</svg>
