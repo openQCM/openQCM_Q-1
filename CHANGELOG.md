@@ -800,4 +800,31 @@ let old firmware be used across connect/disconnect without a physical replug.
 
 ---
 
+# PART 14: LOCK / UNLOCK AXES IN THE PLOT CONTEXT MENU — October 2026
+
+## Problem
+
+The minimum Y-axis scale limits (Frequency 100 Hz, Dissipation 1e-5,
+Temperature 2 °C) keep the autoscale from blowing stable noise up to the full
+plot height. They could only be switched off through a hidden easter egg
+(right-click on the brand logo), so users had no discoverable way to see the
+raw autoscaled signal.
+
+## Solution
+
+- New **Lock Axes / Unlock Axes** entry in the right-click menu of the
+  Frequency/Dissipation and Temperature plots. The label reflects the current
+  state; toggling re-runs the autoscale so the change is visible at once.
+- The setting is global (one switch for all time plots) and the program
+  **always starts locked**; the choice is not persisted between sessions.
+- Not offered on the Amplitude/Phase plot, where the limits do not apply.
+- The logo easter egg is removed — the context menu is now the only entry point.
+
+### Modified Files
+- `openQCM/ui/mainWindow.py` — `_on_plot_right_click()` (new menu entry),
+  `_toggle_axes_lock()` (replaces `_on_logo_context_menu()`)
+- `openQCM/ui/mainWindow_ui.py` — logo label no longer has a custom context menu
+
+---
+
 *Development assisted by Claude Code — February 2026 onwards*

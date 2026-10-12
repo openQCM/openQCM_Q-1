@@ -727,7 +727,6 @@ class Ui_Main(object):
         if not logo_pixmap.isNull():
             self.lblLogo.setPixmap(logo_pixmap.scaled(
                 30, 30, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-        self.lblLogo.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         brandLayout.addWidget(self.lblLogo)
 
         titleTextLayout = QtWidgets.QVBoxLayout()

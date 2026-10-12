@@ -53,7 +53,8 @@ _BOARD_SERIAL_RE = re.compile(r'^\d{1,3}-\d{4}$')    # e.g. "20-0051"
 
 # Minimum Y-axis display ranges, used to prevent the autoscale from "exploding"
 # stable noise across the whole plot when the signal is essentially flat.
-# (Override at runtime via the easter-egg right-click on the brand logo.)
+# Toggled at runtime via "Lock Axes / Unlock Axes" in the right-click menu
+# of the Frequency/Dissipation and Temperature plots.
 MIN_FREQ_RANGE = 100        # Hz
 MIN_DISS_RANGE = 0.00001    # 1e-5 (10e-6) — matches the 100 Hz minimum for frequency
 MIN_TEMP_RANGE = 2.0        # °C
@@ -178,7 +179,8 @@ class MainWindow(QtGui.QMainWindow):
         self._serial_lock = None
         self._lock_file = None
 
-        # Minimum Y-axis scale enforcement (prevents noise explosion on stable signals)
+        # Minimum Y-axis scale enforcement (prevents noise explosion on stable
+        # signals). Always starts locked; toggled from the plot context menu.
         self._min_scale_enabled = True
 
         # Manual zoom flag: when True, the user has zoomed/panned the
@@ -830,9 +832,6 @@ class MainWindow(QtGui.QMainWindow):
         for label, btn in self.ui.overtone_buttons.items():
             btn.clicked.connect(lambda checked, l=label: self._on_overtone_button_clicked(l))
         self.ui.cBox_Speed.currentIndexChanged.connect(self._sync_overtone_buttons)
-        #--------
-        # Easter egg: right-click on logo to unlock/lock axis limits
-        self.ui.lblLogo.customContextMenuRequested.connect(self._on_logo_context_menu)
 
     ###########################################################################
     # Toggle START / STOP
@@ -866,7 +865,8 @@ class MainWindow(QtGui.QMainWindow):
         """
         Handle right-click on plot to show custom context menu.
         Menu options: Auto-scale, Reset Zoom, Pan Mode, Select Mode,
-        Show/Hide Grid. For Frequency/Dissipation plot: also Show/Hide Cursors.
+        Show/Hide Grid. For Frequency/Dissipation and Temperature plots: also
+        Lock/Unlock Axes. For Frequency/Dissipation plot: also Show/Hide Cursors.
         """
         if event.button() != QtCore.Qt.RightButton:
             return
@@ -881,6 +881,14 @@ class MainWindow(QtGui.QMainWindow):
         # Grid toggle — wording reflects current state
         grid_on = _is_grid_on(plot)
         grid_action = menu.addAction("Hide Grid" if grid_on else "Show Grid")
+
+        # Axis lock only where _apply_min_scale acts (time plots); on
+        # Amplitude/Phase it would be a no-op.
+        lock_action = None
+        if plot in (self._plt2, self._plt4):
+            menu.addSeparator()
+            lock_action = menu.addAction(
+                "Unlock Axes" if self._min_scale_enabled else "Lock Axes")
 
         # Add Cursors option only for the Frequency/Dissipation plot (_plt2)
         cursor_action = None
@@ -917,6 +925,8 @@ class MainWindow(QtGui.QMainWindow):
             plot.getViewBox().setMouseMode(pg.ViewBox.RectMode)
         elif action == grid_action:
             plot.showGrid(x=not grid_on, y=not grid_on, alpha=0.3)
+        elif lock_action is not None and action == lock_action:
+            self._toggle_axes_lock()
         elif cursor_action is not None and action == cursor_action:
             self._toggle_cursors(not self._cursors_visible)
 
@@ -1954,19 +1964,13 @@ class MainWindow(QtGui.QMainWindow):
         else:
             plot_or_vb.setYRange(lo, hi, padding=0.05)
 
-    def _on_logo_context_menu(self, pos):
-        """Easter egg: right-click on logo to toggle min axis scale limits."""
-        menu = QtWidgets.QMenu()
-        if self._min_scale_enabled:
-            action = menu.addAction("Unlock Axes")
-        else:
-            action = menu.addAction("Lock Axes")
-        result = menu.exec_(self.ui.lblLogo.mapToGlobal(pos))
-        if result == action:
-            self._min_scale_enabled = not self._min_scale_enabled
-            state = "locked" if self._min_scale_enabled else "unlocked"
-            print(TAG, f"Axis scale limits {state}", end='\r')
-            self.autoscale()
+    def _toggle_axes_lock(self):
+        """Toggle the minimum Y-axis scale limits (global, all time plots)."""
+        self._min_scale_enabled = not self._min_scale_enabled
+        state = "locked" if self._min_scale_enabled else "unlocked"
+        print(TAG, f"Axis scale limits {state}", end='\r')
+        # Re-fit so the new mode is visible immediately, not only on new data
+        self.autoscale()
 
     ###########################################################################
     # Autoscale all plots (X and Y axes)
