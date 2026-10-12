@@ -108,17 +108,16 @@ Known behaviours to watch during testing — not blocking, but worth tracking:
   in `docs/USER_GUIDE_BRIEF.md`. Rationale for the format: Markdown keeps the
   source git-tracked with readable diffs and editable remotely (github.dev /
   GitHub web editor) — a `.docx` is binary (opaque diffs, no browser editing,
-  merge conflicts) so it is NOT the source of truth. Figures go in
-  `docs/images/` (screenshots already there). Generate the polished `.docx` /
-  PDF from the Markdown **on demand** as a release deliverable — do NOT commit
-  the binary; attach it to the GitHub Release. Once the PDF is published,
+  merge conflicts) so it is NOT the source of truth. Marco decided on
+  2026-10-12 to also commit the Word and PDF renders next to the Markdown;
+  keep all three in sync on every edition and attach the PDF to the GitHub
+  Release. Once the PDF is published,
   update the in-app User Guide link (see item below, `mainWindow_ui.py:1295`).
-  **Status 2026-10-12:** draft Edition 1.1 committed at
-  `docs/user-manual/openQCM_Q-1_Software_User_Manual_v3.0.md` (+ `assets/`),
-  written against `8490b31` / rc4. To update for rc5: Lock/Unlock Axes now in
-  the plot context menu (§11 still cites the logo right-click), dual-axis
-  pan/zoom on Frequency/Dissipation (§11), source baseline + R-link commit pins,
-  rc4 → rc5 wording for the legacy-firmware query fix (§2, §4, §18, §19).
+  **Status 2026-10-12:** Edition 1.2 (rc5) in `docs/user-manual/` as
+  `.md` + `assets/`, `.docx` and `.pdf`. Reference links are pinned to the
+  `v3.0.0-rc5` tag, so they resolve only once that tag is pushed. The PDF is
+  exported from the `.docx` with Microsoft Word (same pagination as the
+  LibreOffice original: 34 pages, static contents page numbers).
 
 - [ ] **Firmware serial protocol** — document commands, sweep data format,
   and the `F` command for community contributors.

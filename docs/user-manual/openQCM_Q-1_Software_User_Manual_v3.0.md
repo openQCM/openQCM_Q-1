@@ -14,12 +14,12 @@ Installation • Peak detection • Acquisition • Data review
 A practical operating reference for researchers
 and technically experienced laboratory users.
 
-Source baseline 8490b3164610
-Windows distribution v3.0.0-rc4
+Source baseline v3.0.0-rc5
+Windows distribution v3.0.0-rc5
 Expected firmware 2.2
 
-Edition 1.1
-06 October 2026
+Edition 1.2
+12 October 2026
 
 Software by openQCM / Novaetech S.r.l.
 
@@ -98,13 +98,13 @@ This manual explains how to install and operate the **openQCM Q-1 Quartz Crystal
 | **Item** | **Scope** |
 | --- | --- |
 | Software identity | openQCM Q-1 version 3.0 |
-| Primary source baseline | Main branch snapshot 8490b3164610, reviewed 05–06 October 2026 |
-| Windows distribution | v3.0.0-rc4, a prerelease published 27 May 2026 |
+| Primary source baseline | Release tag v3.0.0-rc5, reviewed 12 October 2026 |
+| Windows distribution | v3.0.0-rc5, a prerelease built from the same release tag |
 | Expected device firmware | Version 2.2 |
-| Manual edition | 1.1 • 06 October 2026 • English |
+| Manual edition | 1.2 • 12 October 2026 • English |
 | Publisher of the software | openQCM / Novaetech S.r.l. |
 
-The main-branch snapshot is later than the rc4 binary. Procedures describe the inspected version 3.0 interface; release-specific differences are called out where they affect operation. The Windows binary is not described as a stable production release. Neither this document nor the repository establishes performance for every computer, sensor, or experimental condition.
+The Windows package and the Python source at tag v3.0.0-rc5 are the same software revision. Procedures describe its version 3.0 interface; differences from earlier release candidates are called out where they affect operation. The Windows binary is not described as a stable production release. Neither this document nor the repository establishes performance for every computer, sensor, or experimental condition.
 
 ### How to use the guide
 
@@ -214,11 +214,11 @@ The software does not make a frequency shift a unique measurement of adsorbed ma
 
 ## 2 Install the Windows application
 
-The repository supplies a standalone Windows release for users who do not need a Python development environment. The newest listed release at this manual’s review date is **v3.0.0-rc4**. Use that exact release identity in your experiment record.
+The repository supplies a standalone Windows release for users who do not need a Python development environment. This edition describes release **v3.0.0-rc5**. Use that exact release identity in your experiment record.
 
 ### Install and launch
 
-1. Open the official GitHub Releases page and select **v3.0.0-rc4**. Download the Windows release archive supplied there.
+1. Open the official GitHub Releases page and select **v3.0.0-rc5**. Download the Windows release archive supplied there.
 
 2. Extract the complete archive to a folder you can write to. Keep the files together; do not start the executable from inside the ZIP archive.
 
@@ -234,9 +234,9 @@ The application creates runtime data directories alongside the executable. Measu
 
 ### Choose the correct release
 
-**Do not use rc3 for new measurements.** Its release notice identifies an incorrect digital-potentiometer value in the bundled firmware; rc4 corrects it. A device can still report firmware version 2.2 when the firmware builds differ. Record the release package and firmware image used, rather than relying on the version string alone.
+**Do not use rc3 for new measurements.** Its release notice identifies an incorrect digital-potentiometer value in the bundled firmware; rc4 and later releases correct it. A device can still report firmware version 2.2 when the firmware builds differ. Record the release package and firmware image used, rather than relying on the version string alone.
 
-The later main branch includes additional firmware-query handling that is not in rc4. If a legacy device hangs after a firmware or serial-number query, stop the run, reconnect or power-cycle the device as needed, and use the recovery guidance in chapter 19. Do not assume that repeatedly pressing a query command will repair the connection.
+Release rc5 adds firmware and serial-number query handling for devices running firmware older than 2.2: instead of hanging, such a device is reported as having firmware that is too old, with an offer to update. With rc4 or earlier, if a legacy device hangs after a firmware or serial-number query, stop the run, reconnect or power-cycle the device as needed, and use the recovery guidance in chapter 19. Do not assume that repeatedly pressing a query command will repair the connection.
 
 ### After an update
 
@@ -252,7 +252,7 @@ Use the pinned conda environment for the source distribution. The project specif
 
 ### Create the environment
 
-1. Download or clone the repository and select the intended commit or release tag. For this manual’s baseline, use commit 8490b316461068b3597b90e59ecfbe914062845b.
+1. Download or clone the repository and select the intended commit or release tag. For this manual’s baseline, use the release tag v3.0.0-rc5.
 
 2. Install Anaconda or Miniconda through your organization’s approved process. Open a terminal or an Anaconda Prompt in the repository root, the folder containing run.py and environment.yml.
 
@@ -315,7 +315,7 @@ The application reserves the selected port while connected and hands it to the a
 
 -  The software release and firmware identity have been recorded.
 
-**Legacy firmware caution.** The main snapshot improves compatibility of firmware and serial-number queries. A version string of 2.2 alone cannot identify every firmware build. If a query produces a nonresponsive device, recover the connection and consult the firmware guidance rather than assuming that the USB cable has failed.
+**Legacy firmware caution.** From rc5, firmware and serial-number queries no longer leave a device with firmware older than 2.2 unresponsive; such firmware is reported as too old. A version string of 2.2 alone cannot identify every firmware build. If a query produces a nonresponsive device with an earlier release, recover the connection and consult the firmware guidance rather than assuming that the USB cable has failed.
 
 ### End a connection
 
@@ -400,7 +400,7 @@ The menu bar is **File / View / Tools / Help**. The older “Data” menu descri
 
 ### Keyboard and pointer reference
 
-**Open Log:** Ctrl+O on Windows/Linux or Cmd+O on macOS. **Quit:** Ctrl+Q or Cmd+Q. Drag within a plot to pan or select a zoom rectangle, depending on the active mode; use the mouse wheel to zoom and right-click for plot options. Hover over a control to read its tooltip.
+**Open Log:** Ctrl+O on Windows/Linux or Cmd+O on macOS. **Quit:** Ctrl+Q or Cmd+Q. Drag within a plot to pan or select a zoom rectangle, depending on the active mode; use the mouse wheel to zoom and right-click for plot options. On the frequency/dissipation plot, dragging or scrolling on one vertical axis adjusts only that axis. Hover over a control to read its tooltip.
 
 *Source reference  [R4, R6]*
 
@@ -532,9 +532,9 @@ Live plots retain a finite history and may no longer show the start of a long ex
 
 ### Pan and zoom
 
-Right-click a plot for **Auto-scale**, **Reset Zoom**, **Pan Mode**, **Select Mode**, and **Show/Hide Grid**. In Pan Mode, drag to reposition the view. In Select Mode, drag a rectangle to zoom. The wheel zooms near the pointer. The live frequency/dissipation plot also offers cursor visibility.
+Right-click a plot for **Auto-scale**, **Reset Zoom**, **Pan Mode**, **Select Mode**, and **Show/Hide Grid**. The frequency/dissipation and temperature plots add **Lock Axes** / **Unlock Axes**, and the frequency/dissipation plot also offers cursor visibility. In Pan Mode, drag to reposition the view; the wheel zooms near the pointer. On the frequency/dissipation plot, a drag or wheel zoom inside the plot area moves the frequency and dissipation axes together, so the two traces keep their relative position; drag or scroll on the left (frequency) or right (dissipation) axis to adjust one trace alone. In Select Mode, drag a rectangle to zoom; both vertical axes are then refitted to the data in the selected time interval.
 
-The normal minimum display ranges are **100 Hz**, **10 × 10⁻⁶** for dissipation, and **2 °C**. These are visual scaling choices, not resolution or uncertainty. Manual zoom can bypass the frequency/dissipation minimums; autoscale, reset, or Clear restores the normal view. A logo right-click provides an additional Lock/Unlock Axes option.
+The normal minimum display ranges are **100 Hz**, **10 × 10⁻⁶** for dissipation, and **2 °C**. They apply while the axes are locked, which is the state at every start. Choose **Unlock Axes** to let the autoscale follow the data without a minimum range, for example to examine variations smaller than that range; the choice applies to all time plots and is not remembered at the next start. These are visual scaling choices, not resolution or uncertainty. Manual zoom can bypass the frequency/dissipation minimums; autoscale, reset, or Clear restores the normal view.
 
 *Source reference  [R4, R6, R7, R11]*
 
@@ -750,7 +750,7 @@ The built-in **Help → User Guide** command still points to a manufacturer v2.0
 
 ### The 2.2 version string is not enough
 
-Do not use rc3 for new measurements. The rc3 release is deprecated because its bundled firmware used an incorrect digital-potentiometer setting. The rc4/current corrected firmware uses a different setting, but both builds report 2.2. A matching firmware check therefore cannot prove that the corrected image is installed. Record the release package and exact firmware image used.
+Do not use rc3 for new measurements. The rc3 release is deprecated because its bundled firmware used an incorrect digital-potentiometer setting. The corrected firmware bundled from rc4 onward uses a different setting, but both builds report 2.2. A matching firmware check therefore cannot prove that the corrected image is installed. Record the release package and exact firmware image used.
 
 *Source reference [R2, R4, R6, R7, R10, R17]*
 
@@ -838,13 +838,13 @@ This is an operational verification sequence. It does not replace a validated la
 
 - Application cannot reconnect: wait until programming has finished and the loader has restarted the firmware, close the loader, refresh the port list, and reconnect. Never unplug or power-cycle the instrument while the loader is actively writing.
 
-- Device becomes unresponsive after a version or serial query: stop and recover the connection, reconnecting or power-cycling only when no programming is in progress. The reviewed main snapshot fixes legacy query handling that is absent from rc4. Repeated query clicks are not a recovery method.
+- Device becomes unresponsive after a version or serial query: stop and recover the connection, reconnecting or power-cycling only when no programming is in progress. Release rc5 fixes the legacy query handling; rc4 and earlier do not include this fix. Repeated query clicks are not a recovery method.
 
 ### Identifiers and release history
 
 **Check Board Serial Number** can report a stored board identifier when supported. If the device reports **NO_SERIAL**, contact support rather than inventing or programming a replacement identifier. Keep release and firmware-image provenance because different firmware builds can share the reported 2.2 version.
 
-The rc4 Windows package corrects the deprecated rc3 bundled firmware setting. Later main-branch query fixes are not automatically present in rc4. Software “up to date” and “matches this manual's source commit” are different checks.
+The rc4 and rc5 Windows packages correct the deprecated rc3 bundled firmware setting; the legacy-firmware query fix is present from rc5. Software “up to date” and “matches this manual's source release” are different checks.
 
 *Source reference [R2, R6, R10, R12, R17–R19]*
 
@@ -876,7 +876,7 @@ Use the owning application’s normal stop and disconnect controls. A port reser
 
 ### Device stops responding after a query
 
-Stop the operation and reconnect or power-cycle the device if necessary. The later main snapshot includes a fix for legacy firmware interpreting version/serial queries incorrectly; rc4 does not include this change. Preserve the exact version and symptoms and consult the official update guidance.
+Stop the operation and reconnect or power-cycle the device if necessary. Release rc5 includes a fix for legacy firmware interpreting version/serial queries incorrectly; rc4 and earlier do not include this change. Preserve the exact version and symptoms and consult the official update guidance.
 
 ### Cannot find a control
 
@@ -897,7 +897,7 @@ Restore **View → Left Panel** or **View → Status Bar**. Stop acquisition bef
 | Unexpected change immediately after recovery | Allow for retained temporal-processing values. Inspect the recovered sweep and annotate the affected interval; automatic resumption does not validate every sample. |
 | CSV missing or incomplete | Check the displayed filename, correct data root, write permissions, storage, and System Log errors. Use STOP to flush. A plot can continue despite a file-writing problem. |
 | Sampling time varies | Treat Sampling as observed timing. Inspect CSV timestamps and computer workload. Do not assume a guaranteed rate or that all timing spikes are harmless. |
-| Plots appear flat or exaggerated | Check units, reference state, manual zoom, and minimum display ranges. Use Autoscale or Reset Zoom. Scaling is not measurement resolution. |
+| Plots appear flat or exaggerated | Check units, reference state, manual zoom, and minimum display ranges. Use Autoscale or Reset Zoom; choose Unlock Axes to remove the minimum ranges. Scaling is not measurement resolution. |
 
 ### When to start a new run
 
@@ -1014,38 +1014,38 @@ The backslash line continuations above are for a POSIX shell; enter each command
 
 ## 24 References and provenance
 
-The following sources document the version covered by this edition. Repository links are pinned to the reviewed commit unless a release or comparison is explicitly named. Implementation and current release evidence take precedence over conflicting historical planning text.
+The following sources document the version covered by this edition. Repository links are pinned to the reviewed release tag unless a release or comparison is explicitly named. Implementation and current release evidence take precedence over conflicting historical planning text.
 
-**Reviewed source commit**
-8490b316461068b3597b90e59ecfbe914062845b
+**Reviewed source release**
+v3.0.0-rc5
 
-[\[R1\] Project overview and operator entry points](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/README.md)
+[\[R1\] Project overview and operator entry points](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/README.md)
 
 README.md; product identity, launch instructions, platform notes, support and citation pointers.
 
-[\[R2\] Windows v3.0.0-rc4 release](https://github.com/openQCM/openQCM_Q-1/releases/tag/v3.0.0-rc4)
+[\[R2\] Windows v3.0.0-rc5 release](https://github.com/openQCM/openQCM_Q-1/releases/tag/v3.0.0-rc5)
 
-[Changes between rc4 and the reviewed main snapshot](https://github.com/openQCM/openQCM_Q-1/compare/v3.0.0-rc4...8490b316461068b3597b90e59ecfbe914062845b)
+[Changes between rc4 and rc5](https://github.com/openQCM/openQCM_Q-1/compare/v3.0.0-rc4...v3.0.0-rc5)
 
-Release status, deprecated rc3 firmware correction, and the distinction between the binary and later source.
+Release status, deprecated rc3 firmware correction, and the changes introduced in rc5.
 
-[\[R3\] Pinned source environment](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/environment.yml)
+[\[R3\] Pinned source environment](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/environment.yml)
 
-[Source setup script](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/setup_env.sh)
+[Source setup script](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/setup_env.sh)
 
-[Alternative pip requirements](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/requirements.txt)
+[Alternative pip requirements](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/requirements.txt)
 
 Installation commands and dependency limitations are also cross-checked against README.md and CONTRIBUTING.md.
 
-[\[R4\] Interface definitions and diagnostic viewers](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/openQCM/ui/mainWindow_ui.py)
+[\[R4\] Interface definitions and diagnostic viewers](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/openQCM/ui/mainWindow_ui.py)
 
-[\[R5\] Peak detection and calibration output](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/openQCM/processors/Calibration.py)
+[\[R5\] Peak detection and calibration output](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/openQCM/processors/Calibration.py)
 
-[\[R6\] Main window behavior and device queries](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/openQCM/ui/mainWindow.py)
+[\[R6\] Main window behavior and device queries](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/openQCM/ui/mainWindow.py)
 
-[\[R7\] Application constants and processing settings](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/openQCM/core/constants.py)
+[\[R7\] Application constants and processing settings](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/openQCM/core/constants.py)
 
-[\[R8\] Sweep processing and tracking](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/openQCM/processors/Serial.py)
+[\[R8\] Sweep processing and tracking](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/openQCM/processors/Serial.py)
 
 These implementation references support the visible controls, procedures, units, processing conventions, warnings, and version-specific behavior described in chapters 4–20.
 
@@ -1053,25 +1053,25 @@ These implementation references support the visible controls, procedures, units,
 
 ## Source notes and document control
 
-[\[R9\] Persistent data locations](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/openQCM/common/resources.py)
+[\[R9\] Persistent data locations](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/openQCM/common/resources.py)
 
-[\[R10\] Firmware and update resources](https://github.com/openQCM/openQCM_Q-1/tree/8490b316461068b3597b90e59ecfbe914062845b/firmware_update)
+[\[R10\] Firmware and update resources](https://github.com/openQCM/openQCM_Q-1/tree/v3.0.0-rc5/firmware_update)
 
-[\[R11\] Automatic CSV logging and temporal data handling](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/openQCM/core/worker.py)
+[\[R11\] Automatic CSV logging and temporal data handling](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/openQCM/core/worker.py)
 
-[\[R12\] Known validation work and limitations](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/TODO.md)
+[\[R12\] Known validation work and limitations](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/TODO.md)
 
-[Development and release history](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/CHANGELOG.md)
+[Development and release history](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/CHANGELOG.md)
 
-[\[R13\] Authentic repository screenshot assets](https://github.com/openQCM/openQCM_Q-1/tree/8490b316461068b3597b90e59ecfbe914062845b/docs/images)
+[\[R13\] Authentic repository screenshot assets](https://github.com/openQCM/openQCM_Q-1/tree/v3.0.0-rc5/docs/images)
 
 Figure 2 is an original procedural schematic based on the documented workflow. Figure 3: screenshot_dark.png. Figure 4: screenshot_light_grid.png. The two screenshots are original repository assets from a historical version 3.0 Windows session. They are retained as illustrations without creating new measurement data or a new application capture. Figures 1 and 5 are original logical schematics of the documented measurement and firmware workflows; they are not physical wiring diagrams or instrument screenshots.
 
-[\[R14\] Optional diagnostic scripts](https://github.com/openQCM/openQCM_Q-1/tree/8490b316461068b3597b90e59ecfbe914062845b/tools)
+[\[R14\] Optional diagnostic scripts](https://github.com/openQCM/openQCM_Q-1/tree/v3.0.0-rc5/tools)
 
-[\[R15\] Software citation metadata](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/CITATION.cff)
+[\[R15\] Software citation metadata](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/CITATION.cff)
 
-[Software GPL v3 license](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/LICENSE)
+[Software GPL v3 license](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/LICENSE)
 
 <a id="s27"></a>
 
@@ -1083,9 +1083,9 @@ Figure 2 is an original procedural schematic based on the documented workflow. F
 
 [Loading models and their interpretation limits](https://openqcm.com/introducing-the-openqcm-advanced-calculator-three-models-one-click-zero-installation.html)
 
-[\[R17\] Q-1 Teensy 4.0 firmware source](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/firmware/openQCM_Q-1_FW_py_v2.2_T40/openQCM_Q-1_FW_py_v2.2_T40.ino)
+[\[R17\] Q-1 Teensy 4.0 firmware source](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/firmware/openQCM_Q-1_FW_py_v2.2_T40/openQCM_Q-1_FW_py_v2.2_T40.ino)
 
-[Bundled Q-1 firmware image](https://github.com/openQCM/openQCM_Q-1/blob/8490b316461068b3597b90e59ecfbe914062845b/firmware_update/openQCM_Q-1_FW_py_v2.2_T40.ino.hex)
+[Bundled Q-1 firmware image](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/firmware_update/openQCM_Q-1_FW_py_v2.2_T40.ino.hex)
 
 [Deprecated rc3 release notice](https://github.com/openQCM/openQCM_Q-1/releases/tag/v3.0.0-rc3)
 
@@ -1107,6 +1107,7 @@ The manufacturer pages support the general QCM introduction. The loader sources 
 | --- | --- | --- |
 | 1.0 | 05 October 2026 | Initial English software user manual, aligned to source snapshot 8490b3164610 and separately scoped to the rc4 Windows distribution. |
 | 1.1 | 06 October 2026 | Added the Q-1 and QCM introduction, expanded firmware checks, external-loader procedures and recovery, and added technical schematics. Word, PDF, and Markdown remain synchronized. |
+| 1.2 | 12 October 2026 | Updated for release v3.0.0-rc5: Lock Axes / Unlock Axes in the plot context menu, linked frequency/dissipation pan and zoom, the legacy-firmware query fix now included in the release, and references pinned to tag v3.0.0-rc5. |
 
 This manual is an independently prepared operating reference for the identified software. It is not a manufacturer certification, regulatory approval, performance specification, or assertion of formal standards compliance. The software is published by openQCM / Novaetech S.r.l. under its stated GPL v3 license.
 
