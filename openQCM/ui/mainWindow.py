@@ -105,6 +105,54 @@ def _is_grid_on(plot):
         return False
 
 
+class _DualAxisViewBox(pg.ViewBox):
+    """
+    Primary ViewBox of a dual-Y-axis plot (Frequency + Dissipation).
+
+    The secondary ViewBox is only X-linked, and plot-area mouse events reach
+    the primary one alone: a pan or zoom therefore moved the frequency curve
+    while the dissipation curve stood still. Here every plot-area pan/zoom in
+    PanMode applies the same relative change to the secondary Y range, so the
+    two curves move as one. Drags/wheel on an axis (axis is not None) stay
+    single-axis, which keeps independent adjustment via the left/right axes.
+    RectMode is left alone: it has its own fit-to-data sync on both axes.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.secondary = None
+
+    def _follows(self, axis):
+        return (self.secondary is not None and axis is None
+                and self.state['mouseMode'] == pg.ViewBox.PanMode)
+
+    def _move_secondary(self, before):
+        a0, a1 = before
+        b0, b1 = self.viewRange()[1]
+        if a1 == a0 or (a0, a1) == (b0, b1):
+            return
+        # Map the new primary Y window through the affine relation that held
+        # between the two Y axes before the interaction.
+        c0, c1 = self.secondary.viewRange()[1]
+        k = (c1 - c0) / (a1 - a0)
+        self.secondary.setRange(yRange=(c0 + (b0 - a0) * k, c0 + (b1 - a0) * k),
+                                padding=0)
+
+    def mouseDragEvent(self, ev, axis=None):
+        if not self._follows(axis):
+            return super().mouseDragEvent(ev, axis)
+        before = tuple(self.viewRange()[1])
+        super().mouseDragEvent(ev, axis)
+        self._move_secondary(before)
+
+    def wheelEvent(self, ev, axis=None):
+        if not self._follows(axis):
+            return super().wheelEvent(ev, axis)
+        before = tuple(self.viewRange()[1])
+        super().wheelEvent(ev, axis)
+        self._move_secondary(before)
+
+
 def _extract_value(html_text):
     """Strip the leading HTML label (e.g. '<font color=...>Frequency</font> 1234')."""
     if '>' in html_text and '</font>' in html_text:
@@ -603,7 +651,8 @@ class MainWindow(QtGui.QMainWindow):
         self._xaxis.enableAutoSIPrefix(False)  # Disable auto SI prefix (removes x1e+15)
         self._xaxis.setPen(axis_pen)
         self._xaxis.setTextPen(axis_color)
-        self._plt2 = self.ui.pltB.addPlot(row=0, col=2, title=title2, axisItems={"bottom": self._xaxis, 'left': self._yaxis})
+        self._plt2 = self.ui.pltB.addPlot(row=0, col=2, title=title2, axisItems={"bottom": self._xaxis, 'left': self._yaxis},
+                                          viewBox=_DualAxisViewBox())
         # Grid disabled for cleaner appearance
         self._plt2.showGrid(x=False, y=False)
         self._plt2.setLabel('bottom', 'Time (hh:mm:ss)', units='', color=axis_color)
@@ -618,6 +667,8 @@ class MainWindow(QtGui.QMainWindow):
         self._plt2.scene().addItem(self._plt3)
         self._plt2.getAxis('right').linkToView(self._plt3)
         self._plt3.setXLink(self._plt2)
+        # Plot-area pan/zoom moves the Dissipation Y axis together with Frequency
+        self._plt2.vb.secondary = self._plt3
         self._plt2.enableAutoRange(axis='y', enable=True)
         self._plt3.enableAutoRange(axis='y', enable=True)
         self._plt2.setLabel('bottom', 'Time (hh:mm:ss)', units='', color=axis_color)

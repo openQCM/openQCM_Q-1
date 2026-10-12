@@ -827,4 +827,35 @@ raw autoscaled signal.
 
 ---
 
+# PART 15: FREQUENCY / DISSIPATION DUAL-AXIS PAN & ZOOM — October 2026
+
+## Problem
+
+Panning or zooming the Frequency/Dissipation plot moved only the frequency
+curve: the dissipation curve shifted in time but stayed still vertically.
+
+## Root Cause
+
+Dissipation lives in a secondary `ViewBox` that is linked to the frequency
+plot on the **X axis only**. Mouse drag and wheel events in the plot area are
+delivered to the primary (frequency) `ViewBox` alone, so only the frequency Y
+range was translated/scaled.
+
+## Solution
+
+The frequency plot now uses `_DualAxisViewBox`: after each plot-area pan or
+zoom (left-drag, right-drag, wheel) in **Pan Mode** it applies the same
+relative change to the dissipation Y range, so both curves move as one.
+
+- Dragging / scrolling on the **left axis** still moves frequency only, on the
+  **right axis** dissipation only — independent adjustment is kept.
+- **Select Mode** is unchanged: rect-select already fits both Y axes to the
+  data in the selected time window.
+
+### Modified Files
+- `openQCM/ui/mainWindow.py` — `_DualAxisViewBox` (new), used as the
+  `viewBox` of the Frequency/Dissipation plot in `_configure_plot()`
+
+---
+
 *Development assisted by Claude Code — February 2026 onwards*
