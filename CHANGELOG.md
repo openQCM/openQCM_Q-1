@@ -1,6 +1,6 @@
 # openQCM Q-1 - Changelog v3.0
 
-## Version 3.0 - May 2026
+## Version 3.0 - February–October 2026 (latest: v3.0.0-rc5, October 2026)
 
 ---
 
