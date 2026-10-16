@@ -790,9 +790,9 @@ Do not use rc3 for new measurements. The rc3 release is deprecated because its b
 
 ### Firmware update workflow
 
-![Figure 5. Firmware check and external-loader workflow with exact 2.2 match decision, manual route for a known same-version build, and post-update verification.](assets/firmware_workflow.png)
+![Figure 15. Firmware check and external-loader workflow with exact 2.2 match decision, manual route for a known same-version build, and post-update verification.](assets/firmware_workflow.png)
 
-Figure 5. Firmware update responsibilities and verification sequence. The Q-1 application only launches an external loader after disconnecting. It does not select the HEX file, supervise programming, or verify the result. A version match must be interpreted together with the image provenance. [R2, R6, R10, R17–R19]
+Figure 15. Firmware update responsibilities and verification sequence. The Q-1 application only launches an external loader after disconnecting. It does not select the HEX file, supervise programming, or verify the result. A version match must be interpreted together with the image provenance. [R2, R6, R10, R17–R19]
 
 ### Prepare the correct image and loader
 
