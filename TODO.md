@@ -88,6 +88,38 @@ Known behaviours to watch during testing — not blocking, but worth tracking:
 
 ---
 
+## GUI defects
+
+Found on 2026-10-16 while capturing the user-manual screenshots
+(v3.0.0-rc5, macOS). The manual documents them as current behaviour.
+
+- [ ] **Peak Data View legend covers the F1 label** (`calibrationPlot.py`):
+  the legend at the top-left of both plots overlaps the fundamental's
+  "F1: … Hz" text.
+- [ ] **Cursor overlays overlap** (`mainWindow.py`, cursor code ~2051-2167):
+  the Δt/ΔF/ΔD box covers the Frequency/Dissipation legend, and each
+  "C1: F=…, D=…" readout is drawn over its grey C1/C2 tag.
+- [ ] **Disabled menu items not greyed in the light theme**
+  (`mainWindow_ui._get_light_stylesheet`): e.g. Help → Download Update looks
+  clickable while disabled. Add a `QMenu::item:disabled` rule.
+- [ ] **Shape mismatch during Peak Detection** (`mainWindow.py:1301-1303`):
+  "X and Y arrays must be the same shape (35001 vs 40001)" because the
+  amplitude and phase buffers are read while still growing. Read both once
+  and trim to the common length before `setData`.
+- [ ] **RuntimeError on Quit after closing a viewer** (`MainWindow.closeEvent`
+  ~l. 507): Raw Data View and Data View use `WA_DeleteOnClose`, so
+  `dlg.close()` on the stale Python reference raises "wrapped C/C++ object
+  … has been deleted". Guard with `sip.isdeleted()` or clear the reference
+  on `destroyed`.
+- [ ] **Time-axis tick format** (`ElapsedTimeAxis`, `constants.py`): the axes
+  are labelled "Time (hh:mm:ss)" but short runs show "4, 24, 1:04"
+  (seconds, then m:ss). Pad to a consistent format or relabel.
+- [ ] **Update pop-up names a non-existent menu item** (`mainWindow.py`
+  `_check_for_updates`): it says "Use Help → Download", but the item is
+  "Download Update" / "Download v<X>".
+
+---
+
 ## Features
 
 - [ ] **Explicit QCM 5/10 MHz type detection** — currently inferred from peak
