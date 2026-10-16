@@ -18,72 +18,72 @@ Source baseline v3.0.0-rc5
 Windows distribution v3.0.0-rc5
 Expected firmware 2.2
 
-Edition 1.2
-12 October 2026
+Edition 1.3
+16 October 2026
 
 Software by openQCM / Novaetech S.r.l.
 
 ## Contents
 
-Choose a procedure below or use the document bookmarks. Page numbers refer to this edition.
+Choose a procedure below or use the document bookmarks.
 
-- [About this manual](#s1) 3
+- [About this manual](#s1)
 
-- [Introduction to the Q-1](#intro1) 4
+- [Introduction to the Q-1](#intro1)
 
-- [Using the Q-1 as a QCM](#intro2) 5
+- [Using the Q-1 as a QCM](#intro2)
 
-- [1 Before you begin](#s2) 6
+- [1 Before you begin](#s2)
 
-- [2 Install the Windows application](#s3) 7
+- [2 Install the Windows application](#s3)
 
-- [3 Install from Python source](#s4) 8
+- [3 Install from Python source](#s4)
 
-- [4 Connect and identify the device](#s5) 9
+- [4 Connect and identify the device](#s5)
 
-- [5 Complete your first measurement](#s6) 10
+- [5 Complete your first measurement](#s6)
 
-- [6 Navigate the main window](#s7) 11
+- [6 Navigate the main window](#s7)
 
-- [7 Use the menus](#s8) 12
+- [7 Use the menus](#s8)
 
-- [8 Run peak detection](#s9) 13
+- [8 Run peak detection](#s9)
 
-- [9 Interpret detected resonances](#s10) 14
+- [9 Interpret detected resonances](#s10)
 
-- [10 Acquire a measurement](#s11) 15
+- [10 Acquire a measurement](#s11)
 
-- [11 Set a reference and control plots](#s12) 16
+- [11 Set a reference and control plots](#s12)
 
-- [12 Read the live plots](#s13) 17
+- [12 Read the live plots](#s13)
 
-- [13 Inspect a sweep and its parameters](#s14) 18
+- [13 Inspect a sweep and its parameters](#s14)
 
-- [14 Review logs and use cursors](#s15) 19
+- [14 Review logs and use cursors](#s15)
 
-- [15 Understand tracking and signal quality](#s16) 20
+- [15 Understand tracking and signal quality](#s16)
 
-- [16 Locate and preserve your data](#s17) 21
+- [16 Locate and preserve your data](#s17)
 
-- [17 Understand the file formats](#s18) 22
+- [17 Understand the file formats](#s18)
 
-- [18 Maintain software and firmware](#s19) 23
+- [18 Maintain software and firmware](#s19)
 
-- [19 Troubleshoot startup and connection](#s20) 27
+- [19 Troubleshoot startup and connection](#s20)
 
-- [20 Troubleshoot measurements](#s21) 28
+- [20 Troubleshoot measurements](#s21)
 
-- [21 Record a reproducible experiment](#s22) 29
+- [21 Record a reproducible experiment](#s22)
 
-- [22 Use the command line diagnostics](#s23) 30
+- [22 Use the command line diagnostics](#s23)
 
-- [23 Glossary](#s24) 31
+- [23 Glossary](#s24)
 
-- [24 References and provenance](#s25) 32
+- [24 References and provenance](#s25)
 
-- [Source notes and document control](#s26) 33
+- [Source notes and document control](#s26)
 
-- [Additional technical references](#s27) 34
+- [Additional technical references](#s27)
 
 Source code, release information, and figure provenance are linked in the references.
 
@@ -98,10 +98,10 @@ This manual explains how to install and operate the **openQCM Q-1 Quartz Crystal
 | **Item** | **Scope** |
 | --- | --- |
 | Software identity | openQCM Q-1 version 3.0 |
-| Primary source baseline | Release tag v3.0.0-rc5, reviewed 12 October 2026 |
+| Primary source baseline | Release tag v3.0.0-rc5, reviewed 16 October 2026 |
 | Windows distribution | v3.0.0-rc5, a prerelease built from the same release tag |
 | Expected device firmware | Version 2.2 |
-| Manual edition | 1.2 • 12 October 2026 • English |
+| Manual edition | 1.3 • 16 October 2026 • English |
 | Publisher of the software | openQCM / Novaetech S.r.l. |
 
 The Windows package and the Python source at tag v3.0.0-rc5 are the same software revision. Procedures describe its version 3.0 interface; differences from earlier release candidates are called out where they affect operation. The Windows binary is not described as a stable production release. Neither this document nor the repository establishes performance for every computer, sensor, or experimental condition.
@@ -112,7 +112,7 @@ For a first run, follow chapters 1–5 in order. Keep chapters 8–10 nearby for
 
 **Conventions.** Bold text identifies visible controls and menu commands. Monospaced text identifies filenames or commands. “Peak detection” is the software’s resonance-finding operation, also called calibration in parts of the application; it is not a traceable metrological calibration.
 
-**Figures.** Screenshots are authentic images supplied in the repository, showing an existing version 3.0 Windows session. Their signals and values are illustrative source captures, not acceptance limits or results generated for this manual. Hardware operation was not independently exercised for this edition.
+**Figures.** Screenshots were captured from release v3.0.0-rc5 on macOS in the default light theme, partly with a connected Q-1 and partly from saved files, using the scripts in the repository’s docs/tools folder. Numbered callouts are explained in each caption. Menus are shown inside the window, as on Windows and Linux. Values in the screenshots are examples, not acceptance limits or expected results.
 
 *Source reference  [R1–R4, R12]*
 
@@ -967,7 +967,7 @@ When comparing sensors or overtones, report how the frequencies were normalized 
 
 ### Minimum verification after a change
 
-After a software, firmware, environment, or material setup change, perform a connection check, successful peak detection, a short acquisition with a credible sweep, and a stopped CSV reopen. Define any quantitative acceptance thresholds in your own validated laboratory method; the repository screenshots do not supply such thresholds.
+After a software, firmware, environment, or material setup change, perform a connection check, successful peak detection, a short acquisition with a credible sweep, and a stopped CSV reopen. Define any quantitative acceptance thresholds in your own validated laboratory method; the screenshots in this manual do not supply such thresholds.
 
 *Source reference  [R1–R3, R5–R12]*
 
@@ -1097,9 +1097,9 @@ These implementation references support the visible controls, procedures, units,
 
 [Development and release history](https://github.com/openQCM/openQCM_Q-1/blob/v3.0.0-rc5/CHANGELOG.md)
 
-[\[R13\] Authentic repository screenshot assets](https://github.com/openQCM/openQCM_Q-1/tree/v3.0.0-rc5/docs/images)
+[\[R13\] Screenshot capture and annotation scripts](https://github.com/openQCM/openQCM_Q-1/tree/main/docs/tools)
 
-Figure 2 is an original procedural schematic based on the documented workflow. Figure 3: screenshot_dark.png. Figure 4: screenshot_light_grid.png. The two screenshots are original repository assets from a historical version 3.0 Windows session. They are retained as illustrations without creating new measurement data or a new application capture. Figures 1 and 5 are original logical schematics of the documented measurement and firmware workflows; they are not physical wiring diagrams or instrument screenshots.
+Figures 1, 2 and 15 are original logical schematics of the documented measurement, operating and firmware workflows; they are not physical wiring diagrams or instrument screenshots. Figures 3–14 are screenshots of release v3.0.0-rc5, taken with docs/tools/capture_gui.py and annotated with docs/tools/annotate_gui.py. The unannotated originals are kept in assets/gui/raw. Live states were captured with a Q-1 and a 10 MHz sensor. Figure 7 uses a saved 5 MHz calibration, and Figure 12 uses the reference log docs/2026-04-24_10-25-14_F0.csv. No data were synthesized.
 
 [\[R14\] Optional diagnostic scripts](https://github.com/openQCM/openQCM_Q-1/tree/v3.0.0-rc5/tools)
 
@@ -1133,7 +1133,7 @@ Figure 2 is an original procedural schematic based on the documented workflow. F
 
 [Teensy 4.0 programming and Program button](https://www.pjrc.com/store/teensy40.html)
 
-The manufacturer pages support the general QCM introduction. The loader sources support external-tool procedures, not a claim that the bundled binaries or a particular Q-1 were tested for this edition. Original screenshots remain unchanged; the new schematics depict logical functions and operator responsibilities.
+The manufacturer pages support the general QCM introduction. The loader sources support external-tool procedures, not a claim that the bundled binaries or a particular Q-1 were tested for this edition. The schematics depict logical functions and operator responsibilities.
 
 ### Document revision
 
@@ -1142,6 +1142,7 @@ The manufacturer pages support the general QCM introduction. The loader sources 
 | 1.0 | 05 October 2026 | Initial English software user manual, aligned to source snapshot 8490b3164610 and separately scoped to the rc4 Windows distribution. |
 | 1.1 | 06 October 2026 | Added the Q-1 and QCM introduction, expanded firmware checks, external-loader procedures and recovery, and added technical schematics. Word, PDF, and Markdown remain synchronized. |
 | 1.2 | 12 October 2026 | Updated for release v3.0.0-rc5: Lock Axes / Unlock Axes in the plot context menu, linked frequency/dissipation pan and zoom, the legacy-firmware query fix now included in the release, and references pinned to tag v3.0.0-rc5. |
+| 1.3 | 16 October 2026 | Twelve annotated GUI screenshots of v3.0.0-rc5 replace the two historical repository screenshots, and shorter text refers to them. Corrected against the GUI: start-up mode, hidden controls in Peak Detection mode, status-bar strings and colours, tracking recovery, Measurement Parameters samples, cursor labels, Data View content and units, and update menu items. |
 
 This manual is an independently prepared operating reference for the identified software. It is not a manufacturer certification, regulatory approval, performance specification, or assertion of formal standards compliance. The software is published by openQCM / Novaetech S.r.l. under its stated GPL v3 license.
 
