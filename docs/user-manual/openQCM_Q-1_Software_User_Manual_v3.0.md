@@ -544,7 +544,11 @@ Live plots retain a finite history and may no longer show the start of a long ex
 
 ### Pan and zoom
 
-Right-click a plot for **Auto-scale**, **Reset Zoom**, **Pan Mode**, **Select Mode**, and **Show/Hide Grid**. The frequency/dissipation and temperature plots add **Lock Axes** / **Unlock Axes**, and the frequency/dissipation plot also offers cursor visibility. In Pan Mode, drag to reposition the view; the wheel zooms near the pointer. On the frequency/dissipation plot, a drag or wheel zoom inside the plot area moves the frequency and dissipation axes together, so the two traces keep their relative position; drag or scroll on the left (frequency) or right (dissipation) axis to adjust one trace alone. In Select Mode, drag a rectangle to zoom; both vertical axes are then refitted to the data in the selected time interval.
+![Figure 8. Right-click menu of the Resonance Frequency / Dissipation plot.](assets/gui/q1_11_plot_context_menu.png)
+
+Figure 8. Right-click menu of the **Resonance Frequency / Dissipation** plot. The Temperature plot omits **Show Cursors**; the Amplitude / Phase plot also omits **Unlock Axes**. Grid, lock and cursor entries show the action available in the current state. [R6]
+
+In Pan Mode, drag to reposition the view; the wheel zooms near the pointer. On the frequency/dissipation plot, a drag or wheel zoom inside the plot area moves the frequency and dissipation axes together, so the two traces keep their relative position; drag or scroll on the left (frequency) or right (dissipation) axis to adjust one trace alone. In Select Mode, drag a rectangle to zoom; both vertical axes are then refitted to the data in the selected time interval.
 
 The normal minimum display ranges are **100 Hz**, **10 × 10⁻⁶** for dissipation, and **2 °C**. They apply while the axes are locked, which is the state at every start. Choose **Unlock Axes** to let the autoscale follow the data without a minimum range, for example to examine variations smaller than that range; the choice applies to all time plots and is not remembered at the next start. These are visual scaling choices, not resolution or uncertainty. Manual zoom can bypass the frequency/dissipation minimums; autoscale, reset, or Clear restores the normal view.
 
