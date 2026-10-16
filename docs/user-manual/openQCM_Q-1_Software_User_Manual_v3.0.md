@@ -654,15 +654,21 @@ A filename identifies the selected harmonic but does not encode all acquisition 
 
 ### Automatic recentering
 
-During Measurement, the software follows frequency drift by recentering its sweep window when the deviation exceeds its **100 Hz** tracking threshold. The status briefly reports **Auto-Tracking #N**, and the System Log provides context. This tracking reference is distinct from the user’s **Set Reference** display baseline.
+During Measurement, the software follows frequency drift by recentering its sweep window when the deviation exceeds its **100 Hz** tracking threshold. The status briefly reports **Auto-Tracking #N** with the new sweep window, and the System Log provides context. This tracking reference is distinct from the user’s **Set Reference** display baseline.
 
-| **State or message** | **What it indicates** | **Operator response** |
+![Figure 14. Status bar in five states: Standby, Peak Detection Processing, Peak Detection Success, Processing, Monitoring.](assets/gui/q1_15_status_states.png)
+
+Figure 14. Status bar states captured during a session: (1) connected, idle; (2) peak detection running; (3) peak detection completed; (4) measurement warm-up; (5) measurement running normally. The indicator is grey when disconnected, yellow when connected and idle, orange while processing, green on success or monitoring, and red on a warning or error. [R4, R6]
+
+| **Status \| message** | **What it indicates** | **Operator response** |
 | --- | --- | --- |
-| Processing | Early temporal processing, about 50 sweeps | Wait; inspect the sweep if progress stalls. |
-| Monitoring | Measurement path is active without the current edge warning | Continue monitoring the experiment and storage. |
-| Warning | A required reported bandwidth edge is missing or the quality check fails | Inspect the sweep and sensor conditions. |
-| Tracking Stopped | Tracking disabled after 10 consecutive sweeps with both edge-error flags | Do not interpret the interval as validated measurement. |
-| Tracking Resumed | Five consecutive sweeps meet the recovery criterion | Inspect recovery and allow transient processing to settle. |
+| Processing \| Please wait, processing early data... | Early temporal processing, about 50 sweeps | Wait; inspect the sweep if progress stalls. |
+| Monitoring \| Monitoring! | Measurement path is active without an edge warning | Continue monitoring the experiment and storage. |
+| Warning \| Warning: -3dB frequencies not found (or lower / upper -3dB frequency not found) | One or both −3dB frequencies are missing, or the Q-factor check fails | Inspect the sweep and sensor conditions. |
+| Tracking Stopped \| … — Auto-tracking stopped | Tracking disabled after 10 consecutive sweeps with both edge-error flags | Do not interpret the interval as validated measurement. |
+| Monitoring \| Monitoring! — Auto-tracking still stopped, waiting for resume | The signal is back but recovery is not yet complete | Wait for recovery; inspect the sweep. |
+
+When five consecutive good sweeps restore tracking, the status returns to **Monitoring \| Monitoring!**. The only explicit notice is the System Log line “Auto-tracking re-enabled automatically”.
 
 ### What tracking safety does and does not do
 
