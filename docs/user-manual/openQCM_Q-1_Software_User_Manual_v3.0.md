@@ -510,7 +510,7 @@ Live plots retain a finite history and may no longer show the start of a long ex
 
 2. Click **Set Reference**. The application stores the current frequency and dissipation values for the display and changes the button to **Clear Reference**.
 
-3. Interpret the plotted values as changes relative to that reference. Record the time and reference values in the experiment notes if they matter to later analysis.
+3. Plotted values are now changes from that reference. Record its time and values if they matter to later analysis.
 
 4. Click **Clear Reference** to return to absolute values. Starting a new run resets the reference state.
 
@@ -518,7 +518,7 @@ Live plots retain a finite history and may no longer show the start of a long ex
 
 ### Use Clear deliberately
 
-**Clear** removes the stored live plot history and clears the frequency, dissipation, and temperature traces. It restores the plot view but does not stop acquisition, delete or restart the CSV, reset the run’s elapsed-time origin, or clear a display reference. Use **STOP** to end the run and **Clear Reference** to remove the display baseline.
+**Clear** discards the live plot history and resets the view. It does not stop acquisition, restart the CSV, reset the elapsed-time origin or clear a display reference.
 
 | **Action** | **Effect on display** | **Effect on CSV** |
 | --- | --- | --- |
@@ -535,7 +535,7 @@ Figure 8. Context menu of the Resonance Frequency / Dissipation plot. [R6]
 
 The Temperature plot omits **Show Cursors**; Amplitude / Phase also omits **Unlock Axes**. In Pan Mode, drag to reposition the view; the wheel zooms near the pointer. On the frequency/dissipation plot, dragging or zooming inside the plot moves both axes together; use the left or right axis to adjust one trace alone. In Select Mode, drag a rectangle to zoom; both vertical axes are then refitted to the data in the selected time interval.
 
-The normal minimum display ranges are **100 Hz**, **10 × 10⁻⁶** for dissipation, and **2 °C**. They apply while the axes are locked, which is the state at every start. **Unlock Axes** removes these minimums on all time plots, for example to examine smaller variations; it is not remembered at the next start. These are visual scaling choices, not resolution or uncertainty. Manual zoom can bypass the frequency/dissipation minimums; autoscale, reset, or Clear restores the normal view.
+Locked axes, the state at every start, keep minimum ranges of **100 Hz**, **10 × 10⁻⁶** and **2 °C**. **Unlock Axes** removes them on all time plots, for example to examine smaller variations; the choice is not remembered. These are display choices, not resolution. Manual zoom on the frequency/dissipation plot bypasses them; autoscale, reset or Clear restores the normal view.
 
 *Source reference  [R4, R6, R7, R11]*
 
