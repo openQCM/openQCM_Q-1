@@ -291,9 +291,9 @@ On Linux, the account must have permission to access the device serial port. The
 
 ### Connect before starting an operation
 
-![Figure 3. Serial Connection group after a successful connection: (1) Port, (2) Refresh, (3) Connect, shown as Disconnect while connected.](assets/gui/q1_04_serial_connection.png)
+![Figure 2. Serial Connection group after a successful connection: (1) Port, (2) Refresh, (3) Connect, shown as Disconnect while connected.](assets/gui/q1_04_serial_connection.png)
 
-Figure 3. **Serial Connection** after a successful connection. (1) **Port**; (2) **Refresh**, disabled while connected; (3) **Connect**, which becomes **Disconnect** while connected. [R4, R6]
+Figure 2. **Serial Connection** after a successful connection. (1) **Port**; (2) **Refresh**, disabled while connected; (3) **Connect**, which becomes **Disconnect** while connected. [R4, R6]
 
 1. Plug the Q-1 into the computer with a USB data cable. Start the application.
 
@@ -333,9 +333,9 @@ Click **STOP** if acquisition is running. Wait until the controls return to the 
 
 This checklist links the essential operations into a single run. It assumes the software is installed, the sensor is prepared, and the device is connected.
 
-![Figure 2. Operating sequence. Original schematic of the documented workflow. (R4–R8, R11)](assets/workflow.png)
+![Figure 3. Operating sequence. Original schematic of the documented workflow. (R4–R8, R11)](assets/workflow.png)
 
-Figure 2. Operating sequence. Original schematic of the documented workflow. [R4–R8, R11]
+Figure 3. Operating sequence. Original schematic of the documented workflow. [R4–R8, R11]
 
 1. **Find the resonances.** Check that **Mode** shows **Peak Detection**, the default at start-up, and click **START**. Allow the sweep to finish. Read the completion status; a warning is a reason to inspect the result, not to proceed automatically.
 
@@ -1099,7 +1099,7 @@ These implementation references support the visible controls, procedures, units,
 
 [\[R13\] Screenshot capture and annotation scripts](https://github.com/openQCM/openQCM_Q-1/tree/main/docs/tools)
 
-Figures 1, 2 and 15 are original logical schematics of the documented measurement, operating and firmware workflows; they are not physical wiring diagrams or instrument screenshots. Figures 3–14 are screenshots of release v3.0.0-rc5, taken with docs/tools/capture_gui.py and annotated with docs/tools/annotate_gui.py. The unannotated originals are kept in assets/gui/raw. Live states were captured with a Q-1 and a 10 MHz sensor. Figure 7 uses a saved 5 MHz calibration, and Figure 12 uses the reference log docs/2026-04-24_10-25-14_F0.csv. No data were synthesized.
+Figures 1, 3 and 15 are original logical schematics of the documented measurement, operating and firmware workflows; they are not physical wiring diagrams or instrument screenshots. Figures 2 and 4–14 are screenshots of release v3.0.0-rc5, taken with docs/tools/capture_gui.py and annotated with docs/tools/annotate_gui.py. The unannotated originals are kept in assets/gui/raw. Live states were captured with a Q-1 and a 10 MHz sensor. Figure 7 uses a saved 5 MHz calibration, and Figure 12 uses the reference log docs/2026-04-24_10-25-14_F0.csv. No data were synthesized.
 
 [\[R14\] Optional diagnostic scripts](https://github.com/openQCM/openQCM_Q-1/tree/v3.0.0-rc5/tools)
 
