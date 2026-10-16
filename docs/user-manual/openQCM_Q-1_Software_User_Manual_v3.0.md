@@ -1,4 +1,4 @@
-![Authentic openQCM icon from the source repository](assets/ICONA_openQCM.png)
+<img src="assets/ICONA_openQCM.png" alt="Authentic openQCM icon from the source repository" width="132">
 
 # openQCM Q-1
 
