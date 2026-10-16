@@ -614,9 +614,13 @@ Consequently, treat this as the software’s reported bandwidth convention. Do n
 
 2. Select the measurement CSV from **logged_data** or an archived copy.
 
-3. Review the frequency and dissipation traces against elapsed time in the separate viewer. Use the plot context menu to rescale, reset, pan, or select a zoom region.
+3. Review the traces in the **Data View** window (Figure 12). Use the plot context menu to rescale, reset, pan, or select a zoom region.
 
-4. Check that the recording covers the intended duration. Preserve the original file before modifying data in a spreadsheet or analysis program.
+4. Check the point count and duration (item 1) against the intended run. Preserve the original file before modifying data in a spreadsheet or analysis program.
+
+![Figure 12. Data View of a recorded CSV, with numbered elements 1 to 4.](assets/gui/q1_14_data_view.png)
+
+Figure 12. **File → Open Log…** opens a **Data View** window (example: the 5 h 52 min reference log in the repository, 10 MHz sensor). (1) Number of data points and duration; (2) resonance frequency, MHz; (3) dissipation, × 10⁻⁶; (4) shared elapsed-time axis, linked between the two plots. Temperature is not plotted. [R4]
 
 More than one log viewer can be open. The viewer reads the expected CSV columns by position, so preserve the standard column order. It provides visualization; it does not provide the live cursor tools, cursor-selected statistics, or a separate statistics-export workflow.
 
@@ -624,9 +628,13 @@ More than one log viewer can be open. The viewer reads the expected CSV columns 
 
 1. In the main acquisition window, choose **View → Cursors**, or use the frequency/dissipation plot’s cursor context-menu action.
 
-2. Drag the two vertical cursors to the points you want to compare. The cursors are identified as C1 and C2.
+2. Drag the two vertical cursors, **C1** and **C2**, to the points you want to compare (Figure 13).
 
-3. Read the displayed **ΔT** in seconds, **ΔF** in Hz, and **ΔD** in units of 10⁻⁶. Reposition the cursors to check the comparison.
+3. Read **Δt** in seconds, **ΔF** in Hz and **ΔD** in units of 10⁻⁶ (item 4). Reposition the cursors to check the comparison.
+
+![Figure 13. Cursors on the Resonance Frequency / Dissipation plot, with numbered elements 1 to 4.](assets/gui/q1_14_cursors.png)
+
+Figure 13. Cursors on the live plot (example capture). (1) C1; (2) C2; (3) frequency and dissipation at each cursor; (4) differences C2 − C1. In this version the difference box covers part of the legend and each cursor readout overlaps its C1/C2 tag. [R6]
 
 4. Hide the cursors with the same menu control when finished.
 
