@@ -558,11 +558,9 @@ The normal minimum display ranges are **100 Hz**, **10 × 10⁻⁶** for dissipa
 
 ## 12 Read the live plots
 
-![Figure 4. Repository-supplied version 3.0 light theme with grids visible. Axis labels show the different domains and scales; these captured values are not expected results. (R13)](assets/screenshot_light_grid.png)
+![Figure 9. Plots tab during a Measurement run with numbered axes 1 to 8.](assets/gui/q1_12_live_plots.png)
 
-Figure 4. Repository-supplied version 3.0 light theme with grids visible. Axis labels show the different domains and scales; these captured values are not expected results. [R13]
-
-**Amplitude and phase:** the horizontal axis is **frequency in Hz**, with amplitude in dB and phase in degrees on separate vertical axes. **Temperature:** temperature in °C versus elapsed time. **Frequency and dissipation:** resonance frequency in Hz and dissipation scaled by 10⁶ versus elapsed time.
+Figure 9. Plots tab during a Measurement run (example capture; values are not expected results). Amplitude / Phase sweep: (1) amplitude, dB; (2) phase, degrees; (3) sweep frequency, Hz. Temperature: (4) °C; (5) elapsed time. Resonance Frequency / Dissipation: (6) resonance frequency, Hz; (7) dissipation, labelled “x1e-06”, i.e. D × 10⁶; (8) elapsed time. Although the time axes are labelled hh:mm:ss, short runs show seconds and m:ss. [R4, R6, R13]
 
 Use the labeled axes and legend rather than assuming that two traces sharing a horizontal position have the same units. Theme colors change some traces. Grid visibility changes presentation only. Neither a display range nor the number of shown decimal places establishes measurement precision.
 
