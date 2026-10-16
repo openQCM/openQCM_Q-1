@@ -365,15 +365,11 @@ You should have a credible detected resonance, a visible live sweep, a sensible 
 
 ## 6 Navigate the main window
 
-![Figure 3. Repository-supplied version 3.0 main window in the dark theme. The image is reproduced without altering its measurement traces. (R13)](assets/screenshot_dark.png)
+![Figure 4. Main window during a Measurement run, light theme, with numbered areas 1 to 11.](assets/gui/q1_06_main_window.png)
 
-Figure 3. Repository-supplied version 3.0 main window in the dark theme. The image is reproduced without altering its measurement traces. [R13]
+Figure 4. Main window during a Measurement run (example capture, 10 MHz sensor, F0). Sidebar: (1) **Serial Connection**; (2) **Measurement Setup**; (3) **Current Readings**; (4) **Plot Controls**; (5) **Acquisition**, with Sampling, the active CSV filename and START/STOP. (6) **Plots** and **System Log** tabs. Plots: (7) **Amplitude / Phase** sweep; (8) **Temperature**; (9) **Resonance Frequency / Dissipation**; (10) splitter between the upper and lower plots. (11) Status bar: state indicator, status message and compact F, D, T, S readings. [R4, R6, R13]
 
-**Left sidebar:** connection, measurement selection, current readings, plot controls, sampling interval, filename, and START/STOP. **Center:** Plots and System Log tabs. **Bottom:** connection and acquisition status with compact readings.
-
-The upper-left chart is a frequency sweep. The upper-right chart is temperature versus time. The lower chart is frequency and dissipation versus time. A splitter adjusts the space given to the upper and lower plots.
-
-Restore hidden controls with **View → Left Panel** and **View → Status Bar**. Use **View → Theme** for light or dark appearance. The inspected source defaults to light and restores a saved theme preference.
+Restore hidden areas with **View → Left Panel** and **View → Status Bar**. **View → Theme** switches between the light (default) and dark appearance; the choice is remembered at the next start.
 
 *Source reference  [R4, R6, R13]*
 
