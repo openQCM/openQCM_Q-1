@@ -37,3 +37,6 @@ firmware/**/build/
 
 # Release archives (attached to GitHub Releases, never committed)
 *.zip
+
+# Local manual backups (never committed)
+docs/_backup/
