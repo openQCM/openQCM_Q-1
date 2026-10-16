@@ -572,11 +572,17 @@ Use the labeled axes and legend rather than assuming that two traces sharing a h
 
 ### Measurement Parameters
 
-Open **Tools → Measurement Parameters** to inspect the fields **Setup**, **Mode**, **Overtone**, **Freq. Value**, **Start Freq.**, **Stop Freq.**, **Range**, **Freq. Step**, and **Samples**. These describe the current selection and sweep; bounds can change when tracking recenters the sweep. Q and bandwidth are shown in Raw Data View, rather than in this parameters dialog.
+![Figure 10. Measurement Parameters window during a run.](assets/gui/q1_13_measurement_parameters.png)
+
+Figure 10. **Tools → Measurement Parameters** during a run (example: 10 MHz sensor, F0). Fields are filled when START is pressed and show “---” before. [R4, R6]
+
+The fields describe the current selection and sweep. **Start Freq.**, **Stop Freq.** and **Freq. Value** change when tracking recenters the sweep. **Samples** shows the number of frequency steps, one less than the swept points: 500 for the 501-point measurement sweep and 50000 in Peak Detection. Q and bandwidth are shown in Raw Data View.
 
 ### Raw Data View
 
-Open **Tools → Raw Data View** during acquisition. This diagnostic view displays the current sweep with filtered points, a spline fit, a peak marker, and a highlighted bandwidth region. The phase trace is shown separately with a linked frequency axis. Its readout includes peak frequency, reported bandwidth, Q, and dissipation.
+![Figure 11. Raw Data View during a run, with numbered elements 1 to 6.](assets/gui/q1_13_raw_data_view.png)
+
+Figure 11. **Tools → Raw Data View** during a run (example capture). (1) Readout: overtone, peak frequency, −3 dB bandwidth, Q and D; (2) processed sweep points and spline fit; (3) peak marker; (4) region between the −3dB frequencies; (5) −3 dB threshold; (6) phase sweep, sharing the frequency axis (MHz). When no acquisition is running the window shows “Waiting for data...”. [R4, R8]
 
 Despite the name, this is **processed sweep data**, not an unmodified ADC recording. Baseline subtraction, Savitzky–Golay smoothing, and interpolation are already involved. The time-series outputs additionally use a temporal averaging buffer. A single displayed sweep and a time-series value therefore need not represent identical processing stages.
 
