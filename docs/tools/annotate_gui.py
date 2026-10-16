@@ -27,9 +27,13 @@ GUI_DIR = os.path.join(REPO_ROOT, 'docs', 'user-manual', 'assets', 'gui')
 RAW_DIR = os.path.join(GUI_DIR, 'raw')
 
 SCALE = 1600 / 2400          # full main window (2400 px raw) -> 1600 px
-ACCENT = (216, 27, 96)       # distinct from the GUI's blue and orange
+# Palette of the manual's schematics (qcm_signal_chain.svg), so callouts
+# match Figure 1 instead of competing with the GUI's own colours.
+INK = (0x24, 0x5D, 0x86)
+CIRCLE_FILL = (0xF3, 0xF7, 0xFA)
 BORDER = (187, 187, 187)
 CIRCLE_R = 24
+CIRCLE_EDGE_W = 6
 BOX_W = 5
 
 _FONT_DIRS = ['/System/Library/Fonts/Supplemental', '/Library/Fonts',
@@ -64,12 +68,12 @@ def pad(img, left=0, top=0, right=0, bottom=0, color=(255, 255, 255)):
 def callout(draw, n, xy):
     x, y = xy
     draw.ellipse([x - CIRCLE_R, y - CIRCLE_R, x + CIRCLE_R, y + CIRCLE_R],
-                 fill=ACCENT, outline=(255, 255, 255), width=3)
-    draw.text((x, y), str(n), font=NUM_FONT, fill=(255, 255, 255), anchor='mm')
+                 fill=CIRCLE_FILL, outline=INK, width=CIRCLE_EDGE_W)
+    draw.text((x, y), str(n), font=NUM_FONT, fill=INK, anchor='mm')
 
 
 def box(draw, rect):
-    draw.rounded_rectangle(rect, radius=10, outline=ACCENT, width=BOX_W)
+    draw.rounded_rectangle(rect, radius=10, outline=INK, width=BOX_W)
 
 
 def heading(draw, xy, text):
