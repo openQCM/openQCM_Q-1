@@ -489,13 +489,13 @@ Use the view to distinguish a genuine resonance from a residual baseline feature
 
 1. Complete successful peak detection for the installed setup. If an old calibration file was present at startup, do not assume it belongs to this sensor.
 
-2. Select **Measurement**. Choose an available resonance using **Frequency** or the corresponding overtone button. Confirm the selection before starting.
+2. Select **Measurement**. Choose an available resonance using **Frequency** or the corresponding overtone button (Figure 6). Confirm the selection before starting.
 
 3. Click **START**. The application uses 501 sweep samples in this mode. The visible **Sampling** value is measured timing; it is not a rate setting.
 
-4. Wait through **Processing**, which covers approximately the first 50 sweeps while the temporal processing fills. The time required depends on actual acquisition speed.
+4. Wait through **Processing** (Figure 14, item 4), which covers approximately the first 50 sweeps while the temporal processing fills. The time required depends on actual acquisition speed.
 
-5. Check the current sweep and **Monitoring** status. Open **Tools → Raw Data View** if you need to inspect the peak or reported bandwidth.
+5. Check the current sweep and the **Monitoring** status (Figure 14, item 5). Open **Tools → Raw Data View** if you need to inspect the peak or reported bandwidth.
 
 6. Check the run filename and the **System Log** for file errors. CSV storage is automatic. If reliable storage is essential, confirm that the run file exists and grows before proceeding with an irreversible experiment.
 
