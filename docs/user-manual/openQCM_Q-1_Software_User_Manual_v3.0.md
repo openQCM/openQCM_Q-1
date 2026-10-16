@@ -112,7 +112,7 @@ For a first run, follow chapters 1–5 in order. Keep chapters 8–10 nearby for
 
 **Conventions.** Bold text identifies visible controls and menu commands. Monospaced text identifies filenames or commands. “Peak detection” is the software’s resonance-finding operation, also called calibration in parts of the application; it is not a traceable metrological calibration.
 
-**Figures.** Screenshots were captured from release v3.0.0-rc5 on macOS in the default light theme, partly with a connected Q-1 and partly from saved files, using the scripts in the repository’s docs/tools folder. Numbered callouts are explained in each caption. Menus are shown inside the window, as on Windows and Linux. Values in the screenshots are examples, not acceptance limits or expected results.
+**Figures.** Screenshots show release v3.0.0-rc5 on macOS, light theme, with menus inside the window as on Windows and Linux. Callout numbers are listed in each caption. Values shown are examples, not expected results.
 
 *Source reference  [R1–R4, R12]*
 
@@ -128,9 +128,9 @@ Quartz is piezoelectric: an alternating electrical excitation can drive a mechan
 
 Frequency and dissipation therefore provide complementary observations. A frequency change is not, by itself, a unique identification of mass, composition, or a molecular interaction. In liquids or with soft films, coupling to the medium and viscoelastic behavior can contribute to the measured response. Use a model appropriate to the actual sample and loading regime.
 
-![Figure 1. Q-1 functional measurement path from commanded sweep through quartz response, digitization, host processing, plotted frequency and dissipation, and logging; separate temperature input. This is not a wiring diagram.](assets/qcm_signal_chain.png)
+![Figure 1. Q-1 functional measurement path.](assets/qcm_signal_chain.png)
 
-Figure 1. Functional measurement path of the Q-1 and its host software. This logical schematic identifies signal-processing roles; it is not a circuit diagram, wiring guide, or drawing of the physical sensor assembly. Temperature is a separate instrument-reported value. [R1, R7, R8, R16, R17]
+Figure 1. Functional measurement path (logical schematic, not a wiring diagram). [R1, R7, R8, R16, R17]
 
 ### How the Q-1 interrogates the sensor
 
@@ -291,17 +291,17 @@ On Linux, the account must have permission to access the device serial port. The
 
 ### Connect before starting an operation
 
-![Figure 2. Serial Connection group after a successful connection: (1) Port, (2) Refresh, (3) Connect, shown as Disconnect while connected.](assets/gui/q1_04_serial_connection.png)
+![Figure 2. Serial Connection group.](assets/gui/q1_04_serial_connection.png)
 
-Figure 2. **Serial Connection** after a successful connection. (1) **Port**; (2) **Refresh**, disabled while connected; (3) **Connect**, which becomes **Disconnect** while connected. [R4, R6]
+Figure 2. Serial Connection: (1) Port; (2) Refresh; (3) Connect / Disconnect. [R4, R6]
 
 1. Plug the Q-1 into the computer with a USB data cable. Start the application.
 
 2. Click **Refresh** (2) and select the device in **Port** (1): COM… on Windows, /dev/tty.usbmodem… on macOS, /dev/ttyACM… on Linux. Identify the actual device rather than choosing an arbitrary entry.
 
-3. Click **Connect** (3). On success the button reads **Disconnect**, the status indicator turns yellow and the status bar reads **Standby | Connected to *port* (exclusive)** (Figure 14, item 1).
+3. Click **Connect** (3). On success the button reads **Disconnect** and the status bar shows **Standby** (Figure 14, item 1).
 
-4. The firmware check runs automatically after connection. It is silent when the device reports 2.2 and asks whether to update otherwise. Resolve a mismatch before relying on a measurement.
+4. The automatic firmware check is silent for version 2.2 and otherwise offers an update. Resolve a mismatch before measuring.
 
 5. Use **Tools → Check Board Serial Number** if the connected firmware supports it and you need the board identifier for your records. Perform device queries while acquisition is stopped.
 
@@ -333,9 +333,9 @@ Click **STOP** if acquisition is running. Wait until the controls return to the 
 
 This checklist links the essential operations into a single run. It assumes the software is installed, the sensor is prepared, and the device is connected.
 
-![Figure 3. Operating sequence. Original schematic of the documented workflow. (R4–R8, R11)](assets/workflow.png)
+![Figure 3. Operating sequence.](assets/workflow.png)
 
-Figure 3. Operating sequence. Original schematic of the documented workflow. [R4–R8, R11]
+Figure 3. Operating sequence. [R4–R8, R11]
 
 1. **Find the resonances.** Check that **Mode** shows **Peak Detection**, the default at start-up, and click **START**. Allow the sweep to finish. Read the completion status; a warning is a reason to inspect the result, not to proceed automatically.
 
@@ -365,11 +365,11 @@ You should have a credible detected resonance, a visible live sweep, a sensible 
 
 ## 6 Navigate the main window
 
-![Figure 4. Main window during a Measurement run, light theme, with numbered areas 1 to 11.](assets/gui/q1_06_main_window.png)
+![Figure 4. Main window during a Measurement run.](assets/gui/q1_06_main_window.png)
 
-Figure 4. Main window during a Measurement run (example capture, 10 MHz sensor, F0). Sidebar: (1) **Serial Connection**; (2) **Measurement Setup**; (3) **Current Readings**; (4) **Plot Controls**; (5) **Acquisition**, with Sampling, the active CSV filename and START/STOP. (6) **Plots** and **System Log** tabs. Plots: (7) **Amplitude / Phase** sweep; (8) **Temperature**; (9) **Resonance Frequency / Dissipation**; (10) splitter between the upper and lower plots. (11) Status bar: state indicator, status message and compact F, D, T, S readings. [R4, R6, R13]
+Figure 4. Main window during a Measurement run: (1) Serial Connection; (2) Measurement Setup; (3) Current Readings; (4) Plot Controls; (5) Acquisition; (6) Plots / System Log tabs; (7) Amplitude / Phase; (8) Temperature; (9) Resonance Frequency / Dissipation; (10) splitter; (11) status bar. [R4, R6, R13]
 
-Restore hidden areas with **View → Left Panel** and **View → Status Bar**. **View → Theme** switches between the light (default) and dark appearance; the choice is remembered at the next start.
+Acquisition (5) shows the sampling interval, the active CSV filename and START/STOP. Restore hidden areas with **View → Left Panel** and **View → Status Bar**. **View → Theme** switches between the light (default) and dark appearance; the choice is remembered at the next start.
 
 *Source reference  [R4, R6, R13]*
 
@@ -379,28 +379,11 @@ Restore hidden areas with **View → Left Panel** and **View → Status Bar**. *
 
 The menu bar is **File / View / Tools / Help**. The older “Data” menu described in some planning documentation is not the menu layout in this version.
 
-![Figure 5. The File, View, View → Theme, Tools and Help menus.](assets/gui/q1_07_menus.png)
+![Figure 5. Menus.](assets/gui/q1_07_menus.png)
 
-Figure 5. Menu contents. On macOS the menus appear in the system menu bar and show ⌘ instead of Ctrl. [R4]
+Figure 5. File, View, View → Theme, Tools and Help menus. [R4]
 
-| **Menu** | **Command** | **Purpose** |
-| --- | --- | --- |
-| File | Open Log… | Load a recorded CSV in a separate viewer. |
-| File | Quit | Close the application. |
-| View | Left Panel | Show or hide the sidebar. |
-| View | Status Bar | Show or hide the status dock. |
-| View | Cursors | Show or hide two cursors on the live frequency/dissipation plot. |
-| View | Theme → Dark Theme / Light Theme | Change the interface and plot theme. |
-| Tools | Measurement Parameters | Inspect current acquisition and resonance information. |
-| Tools | Raw Data View | Inspect the processed current sweep and resonance fit. |
-| Tools | Peak Data View | Inspect the most recent peak-detection result. |
-| Tools | Check Firmware Version | Query the connected instrument firmware. |
-| Tools | Check Board Serial Number | Query the board identifier where firmware supports it. |
-| Help | User Guide | Open the linked manufacturer guide; this target is a v2.0 PDF in the inspected source. |
-| Help | Website / Email Support | Open the manufacturer site or an email message in the configured application. |
-| Help | Check for Updates… | Read the manufacturer’s published software update information. After the check the label shows the result, for example “(up to date)”. |
-| Help | Download Update | Disabled until a check finds a newer version; it is then renamed **Download v*X*** and opens the download. The light theme does not grey out this disabled item. |
-| Help | About openQCM Q-1 | Show application information. |
+Most commands are self-explanatory. **Help → User Guide** opens the manufacturer’s v2.0 PDF, which predates this interface. **Help → Download Update** stays disabled until **Check for Updates…** finds a newer version, then reads **Download v*X***.
 
 ### Keyboard and pointer reference
 
@@ -414,9 +397,11 @@ Figure 5. Menu contents. On macOS the menus appear in the system menu bar and sh
 
 Peak detection makes a broad sweep, identifies resonances, and writes the calibration information used by Measurement mode. Repeat it for a newly installed sensor and whenever the previous peak list no longer represents the installed sensor or its condition.
 
-![Figure 6. Measurement Setup in Peak Detection mode and in Measurement mode: (1) Mode, (2) Frequency, (3) overtone buttons.](assets/gui/q1_08_mode_selection.png)
+![Figure 6. Measurement Setup in both modes.](assets/gui/q1_08_mode_selection.png)
 
-Figure 6. **Measurement Setup** in the two modes. (1) **Mode**; (2) **Frequency**, the list of detected resonances; (3) overtone buttons F0–F9, enabled only for resonances found by the last peak detection. In Peak Detection mode, items 2 and 3 are hidden. [R4, R6]
+Figure 6. Measurement Setup in Peak Detection and Measurement mode: (1) Mode; (2) Frequency; (3) overtone buttons. [R4, R6]
+
+In Peak Detection mode items 2 and 3 are hidden; only buttons of detected resonances are enabled.
 
 ### Procedure
 
@@ -424,13 +409,13 @@ Figure 6. **Measurement Setup** in the two modes. (1) **Mode**; (2) **Frequency*
 
 2. Check that **Mode** (Figure 6, item 1) shows **Peak Detection**, the default at start-up. Click **START**.
 
-3. Allow the operation to complete. The full acquisition spans **1–51 MHz** in ten sections, with a nominal **1 kHz** spacing and **50,001** saved sweep points. The status bar reads **Peak Detection Processing** with an orange indicator (Figure 14, item 2).
+3. Allow the operation to complete: **1–51 MHz** in ten sections, nominal **1 kHz** spacing, **50,001** saved points. The status bar shows **Peak Detection Processing** (Figure 14, item 2).
 
-4. Read the result: **Peak Detection Success** (Figure 14, item 3) with a pop-up listing the detected peaks, or **Peak Detection Warning** with a reason. Check the **System Log** as well. After a warning or no valid peak, inspect the result before changing to Measurement.
+4. Read the result, **Peak Detection Success** (item 3) or **Peak Detection Warning**, and the **System Log**. After a warning, inspect the result before changing to Measurement.
 
 5. Open **Tools → Peak Data View** (chapter 9). Check the detected sensor type and the fundamental.
 
-6. Switch **Mode** to **Measurement**. Choose one valid resonance with **Frequency** or an enabled overtone button (items 2 and 3), and perform a short measurement before continuing with your experiment.
+6. Switch to **Measurement**, choose a valid resonance and perform a short measurement before the experiment.
 
 ### What is saved
 
@@ -461,11 +446,11 @@ The approximate frequencies above identify harmonic order, not allowed error lim
 
 ### Use Peak Data View
 
-![Figure 7. Peak Data View (window title Peak Detection Diagnostic) for a 5 MHz sensor with five detected peaks.](assets/gui/q1_09_peak_data_view.png)
+![Figure 7. Peak Data View.](assets/gui/q1_09_peak_data_view.png)
 
-Figure 7. **Tools → Peak Data View** opens the window titled **Peak Detection Diagnostic** (example: saved 5 MHz calibration). (1) Sensor type and number of detected peaks; (2) legend: raw signal, 8th-order baseline, baseline-corrected curve; (3) amplitude peaks with their frequencies; (4) phase peaks used to validate them. Frequency is in MHz. This view numbers the fundamental **F1**, while the rest of the interface calls it **F0**. [R4, R5]
+Figure 7. Peak Data View: (1) sensor type and peak count; (2) legend; (3) amplitude peaks; (4) phase peaks. [R4, R5]
 
-Use the view to distinguish a genuine resonance from a residual baseline feature or a suspicious candidate. Phase screening and baseline processing are part of an algorithm, not an independent reference measurement.
+The window is titled **Peak Detection Diagnostic**, uses MHz, and labels the fundamental F1 instead of F0. Use it to tell a genuine resonance from a baseline feature; its screening is algorithmic, not an independent reference.
 
 ### Before using an overtone
 
@@ -544,13 +529,13 @@ Live plots retain a finite history and may no longer show the start of a long ex
 
 ### Pan and zoom
 
-![Figure 8. Right-click menu of the Resonance Frequency / Dissipation plot.](assets/gui/q1_11_plot_context_menu.png)
+![Figure 8. Plot context menu.](assets/gui/q1_11_plot_context_menu.png)
 
-Figure 8. Right-click menu of the **Resonance Frequency / Dissipation** plot. The Temperature plot omits **Show Cursors**; the Amplitude / Phase plot also omits **Unlock Axes**. Grid, lock and cursor entries show the action available in the current state. [R6]
+Figure 8. Context menu of the Resonance Frequency / Dissipation plot. [R6]
 
-In Pan Mode, drag to reposition the view; the wheel zooms near the pointer. On the frequency/dissipation plot, a drag or wheel zoom inside the plot area moves the frequency and dissipation axes together, so the two traces keep their relative position; drag or scroll on the left (frequency) or right (dissipation) axis to adjust one trace alone. In Select Mode, drag a rectangle to zoom; both vertical axes are then refitted to the data in the selected time interval.
+The Temperature plot omits **Show Cursors**; Amplitude / Phase also omits **Unlock Axes**. In Pan Mode, drag to reposition the view; the wheel zooms near the pointer. On the frequency/dissipation plot, dragging or zooming inside the plot moves both axes together; use the left or right axis to adjust one trace alone. In Select Mode, drag a rectangle to zoom; both vertical axes are then refitted to the data in the selected time interval.
 
-The normal minimum display ranges are **100 Hz**, **10 × 10⁻⁶** for dissipation, and **2 °C**. They apply while the axes are locked, which is the state at every start. Choose **Unlock Axes** to let the autoscale follow the data without a minimum range, for example to examine variations smaller than that range; the choice applies to all time plots and is not remembered at the next start. These are visual scaling choices, not resolution or uncertainty. Manual zoom can bypass the frequency/dissipation minimums; autoscale, reset, or Clear restores the normal view.
+The normal minimum display ranges are **100 Hz**, **10 × 10⁻⁶** for dissipation, and **2 °C**. They apply while the axes are locked, which is the state at every start. **Unlock Axes** removes these minimums on all time plots, for example to examine smaller variations; it is not remembered at the next start. These are visual scaling choices, not resolution or uncertainty. Manual zoom can bypass the frequency/dissipation minimums; autoscale, reset, or Clear restores the normal view.
 
 *Source reference  [R4, R6, R7, R11]*
 
@@ -558,11 +543,11 @@ The normal minimum display ranges are **100 Hz**, **10 × 10⁻⁶** for dissipa
 
 ## 12 Read the live plots
 
-![Figure 9. Plots tab during a Measurement run with numbered axes 1 to 8.](assets/gui/q1_12_live_plots.png)
+![Figure 9. Plots tab during a Measurement run.](assets/gui/q1_12_live_plots.png)
 
-Figure 9. Plots tab during a Measurement run (example capture; values are not expected results). Amplitude / Phase sweep: (1) amplitude, dB; (2) phase, degrees; (3) sweep frequency, Hz. Temperature: (4) °C; (5) elapsed time. Resonance Frequency / Dissipation: (6) resonance frequency, Hz; (7) dissipation, labelled “x1e-06”, i.e. D × 10⁶; (8) elapsed time. Although the time axes are labelled hh:mm:ss, short runs show seconds and m:ss. [R4, R6, R13]
+Figure 9. Plots tab: (1) amplitude; (2) phase; (3) sweep frequency; (4) temperature; (5) elapsed time; (6) resonance frequency; (7) dissipation; (8) elapsed time. [R4, R6, R13]
 
-Use the labeled axes and legend rather than assuming that two traces sharing a horizontal position have the same units. Theme colors change some traces. Grid visibility changes presentation only. Neither a display range nor the number of shown decimal places establishes measurement precision.
+Dissipation is labelled “x1e-06”, i.e. D × 10⁶; on short runs the time axes show seconds or m:ss. Read units from the axis labels. Neither a display range nor the number of decimals establishes measurement precision.
 
 *Source reference  [R4, R6–R8, R13]*
 
@@ -572,19 +557,19 @@ Use the labeled axes and legend rather than assuming that two traces sharing a h
 
 ### Measurement Parameters
 
-![Figure 10. Measurement Parameters window during a run.](assets/gui/q1_13_measurement_parameters.png)
+![Figure 10. Measurement Parameters.](assets/gui/q1_13_measurement_parameters.png)
 
-Figure 10. **Tools → Measurement Parameters** during a run (example: 10 MHz sensor, F0). Fields are filled when START is pressed and show “---” before. [R4, R6]
+Figure 10. Measurement Parameters during a run. [R4, R6]
 
-The fields describe the current selection and sweep. **Start Freq.**, **Stop Freq.** and **Freq. Value** change when tracking recenters the sweep. **Samples** shows the number of frequency steps, one less than the swept points: 500 for the 501-point measurement sweep and 50000 in Peak Detection. Q and bandwidth are shown in Raw Data View.
+Fields are filled at START; the frequencies follow tracking. **Samples** counts frequency steps, one less than the swept points (500 for 501). Q and bandwidth are in Raw Data View.
 
 ### Raw Data View
 
-![Figure 11. Raw Data View during a run, with numbered elements 1 to 6.](assets/gui/q1_13_raw_data_view.png)
+![Figure 11. Raw Data View.](assets/gui/q1_13_raw_data_view.png)
 
-Figure 11. **Tools → Raw Data View** during a run (example capture). (1) Readout: overtone, peak frequency, −3 dB bandwidth, Q and D; (2) processed sweep points and spline fit; (3) peak marker; (4) region between the −3dB frequencies; (5) −3 dB threshold; (6) phase sweep, sharing the frequency axis (MHz). When no acquisition is running the window shows “Waiting for data...”. [R4, R8]
+Figure 11. Raw Data View: (1) readout; (2) sweep points and spline fit; (3) peak; (4) −3dB region; (5) −3dB threshold; (6) phase sweep. [R4, R8]
 
-Despite the name, this is **processed sweep data**, not an unmodified ADC recording. Baseline subtraction, Savitzky–Golay smoothing, and interpolation are already involved. The time-series outputs additionally use a temporal averaging buffer. A single displayed sweep and a time-series value therefore need not represent identical processing stages.
+Without an acquisition it shows “Waiting for data...”. Despite the name, this is **processed sweep data**, not an unmodified ADC recording. Baseline subtraction, Savitzky–Golay smoothing and interpolation are already applied; time-series values are also temporally averaged, so the two need not match.
 
 ### Use the diagnostic view for a decision
 
@@ -614,27 +599,27 @@ Consequently, treat this as the software’s reported bandwidth convention. Do n
 
 2. Select the measurement CSV from **logged_data** or an archived copy.
 
-3. Review the traces in the **Data View** window (Figure 12). Use the plot context menu to rescale, reset, pan, or select a zoom region.
+3. Review the traces in **Data View** (Figure 12): frequency in MHz, no temperature. Check the point count and duration against the intended run.
 
-4. Check the point count and duration (item 1) against the intended run. Preserve the original file before modifying data in a spreadsheet or analysis program.
+4. Preserve the original file before modifying data elsewhere.
 
-![Figure 12. Data View of a recorded CSV, with numbered elements 1 to 4.](assets/gui/q1_14_data_view.png)
+![Figure 12. Data View of a recorded CSV.](assets/gui/q1_14_data_view.png)
 
-Figure 12. **File → Open Log…** opens a **Data View** window (example: the 5 h 52 min reference log in the repository, 10 MHz sensor). (1) Number of data points and duration; (2) resonance frequency, MHz; (3) dissipation, × 10⁻⁶; (4) shared elapsed-time axis, linked between the two plots. Temperature is not plotted. [R4]
+Figure 12. Data View: (1) points and duration; (2) resonance frequency; (3) dissipation; (4) elapsed time. [R4]
 
-More than one log viewer can be open. The viewer reads the expected CSV columns by position, so preserve the standard column order. It provides visualization; it does not provide the live cursor tools, cursor-selected statistics, or a separate statistics-export workflow.
+More than one log viewer can be open. The viewer reads the expected CSV columns by position, so preserve the standard column order. It offers no cursors, statistics or export.
 
 ### Use cursors on the live plot
 
-1. In the main acquisition window, choose **View → Cursors**, or use the frequency/dissipation plot’s cursor context-menu action.
+1. Choose **View → Cursors** or **Show Cursors** in the plot context menu.
 
 2. Drag the two vertical cursors, **C1** and **C2**, to the points you want to compare (Figure 13).
 
 3. Read **Δt** in seconds, **ΔF** in Hz and **ΔD** in units of 10⁻⁶ (item 4). Reposition the cursors to check the comparison.
 
-![Figure 13. Cursors on the Resonance Frequency / Dissipation plot, with numbered elements 1 to 4.](assets/gui/q1_14_cursors.png)
+![Figure 13. Live cursors.](assets/gui/q1_14_cursors.png)
 
-Figure 13. Cursors on the live plot (example capture). (1) C1; (2) C2; (3) frequency and dissipation at each cursor; (4) differences C2 − C1. In this version the difference box covers part of the legend and each cursor readout overlaps its C1/C2 tag. [R6]
+Figure 13. Live cursors: (1) C1; (2) C2; (3) cursor readouts; (4) differences C2 − C1. [R6]
 
 4. Hide the cursors with the same menu control when finished.
 
@@ -656,19 +641,21 @@ A filename identifies the selected harmonic but does not encode all acquisition 
 
 During Measurement, the software follows frequency drift by recentering its sweep window when the deviation exceeds its **100 Hz** tracking threshold. The status briefly reports **Auto-Tracking #N** with the new sweep window, and the System Log provides context. This tracking reference is distinct from the user’s **Set Reference** display baseline.
 
-![Figure 14. Status bar in five states: Standby, Peak Detection Processing, Peak Detection Success, Processing, Monitoring.](assets/gui/q1_15_status_states.png)
+![Figure 14. Status bar states.](assets/gui/q1_15_status_states.png)
 
-Figure 14. Status bar states captured during a session: (1) connected, idle; (2) peak detection running; (3) peak detection completed; (4) measurement warm-up; (5) measurement running normally. The indicator is grey when disconnected, yellow when connected and idle, orange while processing, green on success or monitoring, and red on a warning or error. [R4, R6]
+Figure 14. Status bar: (1) Standby; (2) Peak Detection Processing; (3) Peak Detection Success; (4) Processing; (5) Monitoring. [R4, R6]
 
-| **Status \| message** | **What it indicates** | **Operator response** |
+The indicator is grey when disconnected, yellow when idle, orange while processing, green when monitoring and red on a warning.
+
+| **Status or message** | **Meaning** | **Response** |
 | --- | --- | --- |
-| Processing \| Please wait, processing early data... | Early temporal processing, about 50 sweeps | Wait; inspect the sweep if progress stalls. |
-| Monitoring \| Monitoring! | Measurement path is active without an edge warning | Continue monitoring the experiment and storage. |
-| Warning \| Warning: -3dB frequencies not found (or lower / upper -3dB frequency not found) | One or both −3dB frequencies are missing, or the Q-factor check fails | Inspect the sweep and sensor conditions. |
-| Tracking Stopped \| … — Auto-tracking stopped | Tracking disabled after 10 consecutive sweeps with both edge-error flags | Do not interpret the interval as validated measurement. |
-| Monitoring \| Monitoring! — Auto-tracking still stopped, waiting for resume | The signal is back but recovery is not yet complete | Wait for recovery; inspect the sweep. |
+| Processing | First ~50 sweeps | Wait; inspect the sweep if it stalls. |
+| Monitoring | Normal acquisition | Continue. |
+| Warning: -3dB frequencies not found (or lower / upper) | −3dB frequency missing or Q check failed | Inspect sweep and sensor. |
+| Tracking Stopped | 10 sweeps without both −3dB frequencies | Do not treat the interval as valid. |
+| Monitoring! — Auto-tracking still stopped, waiting for resume | Signal back, recovery pending | Wait; inspect the sweep. |
 
-When five consecutive good sweeps restore tracking, the status returns to **Monitoring \| Monitoring!**. The only explicit notice is the System Log line “Auto-tracking re-enabled automatically”.
+On recovery the status returns to **Monitoring**; only the System Log reports “Auto-tracking re-enabled automatically”.
 
 ### What tracking safety does and does not do
 
@@ -790,9 +777,9 @@ Do not use rc3 for new measurements. The rc3 release is deprecated because its b
 
 ### Firmware update workflow
 
-![Figure 15. Firmware check and external-loader workflow with exact 2.2 match decision, manual route for a known same-version build, and post-update verification.](assets/firmware_workflow.png)
+![Figure 15. Firmware update workflow.](assets/firmware_workflow.png)
 
-Figure 15. Firmware update responsibilities and verification sequence. The Q-1 application only launches an external loader after disconnecting. It does not select the HEX file, supervise programming, or verify the result. A version match must be interpreted together with the image provenance. [R2, R6, R10, R17–R19]
+Figure 15. Firmware update workflow. [R2, R6, R10, R17–R19]
 
 ### Prepare the correct image and loader
 
@@ -1099,7 +1086,7 @@ These implementation references support the visible controls, procedures, units,
 
 [\[R13\] Screenshot capture and annotation scripts](https://github.com/openQCM/openQCM_Q-1/tree/main/docs/tools)
 
-Figures 1, 3 and 15 are original logical schematics of the documented measurement, operating and firmware workflows; they are not physical wiring diagrams or instrument screenshots. Figures 2 and 4–14 are screenshots of release v3.0.0-rc5, taken with docs/tools/capture_gui.py and annotated with docs/tools/annotate_gui.py. The unannotated originals are kept in assets/gui/raw. Live states were captured with a Q-1 and a 10 MHz sensor. Figure 7 uses a saved 5 MHz calibration, and Figure 12 uses the reference log docs/2026-04-24_10-25-14_F0.csv. No data were synthesized.
+Figures 1, 3 and 15 are original logical schematics, not wiring diagrams. Figures 2 and 4–14 are v3.0.0-rc5 screenshots made with docs/tools/capture_gui.py and annotate_gui.py, with a Q-1 and a 10 MHz sensor; Figure 7 uses a saved 5 MHz calibration and Figure 12 the reference log docs/2026-04-24_10-25-14_F0.csv. No data were synthesized.
 
 [\[R14\] Optional diagnostic scripts](https://github.com/openQCM/openQCM_Q-1/tree/v3.0.0-rc5/tools)
 
@@ -1142,7 +1129,7 @@ The manufacturer pages support the general QCM introduction. The loader sources 
 | 1.0 | 05 October 2026 | Initial English software user manual, aligned to source snapshot 8490b3164610 and separately scoped to the rc4 Windows distribution. |
 | 1.1 | 06 October 2026 | Added the Q-1 and QCM introduction, expanded firmware checks, external-loader procedures and recovery, and added technical schematics. Word, PDF, and Markdown remain synchronized. |
 | 1.2 | 12 October 2026 | Updated for release v3.0.0-rc5: Lock Axes / Unlock Axes in the plot context menu, linked frequency/dissipation pan and zoom, the legacy-firmware query fix now included in the release, and references pinned to tag v3.0.0-rc5. |
-| 1.3 | 16 October 2026 | Twelve annotated GUI screenshots of v3.0.0-rc5 replace the two historical repository screenshots, and shorter text refers to them. Corrected against the GUI: start-up mode, hidden controls in Peak Detection mode, status-bar strings and colours, tracking recovery, Measurement Parameters samples, cursor labels, Data View content and units, and update menu items. |
+| 1.3 | 16 October 2026 | Twelve annotated v3.0.0-rc5 screenshots replace the historical ones; shorter text; GUI names, states and units corrected. |
 
 This manual is an independently prepared operating reference for the identified software. It is not a manufacturer certification, regulatory approval, performance specification, or assertion of formal standards compliance. The software is published by openQCM / Novaetech S.r.l. under its stated GPL v3 license.
 
