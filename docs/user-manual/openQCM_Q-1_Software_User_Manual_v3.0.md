@@ -291,13 +291,17 @@ On Linux, the account must have permission to access the device serial port. The
 
 ### Connect before starting an operation
 
+![Figure 3. Serial Connection group after a successful connection: (1) Port, (2) Refresh, (3) Connect, shown as Disconnect while connected.](assets/gui/q1_04_serial_connection.png)
+
+Figure 3. **Serial Connection** after a successful connection. (1) **Port**; (2) **Refresh**, disabled while connected; (3) **Connect**, which becomes **Disconnect** while connected. [R4, R6]
+
 1. Plug the Q-1 into the computer with a USB data cable. Start the application.
 
-2. In **Serial Connection**, click **Refresh** and select the device’s **Port**. Typical names are COM… on Windows, /dev/tty.usbmodem… on macOS, and /dev/ttyACM… on Linux; identify the actual device rather than choosing an arbitrary entry.
+2. Click **Refresh** (2) and select the device in **Port** (1): COM… on Windows, /dev/tty.usbmodem… on macOS, /dev/ttyACM… on Linux. Identify the actual device rather than choosing an arbitrary entry.
 
-3. Click **Connect**. Check the connection indication and any message displayed by the application. The button changes to **Disconnect** when the connection is established.
+3. Click **Connect** (3). On success the button reads **Disconnect**, the status indicator turns yellow and the status bar reads **Standby | Connected to *port* (exclusive)** (Figure 14, item 1).
 
-4. Review the firmware check if it appears. The software expects firmware 2.2. Resolve a mismatch before relying on a measurement.
+4. The firmware check runs automatically after connection. It is silent when the device reports 2.2 and asks whether to update otherwise. Resolve a mismatch before relying on a measurement.
 
 5. Use **Tools → Check Board Serial Number** if the connected firmware supports it and you need the board identifier for your records. Perform device queries while acquisition is stopped.
 
@@ -309,7 +313,7 @@ The application reserves the selected port while connected and hands it to the a
 
 -  The selected port belongs to this instrument.
 
--  The connection indicator is healthy and the System Log does not show an unresolved communication error.
+-  The status bar shows **Standby** with a yellow indicator, and the System Log does not show an unresolved communication error.
 
 -  The sensor is installed and its nominal type is known.
 
