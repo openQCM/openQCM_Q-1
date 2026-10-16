@@ -414,19 +414,23 @@ Figure 5. Menu contents. On macOS the menus appear in the system menu bar and sh
 
 Peak detection makes a broad sweep, identifies resonances, and writes the calibration information used by Measurement mode. Repeat it for a newly installed sensor and whenever the previous peak list no longer represents the installed sensor or its condition.
 
+![Figure 6. Measurement Setup in Peak Detection mode and in Measurement mode: (1) Mode, (2) Frequency, (3) overtone buttons.](assets/gui/q1_08_mode_selection.png)
+
+Figure 6. **Measurement Setup** in the two modes. (1) **Mode**; (2) **Frequency**, the list of detected resonances; (3) overtone buttons F0–F9, enabled only for resonances found by the last peak detection. In Peak Detection mode, items 2 and 3 are hidden. [R4, R6]
+
 ### Procedure
 
 1. Connect the instrument. Stop any active acquisition and check that the sensor is installed correctly.
 
-2. Select **Peak Detection** in **Mode**. Click **START**.
+2. Check that **Mode** (Figure 6, item 1) shows **Peak Detection**, the default at start-up. Click **START**.
 
-3. Allow the operation to complete. The full acquisition spans **1–51 MHz** in ten sections, with a nominal **1 kHz** spacing and **50,001** saved sweep points.
+3. Allow the operation to complete. The full acquisition spans **1–51 MHz** in ten sections, with a nominal **1 kHz** spacing and **50,001** saved sweep points. The status bar reads **Peak Detection Processing** with an orange indicator (Figure 14, item 2).
 
-4. Read the completion status and the **System Log**. If the application reports a warning or no valid peak, inspect the result before changing to Measurement.
+4. Read the result: **Peak Detection Success** (Figure 14, item 3) with a pop-up listing the detected peaks, or **Peak Detection Warning** with a reason. Check the **System Log** as well. After a warning or no valid peak, inspect the result before changing to Measurement.
 
-5. Open **Tools → Peak Data View**. Compare the raw and corrected amplitude/phase curves with the peak markers. Check the detected sensor type and the fundamental.
+5. Open **Tools → Peak Data View** (chapter 9). Check the detected sensor type and the fundamental.
 
-6. Switch to **Measurement**. Review which resonances are actually selectable. Choose one valid resonance and perform a short measurement before continuing with your experiment.
+6. Switch **Mode** to **Measurement**. Choose one valid resonance with **Frequency** or an enabled overtone button (items 2 and 3), and perform a short measurement before continuing with your experiment.
 
 ### What is saved
 
