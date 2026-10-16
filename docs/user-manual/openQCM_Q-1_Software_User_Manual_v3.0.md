@@ -379,6 +379,10 @@ Restore hidden areas with **View → Left Panel** and **View → Status Bar**. *
 
 The menu bar is **File / View / Tools / Help**. The older “Data” menu described in some planning documentation is not the menu layout in this version.
 
+![Figure 5. The File, View, View → Theme, Tools and Help menus.](assets/gui/q1_07_menus.png)
+
+Figure 5. Menu contents. On macOS the menus appear in the system menu bar and show ⌘ instead of Ctrl. [R4]
+
 | **Menu** | **Command** | **Purpose** |
 | --- | --- | --- |
 | File | Open Log… | Load a recorded CSV in a separate viewer. |
@@ -394,8 +398,8 @@ The menu bar is **File / View / Tools / Help**. The older “Data” menu descri
 | Tools | Check Board Serial Number | Query the board identifier where firmware supports it. |
 | Help | User Guide | Open the linked manufacturer guide; this target is a v2.0 PDF in the inspected source. |
 | Help | Website / Email Support | Open the manufacturer site or an email message in the configured application. |
-| Help | Check for Updates… | Read the manufacturer’s published software update information. |
-| Help | Download Update | Open the update destination when an update has been detected. |
+| Help | Check for Updates… | Read the manufacturer’s published software update information. After the check the label shows the result, for example “(up to date)”. |
+| Help | Download Update | Disabled until a check finds a newer version; it is then renamed **Download v*X*** and opens the download. The light theme does not grey out this disabled item. |
 | Help | About openQCM Q-1 | Show application information. |
 
 ### Keyboard and pointer reference
