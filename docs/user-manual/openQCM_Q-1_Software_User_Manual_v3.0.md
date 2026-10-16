@@ -337,13 +337,13 @@ This checklist links the essential operations into a single run. It assumes the 
 
 Figure 2. Operating sequence. Original schematic of the documented workflow. [R4–R8, R11]
 
-1. **Find the resonances.** Select **Peak Detection** in **Mode** and click **START**. Allow the sweep to finish. Read the completion status; a warning is a reason to inspect the result, not to proceed automatically.
+1. **Find the resonances.** Check that **Mode** shows **Peak Detection**, the default at start-up, and click **START**. Allow the sweep to finish. Read the completion status; a warning is a reason to inspect the result, not to proceed automatically.
 
 2. **Check the detected peaks.** Open **Tools → Peak Data View**. Confirm a plausible fundamental and usable resonances for this sensor. If the result is poor, correct the connection or sensor condition and repeat detection.
 
 3. **Choose the measurement.** Select **Measurement** and choose the desired available resonance with **Frequency** or the F0/F3/F5/F7/F9 buttons. Begin with a resonance whose sweep you can evaluate confidently.
 
-4. **Start and verify.** Click **START**. The button changes to **STOP**. Wait through early processing. Check the amplitude/phase sweep, live readings, status, and the log filename in the sidebar or window title.
+4. **Start and verify.** Click **START**. The button changes to **STOP**. Wait through early processing. Check the amplitude/phase sweep, live readings, status, and the log filename in the sidebar or window title (Figure 4).
 
 5. **Establish your baseline.** Let your experimental baseline stabilize. If a relative display is useful, click **Set Reference**. Record when you set it and the values used. A display reference does not change the absolute CSV data.
 
