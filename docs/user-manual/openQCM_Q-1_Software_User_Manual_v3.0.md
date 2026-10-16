@@ -461,7 +461,11 @@ The approximate frequencies above identify harmonic order, not allowed error lim
 
 ### Use Peak Data View
 
-The view shows raw amplitude and phase, their estimated baselines, corrected curves, and detected peaks. Use it to distinguish a genuine resonance from a residual baseline feature or a suspicious candidate. Keep in mind that phase screening and baseline processing are part of an algorithm, not an independent reference measurement.
+![Figure 7. Peak Data View (window title Peak Detection Diagnostic) for a 5 MHz sensor with five detected peaks.](assets/gui/q1_09_peak_data_view.png)
+
+Figure 7. **Tools → Peak Data View** opens the window titled **Peak Detection Diagnostic** (example: saved 5 MHz calibration). (1) Sensor type and number of detected peaks; (2) legend: raw signal, 8th-order baseline, baseline-corrected curve; (3) amplitude peaks with their frequencies; (4) phase peaks used to validate them. Frequency is in MHz. This view numbers the fundamental **F1**, while the rest of the interface calls it **F0**. [R4, R5]
+
+Use the view to distinguish a genuine resonance from a residual baseline feature or a suspicious candidate. Phase screening and baseline processing are part of an algorithm, not an independent reference measurement.
 
 ### Before using an overtone
 
