@@ -21,6 +21,22 @@ Development checklist. Each item can become a GitHub Issue.
 
 ---
 
+## Development environment
+
+- [ ] **Apple Silicon setup on the M5 Pro** (planned 2026-10-30, not started).
+  The migrated Intel Anaconda does not run without Rosetta, and full Rosetta
+  ends after macOS 27. Plan: one native arm64 Miniconda with two envs —
+  `openqcm-x86-64` (current pinned stack, PyQt 5.9, under Rosetta) for work
+  now, and `openqcm-arm64` (PyQt 5.15, recent pyqtgraph) built on its own
+  branch for the future. Step-by-step Terminal commands in
+  `docs/APPLE_SILICON_SETUP.md`.
+    - [ ] Install Rosetta 2
+    - [ ] Install Miniconda arm64
+    - [ ] Create and test `openqcm-x86-64`
+    - [ ] Create `openqcm-arm64`, port the code, validate with an instrument
+
+---
+
 ## Validation
 
 - [ ] **Trimmed mean fraction** (`constants.py:226`, `trim_mean_fraction = 0.10`):
