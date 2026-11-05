@@ -1,7 +1,17 @@
-# Apple Silicon development setup — plan (not done yet)
+# Apple Silicon development setup
 
-Status: **planned, approved 2026-10-30, not started.** Everything below is run
-from the Terminal, one step at a time.
+Status: **steps 1–3 done on 2026-11-05** — Rosetta 2 present, Miniconda
+arm64 (conda 26.9.4) in `~/miniconda3`, `openqcm-x86-64` verified
+(`x86_64 1.21.5 1.7.3 5.9.2`) and the GUI starts. Still open: a test with an
+instrument connected, and step 4 (`openqcm-arm64`).
+
+Notes from the install:
+- The old Anaconda block in `~/.zshrc` has no "managed by conda init" header,
+  so `conda init` did not replace it; it was commented out by hand (backup:
+  `~/.zshrc.bak-2026-11-05`). Otherwise, with Rosetta installed, it would load
+  after Miniconda and take over.
+- Anaconda ToS for `pkgs/main` and `pkgs/r` accepted with
+  `conda tos accept --override-channels --channel <url>`.
 
 ## Why
 
