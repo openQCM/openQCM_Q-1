@@ -430,9 +430,11 @@ class SerialProcess(multiprocessing.Process):
             self.check_and_update_tracking(freq_range_mean, self._samples)
 
         # 7. Forward filtered traces, smoothed values and timestamp to GUI queues
-        import datetime
-        epoch = datetime.datetime(1970, 1, 1, 0, 0)
-        ts_us = int((datetime.datetime.now() - epoch).total_seconds() * 1e6)
+        # True Unix epoch (UTC-based): the CSV writer converts it back with
+        # datetime.fromtimestamp(), which applies the local UTC offset. The
+        # old "naive local now - naive 1970 epoch" already contained that
+        # offset, so it was applied twice (+1 h in CET, +2 h in CEST).
+        ts_us = int(time() * 1e6)
 
         self._parser1.add1(filtered_mag)
         self._parser2.add2(phase)
